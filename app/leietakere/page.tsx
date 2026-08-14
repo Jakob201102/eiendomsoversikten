@@ -1,4 +1,3 @@
-
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -7,8 +6,11 @@ import Navigasjon from "../components/Navigasjon";
 import { hentBoliger } from "../lib/boliger";
 import {
   hentLeietakere,
+  lagKontraktLenke,
+  lastOppLeiekontrakt,
   oppdaterLeietaker,
   opprettLeietaker,
+  slettLeiekontrakt,
   slettLeietaker,
   type Leietaker,
   type LeietakerSkjema,
@@ -44,6 +46,7 @@ export default function Leietakere() {
   const [sortering, setSortering] = useState<Sortering>("utloper-forst");
   const [laster, setLaster] = useState(true);
   const [lagrer, setLagrer] = useState(false);
+  const [kontraktJobber, setKontraktJobber] = useState<string | null>(null);
   const [feil, setFeil] = useState("");
 
   useEffect(() => {
@@ -170,6 +173,54 @@ export default function Leietakere() {
     }
   }
 
+  async function lastOppKontrakt(l: Leietaker, fil?: File) {
+    if (!fil) return;
+    setFeil("");
+    setKontraktJobber(l.id);
+    try {
+      await lastOppLeiekontrakt(l, fil);
+      setLeietakere(await hentLeietakere());
+    } catch (error) {
+      const kode = error instanceof Error ? error.message : "";
+      if (kode === "BARE_PDF") setFeil("Leiekontrakten må være en PDF-fil.");
+      else if (kode === "FIL_FOR_STOR") setFeil("PDF-filen kan ikke være større enn 20 MB.");
+      else setFeil("Kunne ikke laste opp leiekontrakten. Prøv igjen.");
+    } finally {
+      setKontraktJobber(null);
+    }
+  }
+
+  async function apneKontrakt(l: Leietaker) {
+    if (!l.kontraktSti) return;
+    setFeil("");
+    setKontraktJobber(l.id);
+    const nyttVindu = window.open("", "_blank");
+    try {
+      const lenke = await lagKontraktLenke(l.kontraktSti);
+      if (nyttVindu) nyttVindu.location.href = lenke;
+      else window.location.href = lenke;
+    } catch {
+      nyttVindu?.close();
+      setFeil("Kunne ikke åpne leiekontrakten.");
+    } finally {
+      setKontraktJobber(null);
+    }
+  }
+
+  async function slettKontrakt(l: Leietaker) {
+    if (!window.confirm(`Vil du slette leiekontrakten til ${l.navn}?`)) return;
+    setFeil("");
+    setKontraktJobber(l.id);
+    try {
+      await slettLeiekontrakt(l);
+      setLeietakere(await hentLeietakere());
+    } catch {
+      setFeil("Kunne ikke slette leiekontrakten.");
+    } finally {
+      setKontraktJobber(null);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <Navigasjon />
@@ -210,7 +261,7 @@ export default function Leietakere() {
           </section>
 
           {synlige.length === 0 ? <div className="mt-5 rounded-2xl bg-white px-6 py-14 text-center"><h2 className="text-2xl font-bold">Ingen leietakere funnet</h2><button type="button" onClick={nyLeietaker} className="mt-5 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white">Registrer leietaker</button></div> :
-            <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{synlige.map((l) => <Leietakerkort key={l.id} leietaker={l} bolig={boligadresse(boliger, l.boligId)} rediger={() => rediger(l)} slett={() => slett(l)} />)}</section>}
+            <section className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{synlige.map((l) => <Leietakerkort key={l.id} leietaker={l} bolig={boligadresse(boliger, l.boligId)} jobber={kontraktJobber === l.id} rediger={() => rediger(l)} slett={() => slett(l)} lastOpp={(fil) => lastOppKontrakt(l, fil)} apne={() => apneKontrakt(l)} slettKontrakt={() => slettKontrakt(l)} />)}</section>}
         </>}
       </div>
     </main>
@@ -245,7 +296,7 @@ function Skjema({ boliger, data, redigerer, lagrer, feil, sett, lagre, avbryt }:
   </form>;
 }
 
-function Leietakerkort({ leietaker, bolig, rediger, slett }: { leietaker: Leietaker; bolig: string; rediger: () => void; slett: () => void }) {
+function Leietakerkort({ leietaker, bolig, jobber, rediger, slett, lastOpp, apne, slettKontrakt }: { leietaker: Leietaker; bolig: string; jobber: boolean; rediger: () => void; slett: () => void; lastOpp: (fil?: File) => void; apne: () => void; slettKontrakt: () => void }) {
   const status = kontraktsstatus(leietaker);
   return <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
     <div className={`h-1.5 ${status.farge}`} />
@@ -261,6 +312,18 @@ function Leietakerkort({ leietaker, bolig, rediger, slett }: { leietaker: Leieta
         {leietaker.epost && <Detalj label="E-post" verdi={leietaker.epost} />}
       </div>
       {leietaker.notat && <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{leietaker.notat}</p>}
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Leiekontrakt</p>
+        {leietaker.kontraktSti ? <>
+          <p className="mt-2 break-all text-sm font-semibold">{leietaker.kontraktFilnavn || "Leiekontrakt.pdf"}</p>
+          {leietaker.kontraktLastetOpp && <p className="mt-1 text-xs text-slate-500">Lastet opp {datoMedTid(leietaker.kontraktLastetOpp)}</p>}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <button type="button" onClick={apne} disabled={jobber} className="rounded-lg bg-emerald-500 px-2 py-2 text-xs font-semibold text-white disabled:opacity-50">Åpne</button>
+            <label className={`cursor-pointer rounded-lg border border-slate-300 px-2 py-2 text-center text-xs font-semibold ${jobber ? "pointer-events-none opacity-50" : ""}`}>Bytt<input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { lastOpp(e.target.files?.[0]); e.currentTarget.value = ""; }} /></label>
+            <button type="button" onClick={slettKontrakt} disabled={jobber} className="rounded-lg border border-red-200 px-2 py-2 text-xs font-semibold text-red-600 disabled:opacity-50">Slett</button>
+          </div>
+        </> : <label className={`mt-2 block cursor-pointer rounded-lg bg-emerald-500 px-4 py-2.5 text-center text-sm font-semibold text-white ${jobber ? "pointer-events-none opacity-50" : ""}`}>{jobber ? "Laster opp…" : "Last opp PDF"}<input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => { lastOpp(e.target.files?.[0]); e.currentTarget.value = ""; }} /></label>}
+      </div>
       <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={rediger} className="rounded-xl bg-slate-900 px-4 py-2.5 font-semibold text-white">Rediger</button><button type="button" onClick={slett} className="rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-600">Slett</button></div>
     </div>
   </article>;
@@ -300,6 +363,7 @@ function dagerTil(verdi: string) {
 function datotid(verdi: string) { return new Date(`${verdi}T00:00:00`).getTime(); }
 function boligadresse(boliger: Bolig[], id: string) { return boliger.find((b) => b.id === id)?.adresse || "Ukjent bolig"; }
 function dato(verdi: string) { return verdi ? new Intl.DateTimeFormat("nb-NO").format(new Date(`${verdi}T00:00:00`)) : "Ikke valgt"; }
+function datoMedTid(verdi: string) { return new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium", timeStyle: "short" }).format(new Date(verdi)); }
 function kroner(belop: number) { return new Intl.NumberFormat("nb-NO", { style: "currency", currency: "NOK", maximumFractionDigits: 0 }).format(Number(belop || 0)); }
 function depositumTekst(status: Leietaker["depositumsstatus"]) { return status === "betalt" ? "Betalt" : status === "venter" ? "Venter" : status === "tilbakebetalt" ? "Tilbakebetalt" : "Ikke registrert"; }
 function Nokkeltall({ label, verdi }: { label: string; verdi: string }) { return <div className="rounded-xl bg-white p-4 shadow-sm"><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-lg font-bold sm:text-xl">{verdi}</p></div>; }
