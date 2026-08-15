@@ -13,24 +13,18 @@ import { createClient } from "../lib/supabase/client";
 
 export default function Konto() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
-  const supabase = useMemo(
-    () => createClient(),
-    [],
-  );
-
+  const [navn, setNavn] = useState("");
+  const [mobil, setMobil] = useState("");
   const [epost, setEpost] = useState("");
   const [nyEpost, setNyEpost] = useState("");
-  const [nyttPassord, setNyttPassord] =
-    useState("");
-  const [gjentaPassord, setGjentaPassord] =
-    useState("");
-  const [bekreftelse, setBekreftelse] =
-    useState("");
+  const [nyttPassord, setNyttPassord] = useState("");
+  const [gjentaPassord, setGjentaPassord] = useState("");
+  const [bekreftelse, setBekreftelse] = useState("");
 
   const [laster, setLaster] = useState(true);
-  const [arbeider, setArbeider] =
-    useState(false);
+  const [arbeider, setArbeider] = useState(false);
   const [melding, setMelding] = useState("");
   const [feil, setFeil] = useState("");
 
@@ -47,16 +41,23 @@ export default function Konto() {
 
       setEpost(user.email || "");
       setNyEpost(user.email || "");
+      setNavn(
+        typeof user.user_metadata?.navn === "string"
+          ? user.user_metadata.navn
+          : "",
+      );
+      setMobil(
+        typeof user.user_metadata?.mobil === "string"
+          ? user.user_metadata.mobil
+          : "",
+      );
 
-      const passordOppdatert =
-        new URLSearchParams(
-          window.location.search,
-        ).get("passord");
+      const passordOppdatert = new URLSearchParams(
+        window.location.search,
+      ).get("passord");
 
       if (passordOppdatert === "oppdatert") {
-        setMelding(
-          "Passordet er oppdatert.",
-        );
+        setMelding("Passordet er oppdatert.");
       }
 
       setLaster(false);
@@ -71,34 +72,55 @@ export default function Konto() {
     setFeil("");
   }
 
-  async function endreEpost(
-    event: FormEvent,
-  ) {
+  async function lagreProfil(event: FormEvent) {
+    event.preventDefault();
+    startArbeid();
+
+    const ryddetNavn = navn.trim();
+    const ryddetMobil = mobil.trim();
+
+    if (ryddetMobil && !/^[+\d][\d\s-]{5,19}$/.test(ryddetMobil)) {
+      setFeil("Skriv inn et gyldig mobilnummer.");
+      setArbeider(false);
+      return;
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        navn: ryddetNavn,
+        mobil: ryddetMobil,
+      },
+    });
+
+    if (error) {
+      setFeil("Kunne ikke lagre profilopplysningene.");
+    } else {
+      setNavn(ryddetNavn);
+      setMobil(ryddetMobil);
+      setMelding("Profilopplysningene er lagret.");
+    }
+
+    setArbeider(false);
+  }
+
+  async function endreEpost(event: FormEvent) {
     event.preventDefault();
     startArbeid();
 
     const ryddetEpost = nyEpost.trim();
 
-    if (
-      !ryddetEpost ||
-      ryddetEpost === epost
-    ) {
-      setFeil(
-        "Skriv inn en ny e-postadresse.",
-      );
+    if (!ryddetEpost || ryddetEpost === epost) {
+      setFeil("Skriv inn en ny e-postadresse.");
       setArbeider(false);
       return;
     }
 
-    const { error } =
-      await supabase.auth.updateUser({
-        email: ryddetEpost,
-      });
+    const { error } = await supabase.auth.updateUser({
+      email: ryddetEpost,
+    });
 
     if (error) {
-      setFeil(
-        "Kunne ikke endre e-postadressen.",
-      );
+      setFeil("Kunne ikke endre e-postadressen.");
     } else {
       setMelding(
         "Sjekk både gammel og ny e-postadresse for å bekrefte endringen.",
@@ -108,42 +130,30 @@ export default function Konto() {
     setArbeider(false);
   }
 
-  async function endrePassord(
-    event: FormEvent,
-  ) {
+  async function endrePassord(event: FormEvent) {
     event.preventDefault();
     startArbeid();
 
     if (nyttPassord.length < 6) {
-      setFeil(
-        "Passordet må inneholde minst 6 tegn.",
-      );
+      setFeil("Passordet må inneholde minst 6 tegn.");
       setArbeider(false);
       return;
     }
 
     if (nyttPassord !== gjentaPassord) {
-      setFeil(
-        "Passordene er ikke like.",
-      );
+      setFeil("Passordene er ikke like.");
       setArbeider(false);
       return;
     }
 
-    const { error } =
-      await supabase.auth.updateUser({
-        password: nyttPassord,
-      });
+    const { error } = await supabase.auth.updateUser({
+      password: nyttPassord,
+    });
 
     if (error) {
-      setFeil(
-        "Kunne ikke endre passordet.",
-      );
+      setFeil("Kunne ikke endre passordet.");
     } else {
-      setMelding(
-        "Passordet er endret.",
-      );
-
+      setMelding("Passordet er endret.");
       setNyttPassord("");
       setGjentaPassord("");
     }
@@ -152,17 +162,13 @@ export default function Konto() {
   }
 
   async function slettKonto() {
-    if (bekreftelse !== "SLETT") {
-      return;
-    }
+    if (bekreftelse !== "SLETT") return;
 
     const godkjent = window.confirm(
-      "Dette sletter kontoen, alle boliger og alle vedlikeholdsoppgaver permanent. Fortsette?",
+      "Dette sletter kontoen og alle tilknyttede data permanent. Fortsette?",
     );
 
-    if (!godkjent) {
-      return;
-    }
+    if (!godkjent) return;
 
     startArbeid();
 
@@ -173,39 +179,26 @@ export default function Konto() {
     const token = session?.access_token;
 
     if (!token) {
-      setFeil(
-        "Innloggingen er utløpt. Logg inn på nytt.",
-      );
+      setFeil("Innloggingen er utløpt. Logg inn på nytt.");
       setArbeider(false);
       return;
     }
 
-    const respons = await fetch(
-      "/api/slett-konto",
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
+    const respons = await fetch("/api/slett-konto", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     const resultat = await respons.json();
 
     if (!respons.ok) {
-      setFeil(
-        resultat.error ||
-          "Kontoen kunne ikke slettes.",
-      );
-
+      setFeil(resultat.error || "Kontoen kunne ikke slettes.");
       setArbeider(false);
       return;
     }
 
     await supabase.auth.signOut();
-
     localStorage.clear();
-
     router.replace("/");
     router.refresh();
   }
@@ -214,10 +207,7 @@ export default function Konto() {
     return (
       <main className="min-h-screen bg-slate-100">
         <Navigasjon />
-
-        <p className="p-12 text-center">
-          Laster kontoen…
-        </p>
+        <p className="p-12 text-center">Laster kontoen…</p>
       </main>
     );
   }
@@ -228,17 +218,9 @@ export default function Konto() {
 
       <header className="bg-slate-900 px-4 py-8 text-white">
         <div className="mx-auto max-w-4xl">
-          <p className="font-semibold text-emerald-400">
-            MIN KONTO
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold">
-            Kontoinnstillinger
-          </h1>
-
-          <p className="mt-2 text-slate-400">
-            Innlogget som {epost}
-          </p>
+          <p className="font-semibold text-emerald-400">MIN KONTO</p>
+          <h1 className="mt-2 text-3xl font-bold">Kontoinnstillinger</h1>
+          <p className="mt-2 text-slate-400">Innlogget som {epost}</p>
         </div>
       </header>
 
@@ -255,22 +237,55 @@ export default function Konto() {
           </div>
         )}
 
+        <Kontokort
+          tittel="Profilopplysninger"
+          beskrivelse="Navn og mobilnummer er valgfritt."
+        >
+          <form onSubmit={lagreProfil} className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Felt label="Navn">
+              <input
+                type="text"
+                autoComplete="name"
+                value={navn}
+                onChange={(event) => setNavn(event.target.value)}
+                placeholder="Ditt navn"
+                maxLength={100}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
+              />
+            </Felt>
+
+            <Felt label="Mobilnummer">
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={mobil}
+                onChange={(event) => setMobil(event.target.value)}
+                placeholder="For eksempel 999 99 999"
+                maxLength={20}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
+              />
+            </Felt>
+
+            <button
+              type="submit"
+              disabled={arbeider}
+              className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-600 disabled:opacity-60 sm:col-span-2 sm:justify-self-start"
+            >
+              {arbeider ? "Lagrer…" : "Lagre profil"}
+            </button>
+          </form>
+        </Kontokort>
+
         <Kontokort tittel="Endre e-post">
-          <form
-            onSubmit={endreEpost}
-            className="mt-4 flex flex-col gap-3 sm:flex-row"
-          >
+          <form onSubmit={endreEpost} className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               type="email"
+              autoComplete="email"
               value={nyEpost}
-              onChange={(event) =>
-                setNyEpost(
-                  event.target.value,
-                )
-              }
-              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3"
+              onChange={(event) => setNyEpost(event.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
             />
-
             <button
               type="submit"
               disabled={arbeider}
@@ -282,36 +297,23 @@ export default function Konto() {
         </Kontokort>
 
         <Kontokort tittel="Endre passord">
-          <form
-            onSubmit={endrePassord}
-            className="mt-4 grid gap-3 sm:grid-cols-2"
-          >
+          <form onSubmit={endrePassord} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input
               type="password"
               autoComplete="new-password"
               value={nyttPassord}
-              onChange={(event) =>
-                setNyttPassord(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setNyttPassord(event.target.value)}
               placeholder="Nytt passord"
-              className="rounded-xl border border-slate-300 px-4 py-3"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
             />
-
             <input
               type="password"
               autoComplete="new-password"
               value={gjentaPassord}
-              onChange={(event) =>
-                setGjentaPassord(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setGjentaPassord(event.target.value)}
               placeholder="Gjenta passord"
-              className="rounded-xl border border-slate-300 px-4 py-3"
+              className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
             />
-
             <button
               type="submit"
               disabled={arbeider}
@@ -323,39 +325,25 @@ export default function Konto() {
         </Kontokort>
 
         <section className="rounded-2xl border border-red-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-bold text-red-700">
-            Slett konto
-          </h2>
-
+          <h2 className="text-xl font-bold text-red-700">Slett konto</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Dette sletter kontoen, boligene og
-            vedlikeholdsoppgavene permanent.
-            Handlingen kan ikke angres.
+            Dette sletter kontoen og alle tilknyttede data permanent. Handlingen
+            kan ikke angres.
           </p>
-
           <label className="mt-4 block">
             <span className="mb-2 block text-sm font-medium">
               Skriv SLETT for å bekrefte
             </span>
-
             <input
               value={bekreftelse}
-              onChange={(event) =>
-                setBekreftelse(
-                  event.target.value,
-                )
-              }
+              onChange={(event) => setBekreftelse(event.target.value)}
               className="w-full rounded-xl border border-red-300 px-4 py-3 sm:max-w-xs"
             />
           </label>
-
           <button
             type="button"
             onClick={slettKonto}
-            disabled={
-              arbeider ||
-              bekreftelse !== "SLETT"
-            }
+            disabled={arbeider || bekreftelse !== "SLETT"}
             className="mt-4 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             Slett kontoen permanent
@@ -368,18 +356,29 @@ export default function Konto() {
 
 function Kontokort({
   tittel,
+  beskrivelse,
   children,
 }: {
   tittel: string;
+  beskrivelse?: string;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-bold">
-        {tittel}
-      </h2>
-
+      <h2 className="text-xl font-bold">{tittel}</h2>
+      {beskrivelse && (
+        <p className="mt-1 text-sm text-slate-500">{beskrivelse}</p>
+      )}
       {children}
     </section>
+  );
+}
+
+function Felt({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium">{label}</span>
+      {children}
+    </label>
   );
 }
