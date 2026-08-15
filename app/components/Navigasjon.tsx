@@ -87,7 +87,11 @@ export default function Navigasjon() {
             onClick={() => setMenyApen(false)}
             className="shrink-0 text-lg font-bold xl:text-xl"
           >
-            Eiendomsoversikten
+            <span>Eiendomsoversikten</span>
+
+<span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-400 xl:text-xs">
+  BETA
+</span>
           </Link>
 
           <div className="hidden items-center gap-3 text-sm lg:flex xl:gap-4">
