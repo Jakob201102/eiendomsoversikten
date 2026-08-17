@@ -10,10 +10,10 @@ import { hentVedlikeholdsoppgaver } from "./lib/vedlikehold";
 type Bolig = {
   id: string | number;
   adresse: string;
+  kjopesum: number;
   markedsverdi: number;
   restlaan: number;
   manedsleie: number;
-  nettoyield: number;
   kontantstrom: number;
 };
 
@@ -90,9 +90,10 @@ export default function Home() {
   const samletManedsleie = summer(boliger, "manedsleie");
   const samletKontantstrom = summer(boliger, "kontantstrom");
   const samletEgenkapital = samletMarkedsverdi - samletRestlaan;
-  const gjennomsnittligYield =
-    antallBoliger > 0
-      ? summer(boliger, "nettoyield") / antallBoliger
+  const samletKjopesum = summer(boliger, "kjopesum");
+  const portefoljeBruttoyield =
+    samletKjopesum > 0
+      ? ((samletManedsleie * 12) / samletKjopesum) * 100
       : 0;
 
   const kontrakterUtloper = leietakere.filter(
@@ -188,8 +189,8 @@ export default function Home() {
                     value={kroner(samletManedsleie)}
                   />
                   <Portefoljetall
-                    label="Gjennomsnittlig nettoyield"
-                    value={`${gjennomsnittligYield.toFixed(2)} %`}
+                    label="Bruttoyield av kjøpesum"
+                    value={`${portefoljeBruttoyield.toFixed(2)} %`}
                   />
                   <Portefoljetall
                     label="Månedlig kontantstrøm"
@@ -545,7 +546,7 @@ function dagerTil(verdi: string) {
   );
 }
 
-function summer(boliger: Bolig[], felt: keyof Pick<Bolig, "markedsverdi" | "restlaan" | "manedsleie" | "nettoyield" | "kontantstrom">) {
+function summer(boliger: Bolig[], felt: keyof Pick<Bolig, "kjopesum" | "markedsverdi" | "restlaan" | "manedsleie" | "kontantstrom">) {
   return boliger.reduce((sum, bolig) => sum + Number(bolig[felt] || 0), 0);
 }
 

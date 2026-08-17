@@ -34,18 +34,15 @@ export default function LoggInn() {
     }
 
     if (modus === "glemt") {
-      const { error } =
-        await supabase.auth.resetPasswordForEmail(
-          ryddetEpost,
-          {
-            redirectTo: `${window.location.origin}/nytt-passord`,
-          },
-        );
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        ryddetEpost,
+        {
+          redirectTo: `${window.location.origin}/nytt-passord`,
+        },
+      );
 
       if (error) {
-        setFeilmelding(
-          oversettFeilmelding(error.message),
-        );
+        setFeilmelding(oversettFeilmelding(error.message));
       } else {
         setMelding(
           "Hvis adressen er registrert, får du snart en e-post med lenke for å velge nytt passord.",
@@ -57,27 +54,22 @@ export default function LoggInn() {
     }
 
     if (passord.length < 6) {
-      setFeilmelding(
-        "Passordet må inneholde minst 6 tegn.",
-      );
+      setFeilmelding("Passordet må inneholde minst 6 tegn.");
       setLaster(false);
       return;
     }
 
     if (modus === "registrer") {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email: ryddetEpost,
-          password: passord,
-          options: {
-            emailRedirectTo: `${window.location.origin}/boliger`,
-          },
-        });
+      const { data, error } = await supabase.auth.signUp({
+        email: ryddetEpost,
+        password: passord,
+        options: {
+          emailRedirectTo: `${window.location.origin}/boliger`,
+        },
+      });
 
       if (error) {
-        setFeilmelding(
-          oversettFeilmelding(error.message),
-        );
+        setFeilmelding(oversettFeilmelding(error.message));
       } else if (data.session) {
         router.push("/boliger");
         router.refresh();
@@ -92,11 +84,10 @@ export default function LoggInn() {
       return;
     }
 
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email: ryddetEpost,
-        password: passord,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: ryddetEpost,
+      password: passord,
+    });
 
     if (error) {
       setFeilmelding(
@@ -156,40 +147,30 @@ export default function LoggInn() {
             <div className="mt-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
               <Modusknapp
                 aktiv={modus === "logg-inn"}
-                onClick={() =>
-                  byttModus("logg-inn")
-                }
+                onClick={() => byttModus("logg-inn")}
               >
                 Logg inn
               </Modusknapp>
 
               <Modusknapp
                 aktiv={modus === "registrer"}
-                onClick={() =>
-                  byttModus("registrer")
-                }
+                onClick={() => byttModus("registrer")}
               >
                 Registrer
               </Modusknapp>
             </div>
           )}
 
-          <form
-            onSubmit={sendSkjema}
-            className="mt-6"
-          >
+          <form onSubmit={sendSkjema} className="mt-6">
             <label>
               <span className="mb-2 block text-sm font-medium">
                 E-post
               </span>
-
               <input
                 type="email"
                 autoComplete="email"
                 value={epost}
-                onChange={(event) =>
-                  setEpost(event.target.value)
-                }
+                onChange={(event) => setEpost(event.target.value)}
                 placeholder="navn@eksempel.no"
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
               />
@@ -200,7 +181,6 @@ export default function LoggInn() {
                 <span className="mb-2 block text-sm font-medium">
                   Passord
                 </span>
-
                 <input
                   type="password"
                   autoComplete={
@@ -209,9 +189,7 @@ export default function LoggInn() {
                       : "current-password"
                   }
                   value={passord}
-                  onChange={(event) =>
-                    setPassord(event.target.value)
-                  }
+                  onChange={(event) => setPassord(event.target.value)}
                   placeholder="Minst 6 tegn"
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
                 />
@@ -228,15 +206,8 @@ export default function LoggInn() {
               </button>
             )}
 
-            {feilmelding && (
-              <Beskjed feil>
-                {feilmelding}
-              </Beskjed>
-            )}
-
-            {melding && (
-              <Beskjed>{melding}</Beskjed>
-            )}
+            {feilmelding && <Beskjed feil>{feilmelding}</Beskjed>}
+            {melding && <Beskjed>{melding}</Beskjed>}
 
             <button
               type="submit"
@@ -256,14 +227,22 @@ export default function LoggInn() {
           {glemt && (
             <button
               type="button"
-              onClick={() =>
-                byttModus("logg-inn")
-              }
+              onClick={() => byttModus("logg-inn")}
               className="mt-4 w-full text-sm font-semibold text-slate-600"
             >
               Tilbake til innlogging
             </button>
           )}
+
+          <p className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
+            Trenger du hjelp?{" "}
+            <a
+              href="mailto:eiendomsoversikten@gmail.com"
+              className="font-semibold text-emerald-700 hover:text-emerald-800"
+            >
+              Kontakt oss
+            </a>
+          </p>
         </div>
       </section>
     </main>
@@ -320,15 +299,12 @@ function oversettFeilmelding(melding: string) {
   if (liten.includes("user already registered")) {
     return "Denne e-postadressen er allerede registrert.";
   }
-
   if (liten.includes("invalid email")) {
     return "Skriv inn en gyldig e-postadresse.";
   }
-
   if (liten.includes("password")) {
     return "Passordet oppfyller ikke kravene.";
   }
-
   if (liten.includes("rate limit")) {
     return "For mange forsøk. Vent litt og prøv igjen.";
   }

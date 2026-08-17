@@ -24,10 +24,11 @@ type Bolig = {
   ledighet: number;
   felleskostnader: number;
   kommunaleAvgifter: number;
-  forsikring: number;
+  stromInternett: number;
   vedlikehold: number;
   andreKostnader: number;
   skattepliktig: boolean;
+  bruttoyield: number;
   nettoyield: number;
   kontantstrom: number;
   egenkapitalverdi: number;
@@ -57,7 +58,7 @@ export default function Kalkulator() {
     useState(2_500);
   const [kommunaleAvgifter, setKommunaleAvgifter] =
     useState(18_000);
-  const [forsikring, setForsikring] = useState(8_000);
+  const [stromInternett, setStromInternett] = useState(1_500);
   const [vedlikehold, setVedlikehold] = useState(20_000);
   const [andreKostnader, setAndreKostnader] =
     useState(6_000);
@@ -98,7 +99,7 @@ export default function Kalkulator() {
         setLedighet(Number(bolig.ledighet || 0));
         setFelleskostnader(Number(bolig.felleskostnader || 0));
         setKommunaleAvgifter(Number(bolig.kommunaleAvgifter || 0));
-        setForsikring(Number(bolig.forsikring || 0));
+        setStromInternett(Number(bolig.stromInternett || 0));
         setVedlikehold(Number(bolig.vedlikehold || 0));
         setAndreKostnader(Number(bolig.andreKostnader || 0));
         setSkattepliktig(bolig.skattepliktig ?? true);
@@ -162,7 +163,7 @@ export default function Kalkulator() {
   const arligeDriftskostnader =
     felleskostnader * 12 +
     kommunaleAvgifter +
-    forsikring +
+    stromInternett * 12 +
     vedlikehold +
     andreKostnader;
 
@@ -191,15 +192,13 @@ export default function Kalkulator() {
     );
   }
 
-  const skattepliktigOverskudd = Math.max(
-    0,
+  const skattepliktigResultat =
     effektivLeieinntekt -
-      arligeDriftskostnader -
-      renterForsteAr,
-  );
+    arligeDriftskostnader -
+    renterForsteAr;
 
   const beregnetSkatt = skattepliktig
-    ? skattepliktigOverskudd * 0.22
+    ? skattepliktigResultat * 0.22
     : 0;
 
   const arligKontantstrom =
@@ -211,8 +210,8 @@ export default function Kalkulator() {
     arligKontantstrom / 12;
 
   const bruttoyield =
-    markedsverdi > 0
-      ? (bruttoLeieinntekt / markedsverdi) * 100
+    kjopesum > 0
+      ? (bruttoLeieinntekt / kjopesum) * 100
       : 0;
 
   const nettoyield =
@@ -255,10 +254,11 @@ export default function Kalkulator() {
       ledighet,
       felleskostnader,
       kommunaleAvgifter,
-      forsikring,
+      stromInternett,
       vedlikehold,
       andreKostnader,
       skattepliktig,
+      bruttoyield,
       nettoyield,
       kontantstrom: manedligKontantstrom,
       egenkapitalverdi,
@@ -327,8 +327,8 @@ export default function Kalkulator() {
           />
 
           <Nokkeltall
-            label="Nettoyield"
-            value={`${nettoyield.toFixed(2)} %`}
+            label="Bruttoyield av kjøpesum"
+            value={`${bruttoyield.toFixed(2)} %`}
           />
 
           <Nokkeltall
@@ -434,9 +434,9 @@ export default function Kalkulator() {
                 />
 
                 <Tallfelt
-                  label="Forsikring per år"
-                  value={forsikring}
-                  onChange={setForsikring}
+                  label="Strøm og internett per måned"
+                  value={stromInternett}
+                  onChange={setStromInternett}
                   suffix="kr"
                 />
 
@@ -516,7 +516,7 @@ export default function Kalkulator() {
 
             <Kort tittel="Lønnsomhet">
               <Rad
-                label="Bruttoyield"
+                label="Bruttoyield av kjøpesum"
                 value={`${bruttoyield.toFixed(2)} %`}
               />
 
@@ -531,7 +531,7 @@ export default function Kalkulator() {
               />
 
               <Rad
-                label="Beregnet skatt per år"
+                label="Beregnet skatteeffekt per år"
                 value={kroner(beregnetSkatt)}
               />
 

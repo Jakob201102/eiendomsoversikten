@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Footer from "./components/Footer";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,6 @@ export const metadata: Metadata = {
     default: "Eiendomsoversikten",
     template: "%s | Eiendomsoversikten",
   },
-
   description:
     "Oversikt over verdi, lån, yield og kontantstrøm for utleieboliger.",
 };
@@ -20,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="nb">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }

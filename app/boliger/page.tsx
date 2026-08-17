@@ -23,11 +23,12 @@ type Bolig = {
   ledighet: number;
   felleskostnader: number;
   kommunaleAvgifter: number;
-  forsikring: number;
+  stromInternett?: number;
   vedlikehold: number;
   andreKostnader: number;
   skattepliktig: boolean;
-  nettoyield: number;
+  bruttoyield?: number;
+  nettoyield?: number;
   kontantstrom: number;
   egenkapitalverdi: number;
   verdistigning: number;
@@ -49,7 +50,7 @@ export default function Boliger() {
   const [feilmelding, setFeilmelding] = useState("");
   const [sok, setSok] = useState("");
   const [filter, setFilter] = useState("alle");
-  const [sortering, setSortering] = useState("nettoyield");
+  const [sortering, setSortering] = useState("bruttoyield");
   const [side, setSide] = useState(1);
   const [valgtBolig, setValgtBolig] =
     useState<Bolig | null>(null);
@@ -143,10 +144,7 @@ export default function Boliger() {
           );
         }
 
-        return (
-          tall(b.nettoyield) -
-          tall(a.nettoyield)
-        );
+        return beregnBruttoyield(b) - beregnBruttoyield(a);
       });
   }, [boliger, sok, filter, sortering]);
 
@@ -214,7 +212,7 @@ export default function Boliger() {
   function nullstill() {
     setSok("");
     setFilter("alle");
-    setSortering("nettoyield");
+    setSortering("bruttoyield");
     setSide(1);
   }
 
@@ -324,7 +322,7 @@ export default function Boliger() {
               aria-label="Sorter boliger"
               className="rounded-xl border border-slate-300 bg-white px-3 py-2.5"
             >
-              <option value="nettoyield">
+              <option value="bruttoyield">
                 Høyest yield
               </option>
 
@@ -437,10 +435,8 @@ export default function Boliger() {
                         />
 
                         <KortTall
-                          label="Nettoyield"
-                          value={`${tall(
-                            bolig.nettoyield,
-                          ).toFixed(2)} %`}
+                          label="Bruttoyield"
+                          value={`${beregnBruttoyield(bolig).toFixed(2)} %`}
                         />
                       </div>
 
@@ -641,10 +637,8 @@ function Boligvindu({
               />
 
               <Detaljrad
-                label="Nettoyield"
-                value={`${tall(
-                  bolig.nettoyield,
-                ).toFixed(2)} %`}
+                label="Bruttoyield av kjøpesum"
+                value={`${beregnBruttoyield(bolig).toFixed(2)} %`}
               />
             </div>
 
@@ -759,7 +753,7 @@ function beregnKontantstrom(
   const felles = tall(bolig.felleskostnader);
   const kommunale =
     tall(bolig.kommunaleAvgifter) / 12;
-  const forsikring = tall(bolig.forsikring) / 12;
+  const stromInternett = tall(bolig.stromInternett);
   const vedlikehold =
     tall(bolig.vedlikehold) / 12;
   const andre = tall(bolig.andreKostnader) / 12;
@@ -792,16 +786,14 @@ function beregnKontantstrom(
     laanebetaling - renter,
   );
 
-  const skattbart = Math.max(
-    0,
+  const skattbart =
     leie -
       felles -
       kommunale -
-      forsikring -
+      stromInternett -
       vedlikehold -
       andre -
-      renter,
-  );
+      renter;
 
   const skatt = bolig.skattepliktig
     ? skattbart * 0.22
@@ -811,7 +803,7 @@ function beregnKontantstrom(
     leie -
     felles -
     kommunale -
-    forsikring -
+    stromInternett -
     vedlikehold -
     andre -
     renter -
@@ -832,8 +824,8 @@ function beregnKontantstrom(
       belop: -kommunale,
     },
     {
-      navn: "Forsikring og vedlikehold",
-      belop: -(forsikring + vedlikehold),
+      navn: "Strøm, internett og vedlikehold",
+      belop: -(stromInternett + vedlikehold),
     },
     {
       navn: "Andre kostnader",
@@ -946,6 +938,14 @@ function TomTilstand({
       )}
     </div>
   );
+}
+
+function beregnBruttoyield(bolig: Bolig) {
+  const kjopesum = tall(bolig.kjopesum);
+
+  return kjopesum > 0
+    ? ((tall(bolig.manedsleie) * 12) / kjopesum) * 100
+    : 0;
 }
 
 function beregnEgenkapital(bolig: Bolig) {
