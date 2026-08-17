@@ -167,9 +167,15 @@ export default function Personvern() {
 
           <Personvernkort tittel="10. Kontakt">
             <p>
-              Kontaktinformasjon for personvernhenvendelser blir lagt til før
-              tjenesten åpnes for ordinær bruk. Inntil da er
-              Eiendomsoversikten under utvikling og testing.
+              Ved spørsmål om personvern eller behandling av personopplysninger
+              kan du kontakte oss på{" "}
+              <a
+                href="mailto:eiendomsoversikten@gmail.com"
+                className="font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                eiendomsoversikten@gmail.com
+              </a>
+              .
             </p>
           </Personvernkort>
 
