@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/client";
+import { DEMO_LEIETAKERE, sendTilInnlogging } from "./demo-data";
 
 const KONTRAKT_BUCKET = "leiekontrakter";
 const MAKS_FILSTORRELSE = 20 * 1024 * 1024;
@@ -78,12 +79,23 @@ async function hentInnloggetBruker() {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) throw new Error("IKKE_INNLOGGET");
+  if (error || !user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
   return { supabase, user };
 }
 
 export async function hentLeietakere() {
-  const { supabase } = await hentInnloggetBruker();
+  const supabase = createClient();
+  const {
+    data: { user },
+    error: brukerfeil,
+  } = await supabase.auth.getUser();
+
+  if (!user) return DEMO_LEIETAKERE;
+  if (brukerfeil) throw brukerfeil;
+
   const { data, error } = await supabase
     .from("leietakere")
     .select("*")

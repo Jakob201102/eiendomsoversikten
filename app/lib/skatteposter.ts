@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/client";
+import { sendTilInnlogging } from "./demo-data";
 
 export type SkattepostType = "inntekt" | "kostnad";
 export type Fradragsstatus = "normalt" | "vurder" | "ikke";
@@ -47,12 +48,23 @@ async function hentBruker() {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) throw new Error("IKKE_INNLOGGET");
+  if (error || !user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
   return { supabase, user };
 }
 
 export async function hentSkatteposter(ar: number) {
-  const { supabase } = await hentBruker();
+  const supabase = createClient();
+  const {
+    data: { user },
+    error: brukerfeil,
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+  if (brukerfeil) throw brukerfeil;
+
   const fra = `${ar}-01-01`;
   const til = `${ar}-12-31`;
 

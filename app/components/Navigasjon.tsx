@@ -78,6 +78,7 @@ export default function Navigasjon() {
   }
 
   return (
+    <>
     <nav className="bg-slate-950 text-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="flex min-h-16 items-center justify-between gap-3">
@@ -211,5 +212,22 @@ export default function Navigasjon() {
         )}
       </div>
     </nav>
+    {!sjekkerBruker && !brukerEpost && (
+      <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-3 text-slate-900">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            <strong>Du ser eksempeldata.</strong>{" "}
+            Logg inn eller opprett en gratis konto for å legge inn dine egne opplysninger.
+          </p>
+          <Link
+            href="/logg-inn"
+            className="shrink-0 font-semibold text-emerald-700 hover:text-emerald-900"
+          >
+            Logg inn / opprett konto →
+          </Link>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

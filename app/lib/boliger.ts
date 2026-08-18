@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/client";
+import { DEMO_BOLIGER, sendTilInnlogging } from "./demo-data";
 
 export type BoligData = {
   id: string;
@@ -15,9 +16,11 @@ export async function hentBoliger(): Promise<BoligData[]> {
   const { data: brukerdata, error: brukerfeil } =
     await supabase.auth.getUser();
 
-  if (brukerfeil || !brukerdata.user) {
-    throw new Error("IKKE_INNLOGGET");
+  if (!brukerdata.user) {
+    return DEMO_BOLIGER;
   }
+
+  if (brukerfeil) throw brukerfeil;
 
   const bruker = brukerdata.user;
   const migreringsnokkel = `boliger_migrert_${bruker.id}`;
@@ -92,6 +95,7 @@ export async function opprettBolig(
     await supabase.auth.getUser();
 
   if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
     throw new Error("IKKE_INNLOGGET");
   }
 
@@ -108,6 +112,14 @@ export async function oppdaterBolig(
   bolig: Record<string, unknown>,
 ) {
   const supabase = createClient();
+  const { data: brukerdata, error: brukerfeil } =
+    await supabase.auth.getUser();
+
+  if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
+
   const { error } = await supabase
     .from("boliger")
     .update({
@@ -121,6 +133,14 @@ export async function oppdaterBolig(
 
 export async function slettBoligFraDatabase(id: string) {
   const supabase = createClient();
+  const { data: brukerdata, error: brukerfeil } =
+    await supabase.auth.getUser();
+
+  if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
+
   const { error } = await supabase
     .from("boliger")
     .delete()

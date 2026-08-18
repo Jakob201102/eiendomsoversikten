@@ -1,4 +1,5 @@
 import { createClient } from "./supabase/client";
+import { DEMO_VEDLIKEHOLD, sendTilInnlogging } from "./demo-data";
 
 export type Vedlikeholdsdata = {
   id: string;
@@ -19,9 +20,11 @@ export async function hentVedlikeholdsoppgaver(): Promise<
   const { data: brukerdata, error: brukerfeil } =
     await supabase.auth.getUser();
 
-  if (brukerfeil || !brukerdata.user) {
-    throw new Error("IKKE_INNLOGGET");
+  if (!brukerdata.user) {
+    return DEMO_VEDLIKEHOLD;
   }
+
+  if (brukerfeil) throw brukerfeil;
 
   const bruker = brukerdata.user;
   const migreringsnokkel =
@@ -106,6 +109,7 @@ export async function opprettVedlikeholdsoppgave(
     await supabase.auth.getUser();
 
   if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
     throw new Error("IKKE_INNLOGGET");
   }
 
@@ -125,6 +129,14 @@ export async function oppdaterVedlikeholdsoppgave(
   endringer: Record<string, unknown>,
 ) {
   const supabase = createClient();
+  const { data: brukerdata, error: brukerfeil } =
+    await supabase.auth.getUser();
+
+  if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
+
   const { data: eksisterende, error: hentefeil } = await supabase
     .from("vedlikeholdsoppgaver")
     .select("data")
@@ -149,6 +161,14 @@ export async function oppdaterVedlikeholdsoppgave(
 
 export async function slettVedlikeholdsoppgave(id: string) {
   const supabase = createClient();
+  const { data: brukerdata, error: brukerfeil } =
+    await supabase.auth.getUser();
+
+  if (brukerfeil || !brukerdata.user) {
+    sendTilInnlogging();
+    throw new Error("IKKE_INNLOGGET");
+  }
+
   const { error } = await supabase
     .from("vedlikeholdsoppgaver")
     .delete()
