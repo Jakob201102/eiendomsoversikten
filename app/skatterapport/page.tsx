@@ -25,6 +25,7 @@ type Bolig = {
   rente?: number;
   nedbetalingstid?: number;
   felleskostnader?: number;
+  felleskostnaderHarFellesgjeld?: boolean;
   kommunaleAvgifter?: number;
   stromInternett?: number;
   andreKostnader?: number;
@@ -434,14 +435,23 @@ function byggAutomatiskePoster(
       });
     }
 
+    const fellesgjeldErAvklart =
+      bolig.felleskostnaderHarFellesgjeld !== undefined;
+    const harFellesgjeld =
+      bolig.felleskostnaderHarFellesgjeld === true;
+
     leggTilAutomatiskKostnad(
       poster,
       bolig,
       ar,
       "felleskostnader",
       Number(bolig.felleskostnader || 0) * 12,
-      "vurder",
-      "Beregnet fra registrerte månedlige felleskostnader. Kontroller årsbeløp og trekk ut renter og avdrag på fellesgjeld.",
+      fellesgjeldErAvklart && !harFellesgjeld ? "normalt" : "vurder",
+      !fellesgjeldErAvklart
+        ? "Det er ikke registrert om felleskostnadene inneholder fellesgjeld. Åpne boligen, kontroller avkryssingen og lagre."
+        : harFellesgjeld
+        ? "Beregnet fra registrerte månedlige felleskostnader. Boligen er merket med fellesgjeld, så renter og avdrag må skilles ut og kontrolleres mot årsoppgaven."
+        : "Beregnet fra registrerte månedlige felleskostnader. Boligen er ikke merket med fellesgjeld og kostnaden vises derfor som normalt fradrag. Kontroller årsbeløpet.",
     );
     leggTilAutomatiskKostnad(
       poster,

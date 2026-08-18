@@ -23,6 +23,7 @@ type Bolig = {
   manedsleie: number;
   ledighet: number;
   felleskostnader: number;
+  felleskostnaderHarFellesgjeld?: boolean;
   kommunaleAvgifter: number;
   stromInternett: number;
   vedlikehold: number;
@@ -56,6 +57,8 @@ export default function Kalkulator() {
   const [ledighet, setLedighet] = useState(5);
   const [felleskostnader, setFelleskostnader] =
     useState(2_500);
+  const [felleskostnaderHarFellesgjeld, setFelleskostnaderHarFellesgjeld] =
+    useState(false);
   const [kommunaleAvgifter, setKommunaleAvgifter] =
     useState(18_000);
   const [stromInternett, setStromInternett] = useState(1_500);
@@ -98,6 +101,9 @@ export default function Kalkulator() {
         setManedsleie(Number(bolig.manedsleie || 0));
         setLedighet(Number(bolig.ledighet || 0));
         setFelleskostnader(Number(bolig.felleskostnader || 0));
+        setFelleskostnaderHarFellesgjeld(
+          bolig.felleskostnaderHarFellesgjeld ?? false,
+        );
         setKommunaleAvgifter(Number(bolig.kommunaleAvgifter || 0));
         setStromInternett(Number(bolig.stromInternett || 0));
         setVedlikehold(Number(bolig.vedlikehold || 0));
@@ -253,6 +259,7 @@ export default function Kalkulator() {
       manedsleie,
       ledighet,
       felleskostnader,
+      felleskostnaderHarFellesgjeld,
       kommunaleAvgifter,
       stromInternett,
       vedlikehold,
@@ -425,6 +432,27 @@ export default function Kalkulator() {
                   onChange={setFelleskostnader}
                   suffix="kr"
                 />
+
+                <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={felleskostnaderHarFellesgjeld}
+                    onChange={(event) =>
+                      setFelleskostnaderHarFellesgjeld(event.target.checked)
+                    }
+                    className="mt-1 h-5 w-5 accent-amber-600"
+                  />
+                  <span>
+                    <strong className="block text-sm">
+                      Felleskostnadene inneholder renter eller avdrag på fellesgjeld
+                    </strong>
+                    <span className="mt-1 block text-sm leading-5 text-slate-600">
+                      Kryss av hvis deler av felleskostnadene gjelder lån i
+                      sameiet eller borettslaget. Da må beløpet vurderes i
+                      årsrapporten.
+                    </span>
+                  </span>
+                </label>
 
                 <Tallfelt
                   label="Kommunale avgifter per år"
