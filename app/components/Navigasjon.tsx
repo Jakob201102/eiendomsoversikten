@@ -20,7 +20,9 @@ export default function Navigasjon() {
     { navn: "Mine boliger", adresse: "/boliger" },
     { navn: "Leietakere", adresse: "/leietakere" },
     { navn: "Vedlikehold", adresse: "/vedlikehold" },
-    { navn: "Boligkalkulator", adresse: "/kalkulator" },
+    { navn: "Kalkulator", adresse: "/kalkulator" },
+    { navn: "Kontrakter", adresse: "/kontrakter" },
+    { navn: "Årsrapport", adresse: "/skatterapport" },
     { navn: "Om oss", adresse: "/om-oss" },
     { navn: "Personvern", adresse: "/personvern" },
   ];
@@ -34,7 +36,6 @@ export default function Navigasjon() {
       } = await supabase.auth.getUser();
 
       if (!aktiv) return;
-
       setBrukerEpost(user?.email ?? null);
       setSjekkerBruker(false);
     }
@@ -45,7 +46,6 @@ export default function Navigasjon() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!aktiv) return;
-
       setBrukerEpost(session?.user?.email ?? null);
       setSjekkerBruker(false);
     });
@@ -63,7 +63,6 @@ export default function Navigasjon() {
 
   async function loggUt() {
     setLoggerUt(true);
-
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -85,16 +84,15 @@ export default function Navigasjon() {
           <Link
             href="/"
             onClick={() => setMenyApen(false)}
-            className="shrink-0 text-lg font-bold xl:text-xl"
+            className="flex shrink-0 items-center gap-2 text-lg font-bold xl:text-xl"
           >
             <span>Eiendomsoversikten</span>
-
-<span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-400 xl:text-xs">
-  BETA
-</span>
+            <span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-400 xl:text-xs">
+              BETA
+            </span>
           </Link>
 
-          <div className="hidden items-center gap-3 text-sm lg:flex xl:gap-4">
+          <div className="hidden items-center gap-3 text-sm xl:flex">
             {lenker.map((lenke) => (
               <Link
                 key={lenke.adresse}
@@ -123,7 +121,6 @@ export default function Navigasjon() {
                   >
                     Min konto
                   </Link>
-
                   <button
                     type="button"
                     onClick={loggUt}
@@ -152,14 +149,14 @@ export default function Navigasjon() {
             onClick={() => setMenyApen(!menyApen)}
             aria-expanded={menyApen}
             aria-label="Åpne eller lukk menyen"
-            className="rounded-lg border border-slate-700 px-4 py-2 font-semibold lg:hidden"
+            className="rounded-lg border border-slate-700 px-4 py-2 font-semibold xl:hidden"
           >
             {menyApen ? "Lukk" : "Meny"}
           </button>
         </div>
 
         {menyApen && (
-          <div className="space-y-2 border-t border-slate-800 py-4 lg:hidden">
+          <div className="space-y-2 border-t border-slate-800 py-4 xl:hidden">
             {lenker.map((lenke) => (
               <Link
                 key={lenke.adresse}
@@ -181,7 +178,6 @@ export default function Navigasjon() {
                   <p className="truncate px-4 text-sm text-slate-400">
                     Innlogget som {brukerEpost}
                   </p>
-
                   <Link
                     href="/konto"
                     onClick={() => setMenyApen(false)}
@@ -193,7 +189,6 @@ export default function Navigasjon() {
                   >
                     Min konto
                   </Link>
-
                   <button
                     type="button"
                     onClick={loggUt}
