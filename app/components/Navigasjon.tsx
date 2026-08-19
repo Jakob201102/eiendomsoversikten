@@ -17,6 +17,7 @@ export default function Navigasjon() {
 
   const lenker = [
     { navn: "Forside", adresse: "/" },
+    { navn: "Oversikt", adresse: "/oversikt" },
     { navn: "Mine boliger", adresse: "/boliger" },
     { navn: "Leietakere", adresse: "/leietakere" },
     { navn: "Vedlikehold", adresse: "/vedlikehold" },
