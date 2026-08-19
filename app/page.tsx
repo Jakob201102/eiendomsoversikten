@@ -6,6 +6,12 @@ import Navigasjon from "./components/Navigasjon";
 import { hentBoliger } from "./lib/boliger";
 import { hentLeietakere, type Leietaker } from "./lib/leietakere";
 import { hentVedlikeholdsoppgaver } from "./lib/vedlikehold";
+import {
+  byggAutomatiskeKalenderhendelser,
+  hentManuelleKalenderhendelser,
+  sorterHendelser,
+  type Kalenderhendelse,
+} from "./lib/kalender";
 
 type Bolig = {
   id: string | number;
@@ -37,6 +43,7 @@ export default function Home() {
   const [boliger, setBoliger] = useState<Bolig[]>([]);
   const [leietakere, setLeietakere] = useState<Leietaker[]>([]);
   const [oppgaver, setOppgaver] = useState<Vedlikeholdsoppgave[]>([]);
+  const [manuelleHendelser, setManuelleHendelser] = useState<Kalenderhendelse[]>([]);
   const [laster, setLaster] = useState(true);
 
   useEffect(() => {
@@ -54,6 +61,11 @@ export default function Home() {
         setBoliger(boligdata as unknown as Bolig[]);
         setLeietakere(leietakerdata);
         setOppgaver(vedlikeholdsdata as unknown as Vedlikeholdsoppgave[]);
+        const kalenderdata = await hentManuelleKalenderhendelser(
+          boligdata,
+          leietakerdata,
+        );
+        if (aktiv) setManuelleHendelser(kalenderdata);
       } catch {
         if (!aktiv) return;
         setBoliger([]);
@@ -84,6 +96,25 @@ export default function Home() {
   }, [oppgaver]);
 
   const visteVedlikeholdsoppgaver = aktiveVedlikeholdsoppgaver.slice(0, 3);
+  const kommendeHendelser = useMemo(() => {
+    const iDag = new Date();
+    iDag.setHours(0, 0, 0, 0);
+    const omEnUke = new Date(iDag);
+    omEnUke.setDate(omEnUke.getDate() + 7);
+    return sorterHendelser([
+      ...manuelleHendelser,
+      ...byggAutomatiskeKalenderhendelser(
+        boliger as unknown as import("./lib/boliger").BoligData[],
+        leietakere,
+        oppgaver as unknown as import("./lib/vedlikehold").Vedlikeholdsdata[],
+      ),
+    ])
+      .filter((hendelse) => {
+        const dato = new Date(`${hendelse.dato}T00:00:00`);
+        return dato >= iDag && dato <= omEnUke;
+      })
+      .slice(0, 5);
+  }, [boliger, leietakere, manuelleHendelser, oppgaver]);
   const antallBoliger = boliger.length;
   const samletMarkedsverdi = summer(boliger, "markedsverdi");
   const samletRestlaan = summer(boliger, "restlaan");
@@ -244,6 +275,41 @@ export default function Home() {
               >
                 Legg til første leietaker
               </Link>
+            )}
+          </section>
+
+          <section className="rounded-3xl border border-slate-800 bg-slate-900 p-5 shadow-2xl sm:p-7">
+            <Kortoverskrift
+              undertittel="Kalender"
+              tittel="Kommende 7 dager"
+              href="/kalender"
+            />
+
+            {kommendeHendelser.length === 0 ? (
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-700 px-5 py-7 text-center">
+                <p className="text-slate-400">Ingen hendelser den kommende uken.</p>
+                <Link href="/kalender" className="mt-4 inline-block rounded-xl bg-slate-800 px-5 py-2.5 font-semibold hover:bg-slate-700">
+                  Åpne kalenderen
+                </Link>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {kommendeHendelser.map((hendelse) => (
+                  <Link key={hendelse.id} href="/kalender" className="flex items-center gap-4 rounded-2xl bg-slate-800 p-4 hover:bg-slate-700">
+                    <span className={`h-3 w-3 shrink-0 rounded-full ${kalenderfarge(hendelse.type)}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold">{hendelse.tittel}</p>
+                      <p className="mt-1 truncate text-sm text-slate-400">
+                        {hendelse.boligAdresse || "Ingen bolig valgt"}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right text-sm">
+                      <p className="font-semibold">{formaterDato(hendelse.dato)}</p>
+                      {hendelse.klokkeslett && <p className="text-slate-400">Kl. {hendelse.klokkeslett}</p>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             )}
           </section>
 
@@ -575,4 +641,14 @@ function kroner(belop: number) {
     currency: "NOK",
     maximumFractionDigits: 0,
   }).format(Number.isFinite(belop) ? belop : 0);
+}
+
+function kalenderfarge(type: Kalenderhendelse["type"]) {
+  return {
+    vedlikehold: "bg-red-400",
+    kontrakt: "bg-blue-400",
+    visning: "bg-emerald-400",
+    mote: "bg-violet-400",
+    annet: "bg-slate-400",
+  }[type];
 }

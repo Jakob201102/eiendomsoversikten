@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 
 export default function Navigasjon() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const router = useRouter();
   const [supabase] = useState(() => createClient());
 
@@ -20,6 +20,7 @@ export default function Navigasjon() {
     { navn: "Mine boliger", adresse: "/boliger" },
     { navn: "Leietakere", adresse: "/leietakere" },
     { navn: "Vedlikehold", adresse: "/vedlikehold" },
+    { navn: "Kalender", adresse: "/kalender" },
     { navn: "Kalkulator", adresse: "/kalkulator" },
     { navn: "Kontrakter", adresse: "/kontrakter" },
     { navn: "Årsrapport", adresse: "/skatterapport" },
