@@ -16,6 +16,7 @@ import {
   type Skattepost,
   type SkattepostType,
 } from "../lib/skatteposter";
+import { lastNedArsrapportPdf } from "../lib/pdf-arsrapport";
 
 type Bolig = {
   id: string;
@@ -84,6 +85,8 @@ export default function Skatterapport() {
   const [boligfilter, setBoligfilter] = useState("alle");
   const [laster, setLaster] = useState(true);
   const [lagrer, setLagrer] = useState(false);
+  const [lagerPdf, setLagerPdf] = useState(false);
+  const [kopiert, setKopiert] = useState(false);
   const [visSkjema, setVisSkjema] = useState(false);
   const [redigeringsId, setRedigeringsId] = useState<string | null>(null);
   const [feil, setFeil] = useState("");
@@ -158,6 +161,32 @@ export default function Skatterapport() {
   const beregnetSkatt = Math.max(0, beregnetSkattegrunnlag) * 0.22;
   const alleRegistrerteKostnader = sum(vistePoster.filter((p) => p.type === "kostnad"));
   const estimertIgjen = inntekter - alleRegistrerteKostnader - beregnetSkatt;
+
+  const regnskapsSammendrag = useMemo(() => {
+    const grupper = new Map<string, Rapportpost[]>();
+    for (const post of vistePoster) {
+      const nokkel = post.boligId || "hele-portefoljen";
+      grupper.set(nokkel, [...(grupper.get(nokkel) || []), post]);
+    }
+    return Array.from(grupper.entries()).map(([id, gruppeposter]) => {
+      const inntekt = sum(gruppeposter.filter((p) => p.type === "inntekt"));
+      const normalt = sum(gruppeposter.filter((p) => p.type === "kostnad" && p.fradragsstatus === "normalt"));
+      const renter = sum(gruppeposter.filter((p) => p.type === "kostnad" && p.kategori === "renter" && p.fradragsstatus === "normalt"));
+      const drift = Math.max(0, normalt - renter);
+      const vurdering = sum(gruppeposter.filter((p) => p.type === "kostnad" && p.fradragsstatus === "vurder"));
+      const utenFradrag = sum(gruppeposter.filter((p) => p.type === "kostnad" && p.fradragsstatus === "ikke"));
+      return {
+        id,
+        bolig: id === "hele-portefoljen" ? "Hele porteføljen / ikke koblet" : boligadresse(boliger, id),
+        inntekt,
+        drift,
+        renter,
+        vurdering,
+        utenFradrag,
+        forelopigResultat: inntekt - drift - renter,
+      };
+    });
+  }, [boliger, vistePoster]);
 
   function velgKategori(verdi: string) {
     const valgt = kategorier.find((k) => k.verdi === verdi);
@@ -258,6 +287,58 @@ export default function Skatterapport() {
     URL.revokeObjectURL(url);
   }
 
+  function lastNedPdf() {
+    setLagerPdf(true);
+    setFeil("");
+    try {
+      lastNedArsrapportPdf({
+        ar,
+        boliger,
+        poster: vistePoster,
+        boligfilter,
+        kategorinavn,
+      });
+    } catch (error) {
+      console.error(error);
+      setFeil("Kunne ikke lage PDF-rapporten. Prøv igjen.");
+    } finally {
+      setLagerPdf(false);
+    }
+  }
+
+  async function kopierTilExcel() {
+    const sammendrag = [
+      ["SAMMENDRAG PER BOLIG", `INNTEKTSÅR ${ar}`],
+      ["Bolig", "Leieinntekter", "Driftskostnader normalt fradrag", "Renter", "Kostnader som må vurderes", "Ikke løpende fradrag", "Foreløpig skattemessig resultat"],
+      ...regnskapsSammendrag.map((rad) => [rad.bolig, rad.inntekt, rad.drift, rad.renter, rad.vurdering, rad.utenFradrag, rad.forelopigResultat]),
+      [],
+      ["FULL REGNSKAPSOVERSIKT", `INNTEKTSÅR ${ar}`],
+      ["Nr.", "Dato", "Bolig", "Type", "Kategori", "Beskrivelse", "Vurdering", "Kilde", "Inntekt", "Normalt fradrag", "Må vurderes", "Ikke løpende fradrag"],
+      ...[...vistePoster].sort((a, b) => a.dato.localeCompare(b.dato)).map((post, indeks) => [
+        indeks + 1,
+        post.dato,
+        boligadresse(boliger, post.boligId),
+        post.type === "inntekt" ? "Inntekt" : "Kostnad",
+        kategorinavn(post.kategori),
+        post.beskrivelse,
+        post.type === "inntekt" ? "Inntekt" : statustekst(post.fradragsstatus),
+        post.automatisk ? "Automatisk beregnet" : "Manuelt registrert",
+        post.type === "inntekt" ? post.belop : "",
+        post.type === "kostnad" && post.fradragsstatus === "normalt" ? post.belop : "",
+        post.type === "kostnad" && post.fradragsstatus === "vurder" ? post.belop : "",
+        post.type === "kostnad" && post.fradragsstatus === "ikke" ? post.belop : "",
+      ]),
+    ];
+    const tekst = sammendrag.map((rad) => rad.map((felt) => String(felt ?? "").replaceAll("\t", " ").replaceAll("\n", " ")).join("\t")).join("\n");
+    try {
+      await navigator.clipboard.writeText(tekst);
+      setKopiert(true);
+      setTimeout(() => setKopiert(false), 2500);
+    } catch {
+      setFeil("Nettleseren tillot ikke kopiering. Bruk CSV/Excel-knappen i stedet.");
+    }
+  }
+
   const valgtKategori = kategorier.find((k) => k.verdi === kategori);
 
   return (
@@ -297,6 +378,66 @@ export default function Skatterapport() {
             </span>
           </span>
         </label>
+
+        <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm print:hidden">
+          <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-emerald-700">REGNSKAPSOVERSIKT {ar}</p>
+              <h2 className="mt-1 text-2xl font-bold">Kopier alt til Excel</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Kopierer både sammendrag per bolig og alle regnskapslinjer med dato, kategori,
+                beskrivelse, vurdering, kilde og beløp i separate kolonner.
+              </p>
+            </div>
+            <button type="button" onClick={kopierTilExcel} disabled={vistePoster.length === 0} className="shrink-0 rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white disabled:opacity-50">
+              {kopiert ? "✓ Kopiert – lim inn i Excel" : "Kopier hele oversikten"}
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[950px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="px-5 py-3">Bolig</th>
+                  <th className="px-4 py-3 text-right">Leieinntekter</th>
+                  <th className="px-4 py-3 text-right">Driftsfradrag</th>
+                  <th className="px-4 py-3 text-right">Renter</th>
+                  <th className="px-4 py-3 text-right">Må vurderes</th>
+                  <th className="px-4 py-3 text-right">Ikke fradrag</th>
+                  <th className="px-5 py-3 text-right">Foreløpig resultat</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {regnskapsSammendrag.map((rad) => (
+                  <tr key={rad.id}>
+                    <td className="px-5 py-4 font-semibold">{rad.bolig}</td>
+                    <td className="px-4 py-4 text-right text-emerald-700">{kroner(rad.inntekt)}</td>
+                    <td className="px-4 py-4 text-right">{kroner(rad.drift)}</td>
+                    <td className="px-4 py-4 text-right">{kroner(rad.renter)}</td>
+                    <td className="bg-amber-50 px-4 py-4 text-right text-amber-800">{kroner(rad.vurdering)}</td>
+                    <td className="px-4 py-4 text-right text-slate-500">{kroner(rad.utenFradrag)}</td>
+                    <td className="px-5 py-4 text-right font-bold">{kroner(rad.forelopigResultat)}</td>
+                  </tr>
+                ))}
+                {regnskapsSammendrag.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Ingen rapportposter å vise.</td></tr>}
+              </tbody>
+              <tfoot className="border-t-2 border-slate-300 bg-slate-50 font-bold">
+                <tr>
+                  <td className="px-5 py-4">Totalt</td>
+                  <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.inntekt, 0))}</td>
+                  <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.drift, 0))}</td>
+                  <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.renter, 0))}</td>
+                  <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.vurdering, 0))}</td>
+                  <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.utenFradrag, 0))}</td>
+                  <td className="px-5 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.forelopigResultat, 0))}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-5 text-slate-500">
+            Dette er et regnskaps- og dokumentasjonsunderlag. Opplysningene må kontrolleres og føres i riktige felt i skattemeldingen eller næringsspesifikasjonen. Filen er ikke en direkte innsending til Skatteetaten.
+          </p>
+        </section>
 
         {feil && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 print:hidden">{feil}</div>}
 
@@ -356,7 +497,7 @@ export default function Skatterapport() {
               </div>
             </div>
             <p className="mt-5 text-xs leading-5 text-slate-400">«Beregnet skattegrunnlag» brukes kun til skatteanslaget. «Estimert igjen» trekker også fra avdrag, kostnader som må vurderes og andre registrerte kostnader. Kontroller rentene mot bankens årsoppgave, slik at fradraget ikke føres dobbelt.</p>
-            <div className="mt-6 grid gap-3 print:hidden"><button type="button" onClick={lastNedCsv} className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold">Last ned CSV/Excel</button><button type="button" onClick={() => window.print()} className="rounded-xl border border-slate-600 px-5 py-3 font-semibold">Skriv ut / lagre PDF</button></div>
+            <div className="mt-6 grid gap-3 print:hidden"><button type="button" onClick={lastNedPdf} disabled={lagerPdf || laster} className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold disabled:opacity-60">{lagerPdf ? "Lager PDF…" : "Last ned årsrapport som PDF"}</button><button type="button" onClick={lastNedCsv} className="rounded-xl border border-slate-600 px-5 py-3 font-semibold">Last ned CSV/Excel</button></div>
           </aside>
         </section>
 
