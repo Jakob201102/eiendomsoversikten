@@ -1,6 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+async function finnFiler(
+  admin: any,
+  bucket: string,
+  mappe: string,
+): Promise<string[]> {
+  const { data } = await admin.storage.from(bucket).list(mappe, { limit: 1000 });
+  const resultat: string[] = [];
+  for (const fil of data || []) {
+    const sti = `${mappe}/${fil.name}`;
+    if (fil.id) resultat.push(sti);
+    else resultat.push(...(await finnFiler(admin, bucket, sti)));
+  }
+  return resultat;
+}
+
 export async function DELETE(request: Request) {
   const supabaseUrl =
     process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -67,6 +82,12 @@ export async function DELETE(request: Request) {
         status: 401,
       },
     );
+  }
+
+  // Databaseposter slettes via foreign keys. Storage-filer må ryddes separat.
+  for (const bucket of ["leiekontrakter", "egne-kontrakter", "okonomi-bilag", "dokumentarkiv"]) {
+    const filer = await finnFiler(admin, bucket, data.user.id);
+    if (filer.length) await admin.storage.from(bucket).remove(filer);
   }
 
   const { error } =

@@ -56,7 +56,7 @@ export default function Personvern() {
                 leietakeropplysninger som navn, telefonnummer, e-postadresse,
                 leieperiode og depositumsstatus
               </li>
-              <li>opplastede leiekontrakter og tilhørende filinformasjon</li>
+              <li>opplastede kontrakter, bilag og dokumenter med tilhørende filinformasjon</li>
               <li>vedlikeholdsoppgaver, frister, kostnader og notater</li>
               <li>
                 nødvendige tekniske opplysninger knyttet til sikkerhet, feil og
@@ -75,6 +75,7 @@ export default function Personvern() {
               <li>koble leietakere og vedlikehold til riktige eiendommer</li>
               <li>lagre og gjøre leiekontrakter tilgjengelige for deg</li>
               <li>forebygge misbruk og rette tekniske feil</li>
+              <li>motta og følge opp tilbakemeldinger du sender oss</li>
             </ul>
 
             <p className="mt-4">
@@ -110,7 +111,7 @@ export default function Personvern() {
             </p>
 
             <p className="mt-4">
-              Leiekontrakter lagres i et privat lagringsområde og skal bare være
+              Opplastede dokumenter lagres i private lagringsområder og skal bare være
               tilgjengelige for brukeren som lastet dem opp. Tilgang styres med
               innlogging og tilgangsregler i databasen og lagringstjenesten.
             </p>

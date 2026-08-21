@@ -17,6 +17,7 @@ import {
   type SkattepostType,
 } from "../lib/skatteposter";
 import { lastNedArsrapportPdf } from "../lib/pdf-arsrapport";
+import { hentOkonomiposter, type Okonomipost } from "../lib/okonomi";
 
 type Bolig = {
   id: string;
@@ -42,7 +43,7 @@ type Vedlikeholdsoppgave = {
   status?: string;
 };
 
-type Rapportpost = Skattepost & { automatisk?: boolean };
+type Rapportpost = Skattepost & { automatisk?: boolean; faktisk?: boolean };
 
 type Kategori = {
   verdi: string;
@@ -105,23 +106,24 @@ export default function Skatterapport() {
       setLaster(true);
       setFeil("");
       try {
-        const [boligdata, leietakerdata, vedlikeholdsdata, postdata] = await Promise.all([
+        const [boligdata, leietakerdata, vedlikeholdsdata, postdata, okonomidata] = await Promise.all([
           hentBoliger(),
           hentLeietakere(),
           hentVedlikeholdsoppgaver(),
           hentSkatteposter(ar),
+          hentOkonomiposter(ar),
         ]);
         if (!aktiv) return;
         const b = boligdata as unknown as Bolig[];
         setBoliger(b);
         setPoster(postdata);
         setAutomatiskePoster(
-          byggAutomatiskePoster(
+          kombinerMedFaktiskePoster(byggAutomatiskePoster(
             ar,
             b,
             leietakerdata,
             vedlikeholdsdata as unknown as Vedlikeholdsoppgave[],
-          ),
+          ), okonomidata),
         );
         setBoligId((gammel) => gammel || b[0]?.id || "");
       } catch (error) {
@@ -372,9 +374,9 @@ export default function Skatterapport() {
           <span>
             <strong>Ta med automatiske opplysninger</strong>
             <span className="mt-1 block text-sm leading-6 text-slate-600">
-              Forventet husleie, registrerte boligkostnader og ferdige
-              vedlikeholdsoppgaver hentes automatisk. Kontroller
-              beløpene mot fakturaer, betalinger og bankens årsoppgave.
+              Faktisk mottatt husleie og betalte utgifter fra Økonomi brukes først.
+              Beregnede boligkostnader brukes bare når det ikke finnes en faktisk post
+              i samme kategori. Kontroller mot bilag og bankens årsoppgave.
             </span>
           </span>
         </label>
@@ -467,7 +469,7 @@ export default function Skatterapport() {
         <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm print:shadow-none">
             <div className="border-b p-5"><h2 className="text-xl font-bold">Rapportposter</h2><p className="mt-1 text-sm text-slate-500">{vistePoster.length} automatiske og manuelle poster i {ar}</p></div>
-            {laster ? <p className="p-8 text-center text-slate-500">Laster…</p> : vistePoster.length === 0 ? <p className="p-8 text-center text-slate-500">Ingen poster funnet for valgt år og bolig.</p> : <div className="divide-y">{vistePoster.map((post) => <article key={post.id} className="grid gap-3 p-5 sm:grid-cols-[100px_1fr_auto] sm:items-center"><div className="text-sm text-slate-500">{formaterDato(post.dato)}</div><div><div className="flex flex-wrap items-center gap-2"><strong>{kategorinavn(post.kategori)}</strong>{post.type === "kostnad" && <Status status={post.fradragsstatus} />}{post.automatisk && <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">Automatisk</span>}</div><p className="mt-1 text-sm text-slate-500">{boligadresse(boliger, post.boligId)}{post.beskrivelse ? ` · ${post.beskrivelse}` : ""}</p></div><div className="flex items-center gap-3 sm:justify-end"><strong className={post.type === "inntekt" ? "text-emerald-700" : "text-slate-900"}>{post.type === "inntekt" ? "+" : "−"} {kroner(post.belop)}</strong>{!post.automatisk && <div className="flex gap-2 print:hidden"><button type="button" onClick={() => rediger(post)} className="text-sm font-semibold text-emerald-700">Rediger</button><button type="button" onClick={() => slett(post)} className="text-sm font-semibold text-red-600">Slett</button></div>}</div></article>)}</div>}
+            {laster ? <p className="p-8 text-center text-slate-500">Laster…</p> : vistePoster.length === 0 ? <p className="p-8 text-center text-slate-500">Ingen poster funnet for valgt år og bolig.</p> : <div className="divide-y">{vistePoster.map((post) => <article key={post.id} className="grid gap-3 p-5 sm:grid-cols-[100px_1fr_auto] sm:items-center"><div className="text-sm text-slate-500">{formaterDato(post.dato)}</div><div><div className="flex flex-wrap items-center gap-2"><strong>{kategorinavn(post.kategori)}</strong>{post.type === "kostnad" && <Status status={post.fradragsstatus} />}{post.faktisk && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Faktisk registrert</span>}{post.automatisk && !post.faktisk && <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">Beregnet</span>}</div><p className="mt-1 text-sm text-slate-500">{boligadresse(boliger, post.boligId)}{post.beskrivelse ? ` · ${post.beskrivelse}` : ""}</p></div><div className="flex items-center gap-3 sm:justify-end"><strong className={post.type === "inntekt" ? "text-emerald-700" : "text-slate-900"}>{post.type === "inntekt" ? "+" : "−"} {kroner(post.belop)}</strong>{!post.automatisk && !post.faktisk && <div className="flex gap-2 print:hidden"><button type="button" onClick={() => rediger(post)} className="text-sm font-semibold text-emerald-700">Rediger</button><button type="button" onClick={() => slett(post)} className="text-sm font-semibold text-red-600">Slett</button></div>}</div></article>)}</div>}
           </div>
 
           <aside className="h-fit rounded-2xl bg-slate-950 p-6 text-white">
@@ -522,6 +524,49 @@ function Felt({ label, children }: { label: string; children: React.ReactNode })
 function Tallkort({ label, verdi, tone }: { label: string; verdi: string; tone?: "gronn" | "gul" | "rod" }) { const stil = tone === "gronn" ? "border-emerald-200 bg-emerald-50" : tone === "gul" ? "border-amber-200 bg-amber-50" : tone === "rod" ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"; return <div className={`rounded-2xl border p-5 ${stil}`}><p className="text-sm text-slate-600">{label}</p><p className="mt-2 text-2xl font-bold">{verdi}</p></div>; }
 function Status({ status }: { status: Fradragsstatus }) { const stil = status === "normalt" ? "bg-emerald-100 text-emerald-800" : status === "vurder" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"; return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stil}`}>{statustekst(status)}</span>; }
 function RapportRad({ label, verdi, viktig, dempet }: { label: string; verdi: number; viktig?: boolean; dempet?: boolean }) { return <div className={`flex justify-between gap-4 ${dempet ? "text-slate-400" : ""}`}><span className={viktig ? "font-bold" : ""}>{label}</span><span className={viktig ? "text-lg font-bold" : "font-semibold"}>{verdi < 0 ? "− " : ""}{kroner(Math.abs(verdi))}</span></div>; }
+
+function kombinerMedFaktiskePoster(
+  beregnede: Rapportpost[],
+  okonomiposter: Okonomipost[],
+): Rapportpost[] {
+  const husleieBoliger = new Set(
+    okonomiposter.filter((post) => post.kilde === "husleie").map((post) => post.boligId),
+  );
+  const faktiskeKostnadsnokler = new Set(
+    okonomiposter
+      .filter((post) => post.type === "kostnad" && post.status === "betalt")
+      .map((post) => `${post.boligId}|${post.kategori}`),
+  );
+
+  const filtrerte = beregnede.filter((post) => {
+    if (post.type === "inntekt" && post.kategori === "husleie" && husleieBoliger.has(post.boligId)) {
+      return false;
+    }
+    if (
+      post.type === "kostnad" &&
+      faktiskeKostnadsnokler.has(`${post.boligId}|${post.kategori}`)
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  const faktiske: Rapportpost[] = okonomiposter
+    .filter((post) => post.status === "betalt" && post.betaltBelop > 0)
+    .map((post) => ({
+      id: `okonomi-${post.id}`,
+      boligId: post.boligId,
+      dato: post.betalingsdato || post.dato,
+      type: post.type,
+      kategori: post.kategori,
+      beskrivelse: `${post.beskrivelse}${post.bilagFilnavn ? ` · Bilag: ${post.bilagFilnavn}` : ""}`,
+      belop: post.betaltBelop,
+      fradragsstatus: post.type === "inntekt" ? "ikke" : post.fradragsstatus,
+      faktisk: true,
+    }));
+
+  return [...faktiske, ...filtrerte].sort((a, b) => b.dato.localeCompare(a.dato));
+}
 
 function byggAutomatiskePoster(
   ar: number,

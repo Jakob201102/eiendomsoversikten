@@ -19,6 +19,9 @@ export default function Footer() {
           <Link href="/personvern" className="hover:text-emerald-400">
             Personvern
           </Link>
+          <Link href="/bruksvilkar" className="hover:text-emerald-400">
+            Bruksvilkår
+          </Link>
         </div>
       </div>
     </footer>

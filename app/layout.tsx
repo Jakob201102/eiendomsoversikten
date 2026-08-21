@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Footer from "./components/Footer";
+import Tilbakemelding from "./components/Tilbakemelding";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body>
         {children}
         <Footer />
+        <Tilbakemelding />
       </body>
     </html>
   );

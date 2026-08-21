@@ -1,7 +1,7 @@
 import type { Fradragsstatus, Skattepost, SkattepostType } from "./skatteposter";
 
 export type PdfBolig = { id: string; adresse: string };
-export type PdfRapportpost = Skattepost & { automatisk?: boolean };
+export type PdfRapportpost = Skattepost & { automatisk?: boolean; faktisk?: boolean };
 
 type PdfData = {
   ar: number;
@@ -183,7 +183,7 @@ function rapportrad(side: Side, post: PdfRapportpost, kategorinavn: (verdi: stri
   tekst(side, kortDato(post.dato), VENSTRE + 10, side.y - 16, 8, false, farger.graa);
   tekst(side, kategorinavn(post.kategori), VENSTRE + 10, side.y - 31, 9, true, farger.mork);
   const status = post.type === "inntekt" ? "Inntekt" : post.fradragsstatus === "normalt" ? "Normalt fradrag" : post.fradragsstatus === "vurder" ? "Må vurderes" : "Ikke løpende fradrag";
-  tekst(side, `${status}${post.automatisk ? " · Automatisk" : " · Manuell"}`, VENSTRE + 140, side.y - 16, 8, true, farger.graa);
+  tekst(side, `${status}${post.faktisk ? " · Faktisk registrert" : post.automatisk ? " · Beregnet" : " · Manuell"}`, VENSTRE + 140, side.y - 16, 8, true, farger.graa);
   wrap(post.beskrivelse || "Ingen beskrivelse", 72).slice(0, 5).forEach((rad, indeks) => tekst(side, rad, VENSTRE + 140, side.y - 31 - indeks * 9, 7.5, false, farger.mork));
   tekstHoyre(side, `${post.type === "inntekt" ? "+" : "-"} ${kroner(post.belop)}`, SIDE_BREDDE - HOYRE - 10, side.y - 31, 9, true, post.type === "inntekt" ? [4, 120, 87] : farger.mork);
   side.y -= hoyde;
