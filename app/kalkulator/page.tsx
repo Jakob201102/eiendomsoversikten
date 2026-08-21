@@ -9,6 +9,25 @@ import {
   oppdaterBolig,
   opprettBolig,
 } from "../lib/boliger";
+import {
+  beregnIndeksjustertVerdi,
+  ssbBoligtype,
+  ssbRegion,
+  type Verdiestimat,
+} from "../lib/boligverdi";
+
+type Adresseforslag = {
+  adressetekst: string;
+  postnummer: string;
+  poststed: string;
+  kommunenummer: string;
+  kommunenavn: string;
+  gardsnummer?: number;
+  bruksnummer?: number;
+  bruksenhetsnummer?: string[];
+  lat?: number;
+  lon?: number;
+};
 
 type Bolig = {
   id: string | number;
@@ -35,6 +54,19 @@ type Bolig = {
   egenkapitalverdi: number;
   verdistigning: number;
   belaningsgrad: number;
+  kjopsdato?: string;
+  kommunenummer?: string;
+  postnummer?: string;
+  poststed?: string;
+  automatiskVerdi?: boolean;
+  verdiGrunnlag?: number;
+  verdiGrunnlagDato?: string;
+  verdiRegion?: string;
+  verdiBoligtype?: string;
+  verdiestimatKvartal?: string;
+  verdiestimatKilde?: string;
+  bolignummer?: string;
+  verdiGrunnlagType?: "kjop" | "egen";
 };
 
 export default function Kalkulator() {
@@ -43,8 +75,17 @@ export default function Kalkulator() {
   const [redigeringsId, setRedigeringsId] =
     useState<string | null>(null);
   const [adresse, setAdresse] = useState("");
+  const [adresseforslag, setAdresseforslag] = useState<Adresseforslag[]>([]);
+  const [sokerAdresse, setSokerAdresse] = useState(false);
+  const [adresseErValgt, setAdresseErValgt] = useState(false);
+  const [kommunenummer, setKommunenummer] = useState("");
+  const [postnummer, setPostnummer] = useState("");
+  const [poststed, setPoststed] = useState("");
+  const [tilgjengeligeBolignumre, setTilgjengeligeBolignumre] = useState<string[]>([]);
+  const [bolignummer, setBolignummer] = useState("");
   const [boligtype, setBoligtype] = useState("Leilighet");
   const [kjopesum, setKjopesum] = useState(3_500_000);
+  const [kjopsdato, setKjopsdato] = useState("");
   const [kjopskostnader, setKjopskostnader] =
     useState(100_000);
   const [markedsverdi, setMarkedsverdi] =
@@ -69,6 +110,12 @@ export default function Kalkulator() {
     useState(true);
   const [feilmelding, setFeilmelding] = useState("");
   const [lagrer, setLagrer] = useState(false);
+  const [automatiskVerdi, setAutomatiskVerdi] = useState(false);
+  const [beregnerVerdi, setBeregnerVerdi] = useState(false);
+  const [verdiestimat, setVerdiestimat] = useState<Verdiestimat | null>(null);
+  const [verdiGrunnlag, setVerdiGrunnlag] = useState(0);
+  const [verdiGrunnlagDato, setVerdiGrunnlagDato] = useState("");
+  const [verdiGrunnlagType, setVerdiGrunnlagType] = useState<"kjop" | "egen">("kjop");
 
   useEffect(() => {
     const idFraAdresse = new URLSearchParams(
@@ -91,8 +138,15 @@ export default function Kalkulator() {
 
         setRedigeringsId(String(bolig.id));
         setAdresse(bolig.adresse || "");
+        setAdresseErValgt(true);
+        setKommunenummer(bolig.kommunenummer || "");
+        setPostnummer(bolig.postnummer || "");
+        setPoststed(bolig.poststed || "");
+        setBolignummer(bolig.bolignummer || "");
+        setTilgjengeligeBolignumre(bolig.bolignummer ? [bolig.bolignummer] : []);
         setBoligtype(bolig.boligtype || "Leilighet");
         setKjopesum(Number(bolig.kjopesum || 0));
+        setKjopsdato(bolig.kjopsdato || "");
         setKjopskostnader(Number(bolig.kjopskostnader || 0));
         setMarkedsverdi(Number(bolig.markedsverdi || 0));
         setRestlaan(Number(bolig.restlaan || 0));
@@ -109,6 +163,20 @@ export default function Kalkulator() {
         setVedlikehold(Number(bolig.vedlikehold || 0));
         setAndreKostnader(Number(bolig.andreKostnader || 0));
         setSkattepliktig(bolig.skattepliktig ?? true);
+        setAutomatiskVerdi(bolig.automatiskVerdi ?? false);
+        setVerdiGrunnlag(Number(bolig.verdiGrunnlag || bolig.kjopesum || 0));
+        setVerdiGrunnlagDato(bolig.verdiGrunnlagDato || bolig.kjopsdato || "");
+        setVerdiGrunnlagType(bolig.verdiGrunnlagType || "kjop");
+        if (bolig.verdiestimatKvartal) {
+          setVerdiestimat({
+            verdi: Number(bolig.markedsverdi || 0),
+            endringProsent: 0,
+            fra: "",
+            til: bolig.verdiestimatKvartal,
+            kilde: bolig.verdiestimatKilde || "Statistisk sentralbyrå, tabell 07221",
+            oppdatert: null,
+          });
+        }
       } catch (feil) {
         if (
           feil instanceof Error &&
@@ -123,6 +191,71 @@ export default function Kalkulator() {
 
     lastInn();
   }, [router]);
+
+  useEffect(() => {
+    if (adresseErValgt || adresse.trim().length < 3) {
+      setAdresseforslag([]);
+      return;
+    }
+    const kontroller = new AbortController();
+    const forsinkelse = setTimeout(async () => {
+      setSokerAdresse(true);
+      try {
+        const svar = await fetch(`/api/adressesok?q=${encodeURIComponent(adresse.trim())}`, { signal: kontroller.signal });
+        const data = await svar.json();
+        setAdresseforslag(data.adresser || []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setAdresseforslag([]);
+      } finally { setSokerAdresse(false); }
+    }, 300);
+    return () => { clearTimeout(forsinkelse); kontroller.abort(); };
+  }, [adresse, adresseErValgt]);
+
+  function velgAdresse(forslag: Adresseforslag) {
+    setAdresse(`${forslag.adressetekst}, ${forslag.postnummer} ${forslag.poststed}`);
+    setKommunenummer(forslag.kommunenummer);
+    setPostnummer(forslag.postnummer);
+    setPoststed(forslag.poststed);
+    const bolignumre = forslag.bruksenhetsnummer || [];
+    setTilgjengeligeBolignumre(bolignumre);
+    setBolignummer(bolignumre.length === 1 ? bolignumre[0] : "");
+    setAdresseErValgt(true);
+    setAdresseforslag([]);
+  }
+
+  async function beregnBoligverdi() {
+    const grunnlag = verdiGrunnlagType === "egen" ? verdiGrunnlag : kjopesum;
+    const grunnlagDato = verdiGrunnlagType === "egen" ? verdiGrunnlagDato : kjopsdato;
+    if (!kommunenummer) {
+      setFeilmelding("Velg en adresse fra søkeresultatet først.");
+      return;
+    }
+    if (grunnlag <= 0 || !grunnlagDato) {
+      setFeilmelding(
+        verdiGrunnlagType === "egen"
+          ? "Fyll inn egen markedsverdi og datoen verdien gjelder fra."
+          : "Fyll inn kjøpesum og kjøpsdato før verdien beregnes.",
+      );
+      return;
+    }
+    setBeregnerVerdi(true);
+    setFeilmelding("");
+    try {
+      const resultat = await beregnIndeksjustertVerdi({
+        grunnlag,
+        grunnlagDato,
+        region: ssbRegion(kommunenummer),
+        boligtype: ssbBoligtype(boligtype),
+      });
+      setMarkedsverdi(resultat.verdi);
+      setVerdiestimat(resultat);
+      setVerdiGrunnlag(grunnlag);
+      setVerdiGrunnlagDato(grunnlagDato);
+      setAutomatiskVerdi(true);
+    } catch (error) {
+      setFeilmelding(error instanceof Error ? error.message : "Kunne ikke beregne boligverdien.");
+    } finally { setBeregnerVerdi(false); }
+  }
 
   const totalInvestering = kjopesum + kjopskostnader;
   const egenkapitalverdi = markedsverdi - restlaan;
@@ -240,6 +373,11 @@ export default function Kalkulator() {
       return;
     }
 
+    if (tilgjengeligeBolignumre.length > 1 && !bolignummer) {
+      setFeilmelding("Velg riktig bolignummer før du lagrer.");
+      return;
+    }
+
     if (markedsverdi <= 0) {
       setFeilmelding(
         "Markedsverdien må være høyere enn 0.",
@@ -249,8 +387,13 @@ export default function Kalkulator() {
 
     const bolig = {
       adresse: adresse.trim(),
+      kommunenummer,
+      postnummer,
+      poststed,
+      bolignummer,
       boligtype,
       kjopesum,
+      kjopsdato,
       kjopskostnader,
       markedsverdi,
       restlaan,
@@ -271,6 +414,14 @@ export default function Kalkulator() {
       egenkapitalverdi,
       verdistigning,
       belaningsgrad,
+      automatiskVerdi,
+      verdiGrunnlag: verdiGrunnlag || kjopesum,
+      verdiGrunnlagDato: verdiGrunnlagDato || kjopsdato,
+      verdiGrunnlagType,
+      verdiRegion: kommunenummer ? ssbRegion(kommunenummer) : "TOTAL",
+      verdiBoligtype: ssbBoligtype(boligtype),
+      verdiestimatKvartal: verdiestimat?.til || "",
+      verdiestimatKilde: verdiestimat?.kilde || "",
     };
 
     setLagrer(true);
@@ -348,11 +499,12 @@ export default function Kalkulator() {
           <div className="space-y-6">
             <Kort tittel="Boligen">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Tekstfelt
-                  label="Adresse"
-                  value={adresse}
-                  onChange={setAdresse}
-                />
+                <div className="relative">
+                  <label className="block"><span className="mb-2 block text-sm font-medium">Søk etter adresse</span><input type="text" value={adresse} placeholder="Skriv gateadresse" autoComplete="off" onChange={(event) => { setAdresse(event.target.value); setAdresseErValgt(false); setKommunenummer(""); setTilgjengeligeBolignumre([]); setBolignummer(""); }} className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500" /></label>
+                  {sokerAdresse && <p className="absolute right-3 top-11 text-xs text-slate-400">Søker…</p>}
+                  {adresseforslag.length > 0 && <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl">{adresseforslag.map((forslag, indeks) => <button key={`${forslag.adressetekst}-${forslag.postnummer}-${indeks}`} type="button" onClick={() => velgAdresse(forslag)} className="block w-full rounded-lg px-3 py-3 text-left hover:bg-emerald-50"><strong className="block text-sm">{forslag.adressetekst}</strong><span className="mt-1 block text-xs text-slate-500">{forslag.postnummer} {forslag.poststed} · {forslag.kommunenavn}</span></button>)}</div>}
+                  {adresseErValgt && <p className="mt-2 text-xs font-semibold text-emerald-700">✓ Adresse bekreftet fra Kartverket</p>}
+                </div>
 
                 <Valgfelt
                   label="Boligtype"
@@ -371,6 +523,21 @@ export default function Kalkulator() {
                   suffix="kr"
                 />
 
+                {adresseErValgt && tilgjengeligeBolignumre.length > 0 && (
+                  <label className="block sm:col-span-2">
+                    <span className="mb-2 block text-sm font-medium">
+                      Bolignummer {tilgjengeligeBolignumre.length > 1 && <span className="font-normal text-slate-500">– velg riktig boenhet</span>}
+                    </span>
+                    <select value={bolignummer} onChange={(event) => setBolignummer(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 focus:border-emerald-500">
+                      {tilgjengeligeBolignumre.length > 1 && <option value="">Velg bolignummer</option>}
+                      {tilgjengeligeBolignumre.map((nummer) => <option key={nummer} value={nummer}>{nummer}</option>)}
+                    </select>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">Bolignummeret, for eksempel H0101, identifiserer riktig boenhet i bygningen. Det er ikke alltid det samme som seksjonsnummer.</p>
+                  </label>
+                )}
+
+                <label className="block"><span className="mb-2 block text-sm font-medium">Kjøpsdato</span><input type="date" value={kjopsdato} onChange={(event) => { setKjopsdato(event.target.value); if (!verdiGrunnlagDato) setVerdiGrunnlagDato(event.target.value); }} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label>
+
                 <Tallfelt
                   label="Kjøpskostnader og oppussing"
                   value={kjopskostnader}
@@ -381,9 +548,23 @@ export default function Kalkulator() {
                 <Tallfelt
                   label="Nåværende markedsverdi"
                   value={markedsverdi}
-                  onChange={setMarkedsverdi}
+                  onChange={(verdi) => { setMarkedsverdi(verdi); setAutomatiskVerdi(false); setVerdiestimat(null); }}
                   suffix="kr"
                 />
+
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div><strong className="block">Automatisk verdiutvikling</strong><p className="mt-1 text-sm leading-5 text-slate-600">Velg hvilket beløp SSBs regionale prisutvikling skal regnes fra.</p></div>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <button type="button" onClick={() => { setVerdiGrunnlagType("kjop"); setVerdiGrunnlag(kjopesum); setVerdiGrunnlagDato(kjopsdato); }} className={verdiGrunnlagType === "kjop" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block">Bruk kjøpesum</strong><span className="mt-1 block text-sm text-slate-500">{kroner(kjopesum)} fra {kjopsdato ? formaterKortDato(kjopsdato) : "manglende kjøpsdato"}</span></button>
+                    <button type="button" onClick={() => { setVerdiGrunnlagType("egen"); if (verdiGrunnlag <= 0 || verdiGrunnlag === kjopesum) setVerdiGrunnlag(markedsverdi); if (!verdiGrunnlagDato || verdiGrunnlagDato === kjopsdato) setVerdiGrunnlagDato(new Date().toISOString().slice(0, 10)); }} className={verdiGrunnlagType === "egen" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block">Bruk egen markedsverdi</strong><span className="mt-1 block text-sm text-slate-500">For eksempel meglervurdering eller takst</span></button>
+                  </div>
+                  {verdiGrunnlagType === "egen" && <div className="mt-4 grid gap-4 rounded-xl bg-white p-4 sm:grid-cols-2"><Tallfelt label="Markedsverdi som utgangspunkt" value={verdiGrunnlag} onChange={setVerdiGrunnlag} suffix="kr" /><label className="block"><span className="mb-2 block text-sm font-medium">Dato verdien gjelder fra</span><input type="date" value={verdiGrunnlagDato} onChange={(event) => setVerdiGrunnlagDato(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label></div>}
+                  <button type="button" onClick={beregnBoligverdi} disabled={beregnerVerdi} className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white disabled:opacity-60">{beregnerVerdi ? "Beregner…" : "Oppdater markedsverdi med SSB"}</button>
+                  {verdiestimat && <div className="mt-4 rounded-xl bg-white p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs text-slate-500">Estimert markedsutvikling</p><p className="mt-1 text-2xl font-bold">{kroner(markedsverdi)}</p></div>{verdiestimat.endringProsent !== 0 && <p className={verdiestimat.endringProsent >= 0 ? "font-bold text-emerald-700" : "font-bold text-red-700"}>{verdiestimat.endringProsent >= 0 ? "+" : ""}{verdiestimat.endringProsent.toFixed(1)} %</p>}</div><p className="mt-3 text-xs leading-5 text-slate-500">SSB {verdiestimat.fra ? `${verdiestimat.fra}–` : ""}{verdiestimat.til}. Dette er generell prisutvikling, ikke en takst eller individuell verdivurdering. Du kan endre markedsverdien manuelt.</p></div>}
+                  <label className="mt-4 flex items-start gap-3"><input type="checkbox" checked={automatiskVerdi} onChange={(event) => setAutomatiskVerdi(event.target.checked)} className="mt-1 h-5 w-5 accent-emerald-600" /><span><strong className="block text-sm">Oppdater estimatet automatisk</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Verdien justeres når SSB publiserer nye kvartalstall. Slå av hvis du vil bruke din egen markedsverdi.</span></span></label>
+                </div>
 
                 <Tallfelt
                   label="Nåværende restlån"
@@ -789,4 +970,12 @@ function kroner(belop: number) {
     currency: "NOK",
     maximumFractionDigits: 0,
   }).format(Number.isFinite(belop) ? belop : 0);
+}
+
+function formaterKortDato(dato: string) {
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${dato}T12:00:00`));
 }

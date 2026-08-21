@@ -1,5 +1,6 @@
 import { createClient } from "./supabase/client";
 import { DEMO_BOLIGER, sendTilInnlogging } from "./demo-data";
+import { beregnIndeksjustertVerdi } from "./boligverdi";
 
 export type BoligData = {
   id: string;
@@ -76,10 +77,39 @@ export async function hentBoliger(): Promise<BoligData[]> {
     }
   }
 
-  return (rader || []).map((rad) => ({
+  const boliger = (rader || []).map((rad) => ({
     ...((rad.data || {}) as Record<string, unknown>),
     id: rad.id,
   }));
+
+  return Promise.all(boliger.map(oppdaterAutomatiskVerdi));
+}
+
+async function oppdaterAutomatiskVerdi(bolig: BoligData) {
+  if (!bolig.automatiskVerdi) return bolig;
+  const grunnlag = Number(bolig.verdiGrunnlag || 0);
+  const grunnlagDato = String(bolig.verdiGrunnlagDato || "");
+  const region = String(bolig.verdiRegion || "TOTAL");
+  const boligtype = String(bolig.verdiBoligtype || "00");
+  if (grunnlag <= 0 || !grunnlagDato) return bolig;
+
+  try {
+    const estimat = await beregnIndeksjustertVerdi({ grunnlag, grunnlagDato, region, boligtype });
+    const markedsverdi = estimat.verdi;
+    const restlaan = Number(bolig.restlaan || 0);
+    const totalInvestering = Number(bolig.kjopesum || 0) + Number(bolig.kjopskostnader || 0);
+    return {
+      ...bolig,
+      markedsverdi,
+      egenkapitalverdi: markedsverdi - restlaan,
+      verdistigning: markedsverdi - totalInvestering,
+      belaningsgrad: markedsverdi > 0 ? (restlaan / markedsverdi) * 100 : 0,
+      verdiestimatKvartal: estimat.til,
+      verdiestimatKilde: estimat.kilde,
+    };
+  } catch {
+    return bolig;
+  }
 }
 
 export async function hentBolig(id: string) {
