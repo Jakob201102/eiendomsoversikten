@@ -109,6 +109,42 @@ export const DEMO_BOLIGER: BoligData[] = [
     verdistigning: 495_000,
     belaningsgrad: 55.6,
   },
+  {
+    id: "demo-bolig-5", adresse: "Sjøgata 44, Tromsø", boligtype: "Leilighet",
+    kjopesum: 3_150_000, kjopskostnader: 98_000, markedsverdi: 3_650_000,
+    restlaan: 2_050_000, rente: 5.2, nedbetalingstid: 26, manedsleie: 20_500,
+    ledighet: 3, felleskostnader: 2_750, felleskostnaderHarFellesgjeld: false,
+    kommunaleAvgifter: 11_500, stromInternett: 1_100, vedlikehold: 10_000,
+    andreKostnader: 3_500, skattepliktig: true, bruttoyield: 7.81, nettoyield: 5.05,
+    kontantstrom: 3_450, egenkapitalverdi: 1_600_000, verdistigning: 402_000, belaningsgrad: 56.2,
+  },
+  {
+    id: "demo-bolig-6", adresse: "Pilestredet 73, Oslo", boligtype: "Leilighet",
+    kjopesum: 5_850_000, kjopskostnader: 152_000, markedsverdi: 6_450_000,
+    restlaan: 3_750_000, rente: 5.0, nedbetalingstid: 29, manedsleie: 29_000,
+    ledighet: 2, felleskostnader: 3_900, felleskostnaderHarFellesgjeld: true,
+    kommunaleAvgifter: 9_500, stromInternett: 900, vedlikehold: 14_000,
+    andreKostnader: 5_000, skattepliktig: true, bruttoyield: 5.95, nettoyield: 4.05,
+    kontantstrom: 2_900, egenkapitalverdi: 2_700_000, verdistigning: 448_000, belaningsgrad: 58.1,
+  },
+  {
+    id: "demo-bolig-7", adresse: "Kirkegata 19, Kristiansand", boligtype: "Enebolig",
+    kjopesum: 4_250_000, kjopskostnader: 132_000, markedsverdi: 4_900_000,
+    restlaan: 2_650_000, rente: 5.1, nedbetalingstid: 25, manedsleie: 26_000,
+    ledighet: 4, felleskostnader: 0, felleskostnaderHarFellesgjeld: false,
+    kommunaleAvgifter: 22_000, stromInternett: 1_650, vedlikehold: 20_000,
+    andreKostnader: 4_800, skattepliktig: true, bruttoyield: 7.34, nettoyield: 5.0,
+    kontantstrom: 4_100, egenkapitalverdi: 2_250_000, verdistigning: 518_000, belaningsgrad: 54.1,
+  },
+  {
+    id: "demo-bolig-8", adresse: "Havnegata 6, Ålesund", boligtype: "Leilighet",
+    kjopesum: 2_950_000, kjopskostnader: 92_000, markedsverdi: 3_300_000,
+    restlaan: 1_850_000, rente: 5.25, nedbetalingstid: 27, manedsleie: 18_500,
+    ledighet: 8, felleskostnader: 2_300, felleskostnaderHarFellesgjeld: false,
+    kommunaleAvgifter: 13_000, stromInternett: 1_000, vedlikehold: 11_000,
+    andreKostnader: 3_200, skattepliktig: true, bruttoyield: 7.53, nettoyield: 4.8,
+    kontantstrom: 2_750, egenkapitalverdi: 1_450_000, verdistigning: 258_000, belaningsgrad: 56.1,
+  },
 ];
 
 export const DEMO_LEIETAKERE: Leietaker[] = [
@@ -184,6 +220,30 @@ export const DEMO_LEIETAKERE: Leietaker[] = [
     kontraktFilnavn: "",
     kontraktLastetOpp: "",
   },
+  {
+    id: "demo-leietaker-5", boligId: "demo-bolig-5", navn: "Anders Larsen",
+    telefon: "000 00 004", epost: "anders.larsen@example.com", startdato: `${ar}-04-01`,
+    sluttdato: `${ar + 1}-03-31`, manedsleie: 20_500, forfallsdag: 1,
+    depositumsstatus: "betalt", status: "aktiv", oppsigelsesfrist: 3,
+    notat: "Eksempeldata – ikke en virkelig person.", kontraktSti: "demo/anders.pdf",
+    kontraktFilnavn: "leiekontrakt-anders.pdf", kontraktLastetOpp: `${ar}-03-25T10:00:00.000Z`,
+  },
+  {
+    id: "demo-leietaker-6", boligId: "demo-bolig-6", navn: "Sara Johansen",
+    telefon: "000 00 005", epost: "sara.johansen@example.com", startdato: `${ar - 1}-09-01`,
+    sluttdato: `${ar}-10-31`, manedsleie: 29_000, forfallsdag: 5,
+    depositumsstatus: "betalt", status: "aktiv", oppsigelsesfrist: 3,
+    notat: "Kontrakten utløper snart i eksempelet.", kontraktSti: "demo/sara.pdf",
+    kontraktFilnavn: "leiekontrakt-sara.pdf", kontraktLastetOpp: `${ar - 1}-08-20T10:00:00.000Z`,
+  },
+  {
+    id: "demo-leietaker-7", boligId: "demo-bolig-7", navn: "Martin Nilsen",
+    telefon: "000 00 006", epost: "martin.nilsen@example.com", startdato: `${ar}-01-15`,
+    sluttdato: "", manedsleie: 26_000, forfallsdag: 1,
+    depositumsstatus: "ikke_registrert", status: "aktiv", oppsigelsesfrist: 3,
+    notat: "Tidsubestemt eksempelavtale. Depositum må følges opp.", kontraktSti: "",
+    kontraktFilnavn: "", kontraktLastetOpp: "",
+  },
 ];
 
 export const DEMO_VEDLIKEHOLD: Vedlikeholdsdata[] = [
@@ -225,6 +285,26 @@ export const DEMO_VEDLIKEHOLD: Vedlikeholdsdata[] = [
     status: "ferdig",
     notat: "Ferdig vedlikehold som vises i årsrapporten.",
     opprettet: `${ar}-04-15T08:00:00.000Z`,
+  },
+  {
+    id: "demo-vedlikehold-4", boligId: "demo-bolig-4", boligAdresse: "Parkveien 5, Stavanger",
+    tittel: "Undersøk lekkasje under kjøkkenvask", prioritet: "kritisk", startdato: `${ar}-08-21`,
+    frist: `${ar}-08-22`, kostnad: 4_500, status: "pagar", notat: "Rørlegger kontaktes i dag.", opprettet: `${ar}-08-21T08:00:00.000Z`,
+  },
+  {
+    id: "demo-vedlikehold-5", boligId: "demo-bolig-5", boligAdresse: "Sjøgata 44, Tromsø",
+    tittel: "Årlig kontroll av brannslokker", prioritet: "normal", startdato: `${ar}-09-05`,
+    frist: `${ar}-09-12`, kostnad: 600, status: "planlagt", notat: "Dokumenter kontrollen med bilde.", opprettet: `${ar}-08-15T08:00:00.000Z`,
+  },
+  {
+    id: "demo-vedlikehold-6", boligId: "demo-bolig-6", boligAdresse: "Pilestredet 73, Oslo",
+    tittel: "Bytt blandebatteri på bad", prioritet: "hoy", startdato: `${ar}-08-25`,
+    frist: `${ar}-09-01`, kostnad: 5_900, status: "planlagt", notat: "Tilbud mottatt.", opprettet: `${ar}-08-18T08:00:00.000Z`,
+  },
+  {
+    id: "demo-vedlikehold-7", boligId: "demo-bolig-7", boligAdresse: "Kirkegata 19, Kristiansand",
+    tittel: "Rens takrenner", prioritet: "lav", startdato: `${ar}-10-01`,
+    frist: `${ar}-10-15`, kostnad: 2_000, status: "planlagt", notat: "Planlagt før høstregnet.", opprettet: `${ar}-08-19T08:00:00.000Z`,
   },
 ];
 

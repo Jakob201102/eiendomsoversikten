@@ -77,6 +77,18 @@ function demoHendelser(): Kalenderhendelse[] {
       notat: "Eksempeldata.",
       automatisk: false,
     },
+    {
+      id: "demo-kalender-3", tittel: "Overlevering av nøkler", type: "mote",
+      dato: datoMedForskyvning(8), klokkeslett: "16:30", boligId: "demo-bolig-8",
+      boligAdresse: "Havnegata 6, Ålesund", leietakerId: "", leietakerNavn: "",
+      notat: "Planlagt innflytting etter visning.", automatisk: false,
+    },
+    {
+      id: "demo-kalender-4", tittel: "Årlig brannkontroll", type: "annet",
+      dato: datoMedForskyvning(12), klokkeslett: "09:00", boligId: "demo-bolig-5",
+      boligAdresse: "Sjøgata 44, Tromsø", leietakerId: "demo-leietaker-5",
+      leietakerNavn: "Anders Larsen", notat: "Kontroller røykvarslere og slokkeutstyr.", automatisk: false,
+    },
   ];
 }
 
