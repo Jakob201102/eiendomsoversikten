@@ -1,7 +1,11 @@
 import Link from "next/link";
 import Navigasjon from "../components/Navigasjon";
 
-export const metadata = { title: "Bruksvilkår", description: "Bruksvilkår for Eiendomsoversikten." };
+export const metadata = {
+  title: "Bruksvilkår",
+  description: "Bruksvilkår for Eiendomsoversikten.",
+  alternates: { canonical: "/bruksvilkar" },
+};
 
 export default function Bruksvilkar() {
   return <main className="min-h-screen bg-slate-100 text-slate-900"><Navigasjon />

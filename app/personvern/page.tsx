@@ -5,6 +5,7 @@ export const metadata = {
   title: "Personvern",
   description:
     "Les hvordan Eiendomsoversikten behandler og beskytter personopplysninger.",
+  alternates: { canonical: "/personvern" },
 };
 
 export default function Personvern() {

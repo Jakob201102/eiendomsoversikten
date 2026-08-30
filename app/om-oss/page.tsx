@@ -5,6 +5,7 @@ export const metadata = {
   title: "Om oss",
   description:
     "Eiendomsoversikten gir norske utleiere kontroll på boliger, leietakere, økonomi og vedlikehold.",
+  alternates: { canonical: "/om-oss" },
 };
 
 export default function OmOss() {
