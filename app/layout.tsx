@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import Footer from "./components/Footer";
 import Tilbakemelding from "./components/Tilbakemelding";
 import "./globals.css";
@@ -6,9 +7,12 @@ import "./globals.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.eiendomsoversikten.no"),
+  metadataBase: new URL(
+    "https://www.eiendomsoversikten.no",
+  ),
   title: {
-    default: "Eiendomsoversikten – komplett oversikt for utleiere",
+    default:
+      "Eiendomsoversikten – komplett oversikt for utleiere",
     template: "%s | Eiendomsoversikten",
   },
   description:
@@ -34,13 +38,15 @@ export const metadata: Metadata = {
     locale: "nb_NO",
     url: "/",
     siteName: "Eiendomsoversikten",
-    title: "Eiendomsoversikten – full kontroll på utleien",
+    title:
+      "Eiendomsoversikten – full kontroll på utleien",
     description:
       "Samle boliger, leietakere, økonomi, vedlikehold, kontrakter og dokumenter på ett sted.",
   },
   twitter: {
     card: "summary",
-    title: "Eiendomsoversikten – full kontroll på utleien",
+    title:
+      "Eiendomsoversikten – full kontroll på utleien",
     description:
       "Et norsk verktøy for boliger, leietakere, økonomi, vedlikehold og dokumenter.",
   },
@@ -89,12 +95,17 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(strukturertData).replace(/</g, "\\u003c"),
+            __html: JSON.stringify(
+              strukturertData,
+            ).replace(/</g, "\\u003c"),
           }}
         />
+
         {children}
+
         <Footer />
         <Tilbakemelding />
+        <Analytics />
       </body>
     </html>
   );
