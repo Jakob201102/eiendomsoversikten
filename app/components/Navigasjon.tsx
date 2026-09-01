@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 
 const grupper = [
-  { navn: "Eiendom", lenker: [{ navn: "Mine boliger", adresse: "/boliger" }, { navn: "Leietakere", adresse: "/leietakere" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender" }] },
+  { navn: "Eiendom", lenker: [{ navn: "Mine boliger", adresse: "/boliger" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Leietakere", adresse: "/leietakere" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender" }] },
   { navn: "Økonomi", lenker: [{ navn: "Inntekter og utgifter", adresse: "/okonomi" }, { navn: "Årsrapport", adresse: "/skatterapport" }] },
   { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Kontrakter", adresse: "/kontrakter" }] },
   { navn: "Verktøy", lenker: [{ navn: "Boligkalkulator", adresse: "/kalkulator" }] },

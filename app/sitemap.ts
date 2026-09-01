@@ -8,6 +8,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { sti: "/kalkulator", prioritet: 0.9, frekvens: "monthly" as const },
     { sti: "/oversikt", prioritet: 0.8, frekvens: "monthly" as const },
     { sti: "/boliger", prioritet: 0.8, frekvens: "monthly" as const },
+    { sti: "/alt-om-boligen", prioritet: 0.8, frekvens: "monthly" as const },
     { sti: "/leietakere", prioritet: 0.8, frekvens: "monthly" as const },
     { sti: "/vedlikehold", prioritet: 0.8, frekvens: "monthly" as const },
     { sti: "/skatterapport", prioritet: 0.8, frekvens: "monthly" as const },
@@ -22,7 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return sider.map(({ sti, prioritet, frekvens }) => ({
     url: `${baseUrl}${sti}`,
-    lastModified: new Date("2026-08-30"),
+    lastModified: new Date("2026-09-01"),
     changeFrequency: frekvens,
     priority: prioritet,
   }));

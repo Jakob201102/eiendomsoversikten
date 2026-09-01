@@ -464,7 +464,7 @@ export default function Boliger() {
                         </strong>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-3 gap-2">
+                      <div className="mt-4 grid grid-cols-2 gap-2">
                         <button
                           type="button"
                           onClick={() =>
@@ -480,6 +480,13 @@ export default function Boliger() {
                           className="rounded-lg bg-slate-900 px-2 py-2 text-center text-sm font-semibold text-white"
                         >
                           Rediger
+                        </Link>
+
+                        <Link
+                          href={`/alt-om-boligen?bolig=${bolig.id}`}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+                        >
+                          Alt om boligen
                         </Link>
 
                         <button
@@ -647,6 +654,13 @@ function Boligvindu({
               className="mt-5 block rounded-xl bg-slate-900 px-4 py-3 text-center font-semibold text-white"
             >
               Rediger bolig
+            </Link>
+
+            <Link
+              href={`/alt-om-boligen?bolig=${bolig.id}`}
+              className="mt-3 block rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-center font-semibold text-emerald-800"
+            >
+              Alt om boligen
             </Link>
           </section>
 

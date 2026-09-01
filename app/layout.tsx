@@ -80,6 +80,7 @@ const strukturertData = {
     "Boligkalkulator",
     "Vedlikeholdsplanlegging",
     "Dokumentarkiv",
+    "Praktisk boligarkiv",
     "Underlag til skattemeldingen",
   ],
 };
