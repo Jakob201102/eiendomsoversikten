@@ -137,6 +137,7 @@ export default function Personvern() {
               ber om det, eller når deling følger av lov eller gyldig pålegg fra
               offentlig myndighet.
             </p>
+            <p className="mt-4">Ved digital boligoverlevering deler vi bare opplysningene og dokumentene du uttrykkelig velger, med kontoen som bruker mottakeradressen du oppgir. Invitasjonen utløper etter 30 dager. Kontroller alltid adressen og innholdet før du oppretter lenken.</p>
           </Personvernkort>
 
           <Personvernkort tittel="8. Dine rettigheter">

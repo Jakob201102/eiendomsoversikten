@@ -227,4 +227,4 @@ function dagerTil(dato: string) {
 }
 function kroner(verdi: number) { return new Intl.NumberFormat("nb-NO", { style: "currency", currency: "NOK", maximumFractionDigits: 0 }).format(Number.isFinite(verdi) ? verdi : 0); }
 function kortDato(dato: string) { if (!dato) return "Ikke satt"; return new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short" }).format(new Date(`${dato}T12:00:00`)); }
-function hendelsesfarge(type: Kalenderhendelse["type"]) { return { vedlikehold: "bg-red-500", kontrakt: "bg-blue-500", visning: "bg-emerald-500", mote: "bg-violet-500", annet: "bg-slate-500" }[type]; }
+function hendelsesfarge(type: Kalenderhendelse["type"]) { return { vedlikehold: "bg-red-500", kontrakt: "bg-blue-500", garanti: "bg-amber-500", visning: "bg-emerald-500", mote: "bg-violet-500", annet: "bg-slate-500" }[type]; }

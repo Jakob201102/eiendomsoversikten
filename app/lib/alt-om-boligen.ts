@@ -50,6 +50,27 @@ export type Malinfo = {
   notat: string;
 };
 
+export type Uteomradeinfo = {
+  id: string;
+  type: string;
+  navn: string;
+  storrelse: string;
+  materiale: string;
+  sistArbeid: string;
+  nesteVedlikehold: string;
+  notat: string;
+};
+
+export type Garantiinfo = {
+  id: string;
+  navn: string;
+  kjopsdato: string;
+  utlopsdato: string;
+  leverandor: string;
+  dokumentId: string;
+  notat: string;
+};
+
 export type AltOmBoligenData = {
   versjon: 1;
   generell: {
@@ -98,6 +119,8 @@ export type AltOmBoligenData = {
   utstyr: Utstyrinfo[];
   oppussing: Oppussinginfo[];
   mal: Malinfo[];
+  uteomrader: Uteomradeinfo[];
+  garantier: Garantiinfo[];
   notater: string;
   oppdatert: string;
 };
@@ -176,6 +199,8 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
     utstyr: [],
     oppussing: [],
     mal: [],
+    uteomrader: [],
+    garantier: [],
     notater: "",
     oppdatert: "",
   };
@@ -204,6 +229,8 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     utstyr: liste<Utstyrinfo>(lagret.utstyr),
     oppussing: liste<Oppussinginfo>(lagret.oppussing),
     mal: liste<Malinfo>(lagret.mal),
+    uteomrader: liste<Uteomradeinfo>(lagret.uteomrader),
+    garantier: liste<Garantiinfo>(lagret.garantier),
     notater: tekst(lagret.notater),
     oppdatert: tekst(lagret.oppdatert),
   };
@@ -303,6 +330,43 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       { id: "demo-mal-1", navn: "Vindu i stue", mal: "160 × 140 cm", notat: "Mål til innvendig rullegardin" },
       { id: "demo-mal-2", navn: "Plass til kjøleskap", mal: "60 × 200 × 65 cm", notat: "Bredde × høyde × dybde" },
     ],
+    uteomrader: [
+      {
+        id: "demo-ute-1",
+        type: "Hage",
+        navn: "Hagen",
+        storrelse: "ca. 180 m²",
+        materiale: "Plen, hekk og staudebed",
+        sistArbeid: "Hekk klippet august 2026",
+        nesteVedlikehold: "Vårstell april 2027",
+        notat: "Utekran på garasjeveggen.",
+      },
+      {
+        id: "demo-ute-2",
+        type: "Terrasse/uteplass",
+        navn: "Terrassen",
+        storrelse: "32 m²",
+        materiale: "Impregnert treverk",
+        sistArbeid: "Beiset juni 2025",
+        nesteVedlikehold: "Vurder ny beis våren 2028",
+        notat: "Farge: Jotun Trebitt 90029 Naturlig sølvgrå.",
+      },
+      {
+        id: "demo-ute-3",
+        type: "Bod/redskapsbod",
+        navn: "Redskapsboden",
+        storrelse: "8 m²",
+        materiale: "Trekledning og shingeltak",
+        sistArbeid: "Tak kontrollert mai 2026",
+        nesteVedlikehold: "Mal kledning sommeren 2027",
+        notat: "Hageredskaper og utemøbler oppbevares her.",
+      },
+    ],
+    garantier: [
+      { id: "demo-garanti-1", navn: "Bosch oppvaskmaskin", kjopsdato: "2026-05-14", utlopsdato: "2031-05-14", leverandor: "Elkjøp", dokumentId: "", notat: "Kvittering er lagret." },
+      { id: "demo-garanti-2", navn: "Robotgressklipper", kjopsdato: "2024-10-15", utlopsdato: "2026-10-15", leverandor: "Obs BYGG", dokumentId: "", notat: "Utløper snart – kvittering er lagret." },
+      { id: "demo-garanti-3", navn: "Kaffemaskin", kjopsdato: "2024-06-01", utlopsdato: "2026-06-01", leverandor: "Power", dokumentId: "", notat: "Garantien er utløpt." },
+    ],
     notater: "Ring styret før arbeid som påvirker fasade eller felles rør.",
     oppdatert: "2026-08-30T12:00:00.000Z",
   };
@@ -326,4 +390,8 @@ export function nyOppussing(): Oppussinginfo {
 
 export function nyttMal(): Malinfo {
   return { id: crypto.randomUUID(), navn: "", mal: "", notat: "" };
+}
+
+export function nyttUteomrade(type = "Hage"): Uteomradeinfo {
+  return { id: crypto.randomUUID(), type, navn: "", storrelse: "", materiale: "", sistArbeid: "", nesteVedlikehold: "", notat: "" };
 }

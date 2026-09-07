@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
+import { lesBruksomrade, startsideFor, type Bruksomrade } from "../lib/bruksomrade";
 
 export default function Konto() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function Konto() {
 
   const [navn, setNavn] = useState("");
   const [mobil, setMobil] = useState("");
+  const [bruksomrade, setBruksomrade] = useState<Bruksomrade>("utleie");
   const [epost, setEpost] = useState("");
   const [nyEpost, setNyEpost] = useState("");
   const [nyttPassord, setNyttPassord] = useState("");
@@ -51,6 +53,7 @@ export default function Konto() {
           ? user.user_metadata.mobil
           : "",
       );
+      setBruksomrade(lesBruksomrade(user) || "utleie");
 
       const passordOppdatert = new URLSearchParams(
         window.location.search,
@@ -127,6 +130,14 @@ export default function Konto() {
       );
     }
 
+    setArbeider(false);
+  }
+
+  async function lagreBruksomrade(event: FormEvent) {
+    event.preventDefault(); startArbeid();
+    const { error } = await supabase.auth.updateUser({ data: { bruksomrade } });
+    if (error) setFeil("Kunne ikke endre bruksområdet.");
+    else { setMelding("Bruksområdet er oppdatert. Ingen lagrede data er slettet."); router.refresh(); setTimeout(() => router.push(startsideFor(bruksomrade)), 400); }
     setArbeider(false);
   }
 
@@ -274,6 +285,23 @@ export default function Konto() {
             >
               {arbeider ? "Lagrer…" : "Lagre profil"}
             </button>
+          </form>
+        </Kontokort>
+
+        <Kontokort
+          tittel="Bruksområde"
+          beskrivelse="Tilpass startsiden og menyen. Du kan bytte når som helst uten at lagrede data slettes."
+        >
+          <form onSubmit={lagreBruksomrade} className="mt-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([['utleie','Utleie','Portefølje, leietakere, økonomi og skatt'],['privat','Privat bolig','Boligmappe, oppussing og vedlikehold'],['begge','Begge deler','Tilgang til begge områdene']] as const).map(([id,tittel,tekst]) => (
+                <label key={id} className={`cursor-pointer rounded-xl border-2 p-4 ${bruksomrade===id?'border-emerald-500 bg-emerald-50':'border-slate-200'}`}>
+                  <input type="radio" name="bruksomrade" value={id} checked={bruksomrade===id} onChange={() => setBruksomrade(id)} className="sr-only" />
+                  <span className="block font-bold">{tittel}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{tekst}</span>
+                </label>
+              ))}
+            </div>
+            <button type="submit" disabled={arbeider} className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60">Lagre bruksområde</button>
           </form>
         </Kontokort>
 

@@ -10,12 +10,14 @@ import {
   nyOppussing,
   nyRom,
   nyttMal,
+  nyttUteomrade,
   nyttUtstyr,
   type AltOmBoligenData,
   type Malinfo,
   type Nokkelinfo,
   type Oppussinginfo,
   type Rominfo,
+  type Uteomradeinfo,
   type Utstyrinfo,
 } from "../lib/alt-om-boligen";
 import { hentBoliger, oppdaterBolig, type BoligData } from "../lib/boliger";
@@ -29,7 +31,9 @@ import {
 import { createClient } from "../lib/supabase/client";
 
 type Objektseksjon = "generell" | "teknisk" | "sikkerhet" | "tilleggsarealer";
-type Listefelt = "rom" | "nokler" | "utstyr" | "oppussing" | "mal";
+type Listefelt = "rom" | "uteomrader" | "nokler" | "utstyr" | "oppussing" | "mal";
+
+const UTEOMRADETYPER = ["Hage", "Terrasse/uteplass", "Bod/redskapsbod", "Garasje", "Parkering", "Drivhus", "Gjerde/mur/port", "Annet"];
 
 const BILDEKATEGORI = "boligbilde";
 const PLANTEGNINGKATEGORI = "plantegning";
@@ -92,6 +96,16 @@ export default function AltOmBoligen() {
     if (!valgtBolig) return null;
     return innlogget ? lesAltOmBoligen(valgtBolig) : demoAltOmBoligen(valgtBolig);
   }, [valgtBolig, innlogget]);
+
+  useEffect(() => {
+    if (!data || !innlogget || redigerer) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("rediger") !== "1") return;
+    setUtkast(structuredClone(data));
+    setRedigerer(true);
+    url.searchParams.delete("rediger");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [data, innlogget, redigerer]);
 
   useEffect(() => {
     if (!redigerer && data) setUtkast(data);
@@ -157,7 +171,7 @@ export default function AltOmBoligen() {
     });
   }
 
-  function oppdaterListe<T extends Rominfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(
+  function oppdaterListe<T extends Rominfo | Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(
     liste: Listefelt,
     id: string,
     felt: keyof T,
@@ -172,9 +186,10 @@ export default function AltOmBoligen() {
     });
   }
 
-  function leggTil(liste: Listefelt) {
+  function leggTil(liste: Listefelt, startverdi = "") {
     const nye = {
       rom: nyRom(),
+      uteomrader: nyttUteomrade(startverdi || "Hage"),
       nokler: nyNokkel(),
       utstyr: nyttUtstyr(),
       oppussing: nyOppussing(),
@@ -499,6 +514,23 @@ function Oversiktsvisning({
         </div>
       </SamlingKort>
 
+      <SamlingKort tittel="Uteområder og boder" antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {data.uteomrader.map((omrade) => (
+            <article key={omrade.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{omrade.type || "Uteområde"}</p>
+                  <h3 className="mt-1 text-lg font-bold">{omrade.navn || omrade.type || "Uten navn"}</h3>
+                </div>
+                {omrade.storrelse && <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold">{omrade.storrelse}</span>}
+              </div>
+              <Detaljliste kompakt rader={[["Materiale", omrade.materiale], ["Siste arbeid", omrade.sistArbeid], ["Neste", omrade.nesteVedlikehold], ["Notat", omrade.notat]]} />
+            </article>
+          ))}
+        </div>
+      </SamlingKort>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <SamlingKort tittel="Nøkkeloversikt" antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
           <div className="overflow-x-auto">
@@ -578,8 +610,8 @@ function Redigeringsvisning({
   data: AltOmBoligenData;
   oppdaterObjekt: (seksjon: Objektseksjon, felt: string, verdi: string) => void;
   oppdaterNotat: (verdi: string) => void;
-  oppdaterListe: <T extends Rominfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(liste: Listefelt, id: string, felt: keyof T, verdi: string) => void;
-  leggTil: (liste: Listefelt) => void;
+  oppdaterListe: <T extends Rominfo | Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(liste: Listefelt, id: string, felt: keyof T, verdi: string) => void;
+  leggTil: (liste: Listefelt, startverdi?: string) => void;
   fjern: (liste: Listefelt, id: string) => void;
   bilder: Dokument[];
   plantegninger: Dokument[];
@@ -648,6 +680,32 @@ function Redigeringsvisning({
             </Redigeringskort>
           ))}
           <LeggTilKnapp onClick={() => leggTil("rom")}>+ Legg til rom</LeggTilKnapp>
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel="Uteområder og boder" forklaring="Trykk på riktig type. Du trenger bare å fylle ut det du vil huske.">
+        <div className="mb-5 flex flex-wrap gap-2">
+          {UTEOMRADETYPER.map((type) => (
+            <button key={type} type="button" onClick={() => leggTil("uteomrader", type)} className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
+              + {type}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {data.uteomrader.map((omrade, indeks) => (
+            <Redigeringskort key={omrade.id} tittel={omrade.navn || omrade.type || `Uteområde ${indeks + 1}`} onDelete={() => fjern("uteomrader", omrade.id)}>
+              <Feltgrid>
+                <Valgfelt label="Type" value={omrade.type} valg={UTEOMRADETYPER} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "type", v)} />
+                <Tekstfelt label="Navn (valgfritt)" value={omrade.navn} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "navn", v)} placeholder="For eksempel bakhagen" />
+                <Tekstfelt label="Størrelse" value={omrade.storrelse} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "storrelse", v)} placeholder="For eksempel 150 m²" />
+                <Tekstfelt label="Materiale eller overflate" value={omrade.materiale} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "materiale", v)} placeholder="For eksempel plen og belegningsstein" />
+                <Tekstfelt label="Siste arbeid" value={omrade.sistArbeid} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "sistArbeid", v)} placeholder="For eksempel beiset juni 2026" />
+                <Tekstfelt label="Neste vedlikehold" value={omrade.nesteVedlikehold} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "nesteVedlikehold", v)} placeholder="For eksempel vårstell april 2027" />
+                <Tekstfelt label="Notat" value={omrade.notat} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "notat", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          {!data.uteomrader.length && <TomInnhold tekst="Velg en type ovenfor for å komme i gang." />}
         </div>
       </Redigeringsseksjon>
 
@@ -775,6 +833,7 @@ function TomSide() { return <section className="mt-6 rounded-3xl bg-white p-12 t
 function Redigeringsseksjon({ tittel, forklaring, children }: { tittel: string; forklaring: string; children: React.ReactNode }) { return <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7"><h2 className="text-xl font-bold">{tittel}</h2><p className="mt-1 text-sm text-slate-500">{forklaring}</p><div className="mt-6">{children}</div></section>; }
 function Feltgrid({ children }: { children: React.ReactNode }) { return <div className="grid gap-4 sm:grid-cols-2">{children}</div>; }
 function Tekstfelt({ label, value, onChange, bred = false, placeholder = "", type = "text", inputMode }: { label: string; value: string; onChange: (verdi: string) => void; bred?: boolean; placeholder?: string; type?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"] }) { return <label className={bred ? "text-sm font-semibold sm:col-span-2" : "text-sm font-semibold"}><span className="mb-2 block">{label}</span><input type={type} inputMode={inputMode} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-emerald-500" /></label>; }
+function Valgfelt({ label, value, valg, onChange }: { label: string; value: string; valg: string[]; onChange: (verdi: string) => void }) { return <label className="text-sm font-semibold"><span className="mb-2 block">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500">{valg.map((alternativ) => <option key={alternativ} value={alternativ}>{alternativ}</option>)}</select></label>; }
 function Redigeringskort({ tittel, onDelete, children }: { tittel: string; onDelete: () => void; children: React.ReactNode }) { return <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold">{tittel}</h3><button type="button" onClick={onDelete} className="text-sm font-semibold text-red-600">Slett</button></div>{children}</article>; }
 function LeggTilKnapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className="w-full rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 font-bold text-emerald-800">{children}</button>; }
 function medEnhet(verdi: string, enhet: string) { if (!verdi.trim()) return ""; return verdi.toLowerCase().includes(enhet.toLowerCase()) ? verdi : `${verdi} ${enhet}`; }

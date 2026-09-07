@@ -3,10 +3,12 @@ import type { BoligData } from "./boliger";
 import type { Leietaker } from "./leietakere";
 import type { Vedlikeholdsdata } from "./vedlikehold";
 import { sendTilInnlogging } from "./demo-data";
+import { lesAltOmBoligen } from "./alt-om-boligen";
 
 export type Hendelsestype =
   | "vedlikehold"
   | "kontrakt"
+  | "garanti"
   | "visning"
   | "mote"
   | "annet";
@@ -206,6 +208,28 @@ export function byggAutomatiskeKalenderhendelser(
       automatisk: true,
       kildeUrl: "/vedlikehold",
     });
+  }
+
+  for (const bolig of boliger) {
+    if (String(bolig.brukstype || "") !== "privat") continue;
+    const alt = lesAltOmBoligen(bolig);
+    for (const garanti of alt.garantier) {
+      if (!garanti.utlopsdato) continue;
+      hendelser.push({
+        id: `garanti-${bolig.id}-${garanti.id}`,
+        tittel: `Garanti utløper – ${garanti.navn || "produkt"}`,
+        type: "garanti",
+        dato: garanti.utlopsdato,
+        klokkeslett: "",
+        boligId: bolig.id,
+        boligAdresse: String(bolig.adresse || "Privat bolig"),
+        leietakerId: "",
+        leietakerNavn: "",
+        notat: garanti.leverandor ? `Garanti fra ${garanti.leverandor}.` : "Automatisk garantivarsel.",
+        automatisk: true,
+        kildeUrl: "/garantier",
+      });
+    }
   }
 
   for (const leietaker of leietakere) {

@@ -12,17 +12,20 @@ export const metadata: Metadata = {
   ),
   title: {
     default:
-      "Eiendomsoversikten – komplett oversikt for utleiere",
+      "Eiendomsoversikten – full kontroll på boligen",
     template: "%s | Eiendomsoversikten",
   },
   description:
-    "Samle utleieboliger, leietakere, økonomi, vedlikehold, kontrakter og dokumenter på ett sted. Prøv Eiendomsoversikten gratis.",
+    "Samle boliginformasjon, oppussing, vedlikehold og dokumenter. Egen løsning for både boligeiere og utleiere.",
   applicationName: "Eiendomsoversikten",
   authors: [{ name: "Eiendomsoversikten" }],
   creator: "Eiendomsoversikten",
   publisher: "Eiendomsoversikten",
   keywords: [
     "utleieoversikt",
+    "digital boligmappe",
+    "vedlikeholdsplan bolig",
+    "oppussingshistorikk",
     "verktøy for utleiere",
     "utleiebolig",
     "leietakeroversikt",
@@ -39,16 +42,16 @@ export const metadata: Metadata = {
     url: "/",
     siteName: "Eiendomsoversikten",
     title:
-      "Eiendomsoversikten – full kontroll på utleien",
+      "Eiendomsoversikten – full kontroll på boligen",
     description:
-      "Samle boliger, leietakere, økonomi, vedlikehold, kontrakter og dokumenter på ett sted.",
+      "Én tjeneste for privat bolig og utleie. Samle boliginformasjon, oppussing, vedlikehold, økonomi og dokumenter.",
   },
   twitter: {
     card: "summary",
     title:
-      "Eiendomsoversikten – full kontroll på utleien",
+      "Eiendomsoversikten – full kontroll på boligen",
     description:
-      "Et norsk verktøy for boliger, leietakere, økonomi, vedlikehold og dokumenter.",
+      "Et norsk verktøy for boligeiere og utleiere.",
   },
   robots: {
     index: true,
@@ -69,11 +72,11 @@ const strukturertData = {
   "@type": "WebApplication",
   name: "Eiendomsoversikten",
   url: "https://www.eiendomsoversikten.no",
-  applicationCategory: "BusinessApplication",
+  applicationCategory: "UtilitiesApplication",
   operatingSystem: "Alle",
   inLanguage: "nb-NO",
   description:
-    "Et norsk verktøy som samler utleieboliger, leietakere, økonomi, vedlikehold, kontrakter og dokumenter på ett sted.",
+    "Et norsk verktøy for boligeiere og utleiere som samler boliginformasjon, oppussing, vedlikehold, økonomi og dokumenter.",
   featureList: [
     "Porteføljeoversikt",
     "Leietakeroversikt",
@@ -81,6 +84,8 @@ const strukturertData = {
     "Vedlikeholdsplanlegging",
     "Dokumentarkiv",
     "Praktisk boligarkiv",
+    "Oppussingshistorikk",
+    "Digital boligoverlevering",
     "Underlag til skattemeldingen",
   ],
 };

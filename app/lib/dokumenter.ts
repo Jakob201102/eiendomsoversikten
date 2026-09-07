@@ -25,6 +25,7 @@ export async function lastOppDokument(fil: File, felt: { boligId: string; navn: 
   const { error: lagringsfeil } = await supabase.storage.from(BUCKET).upload(sti, fil, { contentType: fil.type, upsert: false }); if (lagringsfeil) throw lagringsfeil;
   const { error } = await supabase.from("dokumenter").insert({ id, user_id: user.id, bolig_id: felt.boligId || null, navn: felt.navn.trim() || fil.name, kategori: felt.kategori, ar: felt.ar, dokumentdato: felt.dokumentdato || null, notat: felt.notat.trim() || null, filsti: sti, filnavn: fil.name, filtype: fil.type, filstorrelse: fil.size });
   if (error) { await supabase.storage.from(BUCKET).remove([sti]); throw error; }
+  return id;
 }
 export async function dokumentLenke(sti: string) { const { supabase } = await bruker(); const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(sti, 60); if (error || !data?.signedUrl) throw error || new Error("MANGLER_LENKE"); return data.signedUrl; }
 export async function slettDokument(dokument: Dokument) { const { supabase } = await bruker(); const { error: filfeil } = await supabase.storage.from(BUCKET).remove([dokument.filsti]); if (filfeil) throw filfeil; const { error } = await supabase.from("dokumenter").delete().eq("id", dokument.id); if (error) throw error; }

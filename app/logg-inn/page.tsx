@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
+import { lesBruksomrade, startsideFor } from "../lib/bruksomrade";
 
 type Modus = "logg-inn" | "registrer" | "glemt";
 
 export default function LoggInn() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nesteParameter = searchParams.get("neste") || "";
+  const neste = nesteParameter.startsWith("/") && !nesteParameter.startsWith("//") ? nesteParameter : "";
   const supabase = useMemo(() => createClient(), []);
 
   const [modus, setModus] = useState<Modus>("logg-inn");
@@ -64,14 +68,14 @@ export default function LoggInn() {
         email: ryddetEpost,
         password: passord,
         options: {
-          emailRedirectTo: `${window.location.origin}/boliger`,
+          emailRedirectTo: `${window.location.origin}${neste || "/velg-bruksomrade"}`,
         },
       });
 
       if (error) {
         setFeilmelding(oversettFeilmelding(error.message));
       } else if (data.session) {
-        router.push("/boliger");
+        router.push(neste || "/velg-bruksomrade");
         router.refresh();
         return;
       } else {
@@ -84,7 +88,7 @@ export default function LoggInn() {
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: ryddetEpost,
       password: passord,
     });
@@ -97,7 +101,7 @@ export default function LoggInn() {
       return;
     }
 
-    router.push("/boliger");
+    router.push(neste || startsideFor(lesBruksomrade(data.user)));
     router.refresh();
   }
 

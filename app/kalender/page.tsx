@@ -32,6 +32,7 @@ const TOMT_SKJEMA: KalenderhendelseSkjema = {
 const TYPEINFO: Record<Hendelsestype, { navn: string; prikk: string; merke: string }> = {
   vedlikehold: { navn: "Vedlikehold", prikk: "bg-red-500", merke: "bg-red-100 text-red-800" },
   kontrakt: { navn: "Leiekontrakt", prikk: "bg-blue-500", merke: "bg-blue-100 text-blue-800" },
+  garanti: { navn: "Garanti", prikk: "bg-amber-500", merke: "bg-amber-100 text-amber-800" },
   visning: { navn: "Visning", prikk: "bg-emerald-500", merke: "bg-emerald-100 text-emerald-800" },
   mote: { navn: "Møte / befaring", prikk: "bg-violet-500", merke: "bg-violet-100 text-violet-800" },
   annet: { navn: "Annet", prikk: "bg-slate-500", merke: "bg-slate-200 text-slate-800" },
@@ -166,7 +167,7 @@ export default function Kalender() {
             <p className="font-semibold text-emerald-700">PLANLEGGING</p>
             <h1 className="mt-1 text-3xl font-bold sm:text-4xl">Kalender</h1>
             <p className="mt-2 max-w-2xl text-slate-600">
-              Kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger,
+              Garantier, kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger,
               møter, befaringer og andre avtaler selv.
             </p>
           </div>
