@@ -25,6 +25,7 @@ export default function MittHjemDashboard({
   oppgaver,
   onVelgBolig,
   onLeggTilBolig,
+  onSlettBolig,
   onOppdatert,
   demo = false,
 }: {
@@ -34,11 +35,13 @@ export default function MittHjemDashboard({
   oppgaver: Vedlikeholdsdata[];
   onVelgBolig: (id: string) => void;
   onLeggTilBolig: () => void;
+  onSlettBolig: () => Promise<void>;
   onOppdatert: () => Promise<void>;
   demo?: boolean;
 }) {
   const data = lesAltOmBoligen(bolig);
   const kanRedigere = !demo && String(bolig.tilgang || "eier") !== "leser";
+  const erEier = !demo && String(bolig.tilgang || "eier") === "eier";
   const [visning, setVisning] = useState<Visning>(null);
   const [menyApen, setMenyApen] = useState(false);
   const [historikkSkjema, setHistorikkSkjema] = useState<HistorikkSkjema>(tomHistorikk);
@@ -209,7 +212,7 @@ export default function MittHjemDashboard({
     <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Privat bolig</p>{boliger.length > 1 ? <select value={String(bolig.id)} onChange={(event) => onVelgBolig(event.target.value)} className="mt-1 max-w-full rounded-lg border-0 bg-transparent p-0 text-2xl font-bold sm:text-3xl">{boliger.map((verdi) => <option key={verdi.id} value={verdi.id}>{String(verdi.adresse || "Privat bolig")}</option>)}</select> : <h1 className="mt-1 truncate text-2xl font-bold sm:text-3xl">{String(bolig.adresse || "Mitt hjem")}</h1>}<p className="mt-2 text-sm text-slate-500">{[String(bolig.boligtype || data.generell.boligtype || "Privat bolig"), data.generell.totalareal && `${data.generell.totalareal} m²`, data.generell.byggeaar && `Byggeår ${data.generell.byggeaar}`].filter(Boolean).join(" · ")}</p></div>
-        <div className="relative"><button type="button" onClick={() => setMenyApen(!menyApen)} aria-label="Boligvalg" className="flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 text-xl font-bold">•••</button>{menyApen && <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-white p-2 shadow-xl">{kanRedigere && <button type="button" onClick={() => { setMenyApen(false); aapne("boliginfo"); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">Rediger boliginformasjon</button>}<button type="button" onClick={() => { setMenyApen(false); onLeggTilBolig(); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">+ Legg til en annen bolig</button><Link href={`/alt-om-boligen?bolig=${bolig.id}`} className="block rounded-lg px-3 py-2 text-sm font-semibold hover:bg-stone-50">Se alle boligdetaljer</Link></div>}</div>
+        <div className="relative"><button type="button" onClick={() => setMenyApen(!menyApen)} aria-label="Boligvalg" className="flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 text-xl font-bold">•••</button>{menyApen && <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-white p-2 shadow-xl">{kanRedigere && <button type="button" onClick={() => { setMenyApen(false); aapne("boliginfo"); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">Rediger boliginformasjon</button>}<button type="button" onClick={() => { setMenyApen(false); onLeggTilBolig(); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">+ Legg til en annen bolig</button><Link href={`/alt-om-boligen?bolig=${bolig.id}`} className="block rounded-lg px-3 py-2 text-sm font-semibold hover:bg-stone-50">Se alle boligdetaljer</Link>{erEier && <><div className="my-1 border-t border-stone-100" /><button type="button" onClick={() => { setMenyApen(false); void onSlettBolig(); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50">Slett bolig</button></>}</div>}</div>
       </div>
       {kanRedigere && <button type="button" onClick={() => aapne("valg")} className="mt-6 flex min-h-14 w-full items-center justify-center rounded-2xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white shadow-sm hover:bg-emerald-600">+ Legg til</button>}
     </section>

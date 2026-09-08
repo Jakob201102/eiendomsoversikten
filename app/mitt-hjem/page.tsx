@@ -8,7 +8,7 @@ import MittHjemDashboard from "../components/MittHjemDashboard";
 import MittHjemOppsett from "../components/MittHjemOppsett";
 import Navigasjon from "../components/Navigasjon";
 import { demoAltOmBoligen } from "../lib/alt-om-boligen";
-import { hentBoliger, type BoligData } from "../lib/boliger";
+import { hentBoliger, slettBoligFraDatabase, type BoligData } from "../lib/boliger";
 import { harPrivat, lesBruksomrade } from "../lib/bruksomrade";
 import { hentDokumenter, type Dokument } from "../lib/dokumenter";
 import { createClient } from "../lib/supabase/client";
@@ -74,6 +74,28 @@ export default function MittHjem() {
     setNyBolig(false);
   }
 
+  async function slettPrivatBolig(bolig: BoligData) {
+    if (String(bolig.tilgang || "eier") !== "eier") {
+      setFeil("Bare eieren kan slette boligen.");
+      return;
+    }
+
+    const adresse = String(bolig.adresse || "denne boligen");
+    if (!window.confirm(`Vil du slette ${adresse}?\n\nBoligen fjernes fra Eiendomsoversikten. Dette kan ikke angres.`)) return;
+
+    setFeil("");
+    try {
+      await slettBoligFraDatabase(String(bolig.id));
+      const gjenstaende = boliger.filter((verdi) => String(verdi.id) !== String(bolig.id));
+      setBoliger(gjenstaende);
+      setValgtId(String(gjenstaende[0]?.id || ""));
+      setDokumenter((forrige) => forrige.filter((dokument) => dokument.boligId !== String(bolig.id)));
+      setOppgaver((forrige) => forrige.filter((oppgave) => oppgave.boligId !== String(bolig.id)));
+    } catch {
+      setFeil("Kunne ikke slette boligen. Prøv igjen.");
+    }
+  }
+
   if (laster) return <main className="min-h-screen bg-stone-50"><Navigasjon /><p className="p-12 text-center text-slate-500">Laster hjemmet ditt…</p></main>;
 
   return <main className="min-h-screen bg-stone-50 text-slate-900"><Navigasjon />
@@ -83,7 +105,7 @@ export default function MittHjem() {
       {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
 
       {innlogget && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : valgt ? <>
-        <MittHjemDashboard key={`dashboard-${valgt.id}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} />
+        <MittHjemDashboard key={`dashboard-${valgt.id}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} />
         {innlogget && <BoligoverforingKort bolig={valgt} dokumenter={dokumenter} />}
       </> : <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold">Mitt hjem</h1><p className="mt-2 text-slate-500">Opprett din første private bolig for å komme i gang.</p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white">+ Legg til privat bolig</button></section>}
     </div>
