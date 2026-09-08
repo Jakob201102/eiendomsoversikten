@@ -36,6 +36,8 @@ const UTEOMRADETYPER = ["Hage", "Terrasse/uteplass", "Bod/redskapsbod", "Garasje
 
 const BILDEKATEGORI = "boligbilde";
 const PLANTEGNINGKATEGORI = "plantegning";
+const demoPrivatGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", adresse: "Eksempelveien 12, Bergen", boligtype: "Enebolig", byggeaar: "1958", areal: 142 };
+const demoPrivatBolig: BoligData = { ...demoPrivatGrunnlag, altOmBoligen: demoAltOmBoligen(demoPrivatGrunnlag) };
 
 export default function AltOmBoligen() {
   const [boliger, setBoliger] = useState<BoligData[]>([]);
@@ -58,7 +60,10 @@ export default function AltOmBoligen() {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       const erInnlogget = Boolean(data.user);
-      const b = await hentBoliger();
+      const alleBoliger = await hentBoliger();
+      const fraAdresse = new URLSearchParams(window.location.search).get("bolig") || "";
+      const viserPrivatEksempel = !erInnlogget && (localStorage.getItem("demo_bruksomrade") === "privat" || fraAdresse === "demo-privat-hjem");
+      const b = viserPrivatEksempel ? [demoPrivatBolig] : alleBoliger;
       let d: Dokument[] = [];
       try {
         d = await hentDokumenter();
@@ -69,7 +74,6 @@ export default function AltOmBoligen() {
       setBoliger(b);
       setDokumenter(d);
 
-      const fraAdresse = new URLSearchParams(window.location.search).get("bolig") || "";
       const lagret = localStorage.getItem("alt_om_boligen_valgt") || "";
       const start = [fraAdresse, lagret, String(b[0]?.id || "")].find((id) =>
         b.some((bolig) => String(bolig.id) === id),

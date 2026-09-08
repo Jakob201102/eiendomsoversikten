@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import Boligadministrasjon from "../components/Boligadministrasjon";
 import Navigasjon from "../components/Navigasjon";
+import { demoAltOmBoligen } from "../lib/alt-om-boligen";
 import { hentBoliger, type BoligData } from "../lib/boliger";
 import { createClient } from "../lib/supabase/client";
+
+const demoGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", adresse: "Eksempelveien 12, Bergen", boligtype: "Enebolig", byggeaar: "1958", areal: 142 };
+const demoBolig: BoligData = { ...demoGrunnlag, altOmBoligen: demoAltOmBoligen(demoGrunnlag) };
 
 export default function KontakterSide() {
   const [boliger, setBoliger] = useState<BoligData[]>([]);
@@ -18,10 +22,11 @@ export default function KontakterSide() {
     setFeil("");
     try {
       const { data } = await createClient().auth.getUser();
-      setInnlogget(Boolean(data.user));
-      const privateBoliger = (await hentBoliger()).filter(
-        (bolig) => String(bolig.brukstype || "") === "privat",
-      );
+      const erInnlogget = Boolean(data.user);
+      setInnlogget(erInnlogget);
+      const privateBoliger = erInnlogget
+        ? (await hentBoliger()).filter((bolig) => String(bolig.brukstype || "") === "privat")
+        : [demoBolig];
       setBoliger(privateBoliger);
       setBoligId((gammel) =>
         privateBoliger.some((bolig) => String(bolig.id) === gammel)
