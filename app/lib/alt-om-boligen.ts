@@ -58,6 +58,8 @@ export type Historikkinfo = {
   kildeVedlikeholdId: string;
   handverkerId?: string;
   kildeSkadeId?: string;
+  arbeidstype?: string;
+  dokumentasjonBekreftet?: string[];
 };
 
 export type Kontaktinfo = {
@@ -141,6 +143,7 @@ export type AltOmBoligenData = {
     braI: string;
     braE: string;
     totalareal: string;
+    antallRom: string;
     soverom: string;
     etasje: string;
     leilighetsnummer: string;
@@ -207,6 +210,7 @@ const tomGenerell = {
   braI: "",
   braE: "",
   totalareal: "",
+  antallRom: "",
   soverom: "",
   etasje: "",
   leilighetsnummer: "",
@@ -273,6 +277,7 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
       boligtype: tekst(bolig?.boligtype),
       byggeaar: tekst(bolig?.byggeaar),
       totalareal: tekst(bolig?.areal),
+      antallRom: tekst(bolig?.antallRom),
       soverom: tekst(bolig?.soverom),
       etasje: tekst(bolig?.etasje),
       leilighetsnummer: tekst(bolig?.bolignummer),
@@ -332,6 +337,8 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       bildeIder: liste<string>(hendelse.bildeIder),
       handverkerId: tekst(hendelse.handverkerId),
       kildeSkadeId: tekst(hendelse.kildeSkadeId),
+      arbeidstype: tekst(hendelse.arbeidstype),
+      dokumentasjonBekreftet: liste<string>(hendelse.dokumentasjonBekreftet),
     })),
     mal: liste<Malinfo>(lagret.mal),
     uteomrader: liste<Uteomradeinfo>(lagret.uteomrader),
@@ -364,6 +371,7 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       braI: "82",
       braE: "6",
       totalareal: "88",
+      antallRom: "4",
       soverom: "3",
       etasje: "2. etasje",
       leilighetsnummer: "H0201",
@@ -468,7 +476,7 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     ],
     historikk: [
       { id: "demo-historikk-1", dato: "2026-08-15", tittel: "Malt stue", omrade: "Stue", romId: "demo-rom-1", kostnad: 4200, utfortAv: "selv", firma: "", beskrivelse: "Vegger malt i Washed Linen.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
-      { id: "demo-historikk-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", omrade: "Bad", romId: "demo-rom-3", kostnad: 14500, utfortAv: "firma", firma: "Rørlegger AS", beskrivelse: "Ny OSO Saga 200 montert.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
+      { id: "demo-historikk-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", omrade: "Bad", romId: "demo-rom-3", kostnad: 14500, utfortAv: "firma", firma: "Rørlegger AS", beskrivelse: "Ny OSO Saga 200 montert.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "", arbeidstype: "ror", dokumentasjonBekreftet: ["faktura", "arbeidsbeskrivelse", "garanti"] },
     ],
     mal: [
       { id: "demo-mal-1", navn: "Vindu i stue", mal: "160 × 140 cm", notat: "Mål til innvendig rullegardin" },

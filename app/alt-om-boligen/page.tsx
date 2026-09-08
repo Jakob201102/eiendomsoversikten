@@ -186,12 +186,24 @@ export default function AltOmBoligen() {
       mal: nyttMal(),
     };
     const grunnlag = structuredClone(data);
+    const nyOppforing = nye[liste];
     setUtkast({
       ...grunnlag,
-      [liste]: [...grunnlag[liste], nye[liste]],
+      [liste]: [...grunnlag[liste], nyOppforing],
     });
     setVisHurtigvalg(false);
     setRedigerer(true);
+    rullTilOppforing(`rediger-${liste}-${nyOppforing.id}`);
+  }
+
+  function rullTilOppforing(id: string) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      const felt = element.querySelector<HTMLElement>("input, select, textarea");
+      felt?.focus({ preventScroll: true });
+    }));
   }
 
   function oppdaterObjekt(seksjon: Objektseksjon, felt: string, verdi: string) {
@@ -225,9 +237,11 @@ export default function AltOmBoligen() {
       oppussing: nyOppussing(),
       mal: nyttMal(),
     };
+    const nyOppforing = nye[liste];
     setUtkast((forrige) =>
-      forrige ? { ...forrige, [liste]: [...forrige[liste], nye[liste]] } : forrige,
+      forrige ? { ...forrige, [liste]: [...forrige[liste], nyOppforing] } : forrige,
     );
+    rullTilOppforing(`rediger-${liste}-${nyOppforing.id}`);
   }
 
   function fjern(liste: Listefelt, id: string) {
@@ -498,6 +512,7 @@ function Oversiktsvisning({
               ["BRA-i", medEnhet(data.generell.braI, "m²")],
               ["BRA-e", medEnhet(data.generell.braE, "m²")],
               ["Totalareal", medEnhet(data.generell.totalareal, "m²")],
+              ["Antall rom", data.generell.antallRom],
               ["Soverom", data.generell.soverom],
               ["Etasje", data.generell.etasje],
               ["Leilighetsnummer", data.generell.leilighetsnummer],
@@ -660,6 +675,7 @@ function Redigeringsvisning({
           <Tekstfelt label="BRA-i (m²)" value={data.generell.braI} onChange={(v) => oppdaterObjekt("generell", "braI", v)} />
           <Tekstfelt label="BRA-e (m²)" value={data.generell.braE} onChange={(v) => oppdaterObjekt("generell", "braE", v)} />
           <Tekstfelt label="Totalareal (m²)" value={data.generell.totalareal} onChange={(v) => oppdaterObjekt("generell", "totalareal", v)} />
+          <Tekstfelt label="Antall rom" value={data.generell.antallRom} onChange={(v) => oppdaterObjekt("generell", "antallRom", v)} inputMode="numeric" />
           <Tekstfelt label="Antall soverom" value={data.generell.soverom} onChange={(v) => oppdaterObjekt("generell", "soverom", v)} />
           <Tekstfelt label="Etasje" value={data.generell.etasje} onChange={(v) => oppdaterObjekt("generell", "etasje", v)} />
           <Tekstfelt label="Leilighetsnummer" value={data.generell.leilighetsnummer} onChange={(v) => oppdaterObjekt("generell", "leilighetsnummer", v)} />
@@ -701,7 +717,7 @@ function Redigeringsvisning({
         </div>
         <div className="space-y-4">
           {data.uteomrader.map((omrade, indeks) => (
-            <Redigeringskort key={omrade.id} tittel={omrade.navn || omrade.type || `Uteområde ${indeks + 1}`} onDelete={() => fjern("uteomrader", omrade.id)}>
+            <Redigeringskort key={omrade.id} id={`rediger-uteomrader-${omrade.id}`} tittel={omrade.navn || omrade.type || `Uteområde ${indeks + 1}`} onDelete={() => fjern("uteomrader", omrade.id)}>
               <Feltgrid>
                 <Valgfelt label="Type" value={omrade.type} valg={UTEOMRADETYPER} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "type", v)} />
                 <Tekstfelt label="Navn (valgfritt)" value={omrade.navn} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "navn", v)} placeholder="For eksempel bakhagen" />
@@ -720,7 +736,7 @@ function Redigeringsvisning({
       <Redigeringsseksjon tittel="Nøkkeloversikt" forklaring="Ikke registrer alarmkoder, dørlåskoder eller hvor reservenøkler oppbevares.">
         <div className="space-y-4">
           {data.nokler.map((nokkel, indeks) => (
-            <Redigeringskort key={nokkel.id} tittel={nokkel.type || `Nøkkeltype ${indeks + 1}`} onDelete={() => fjern("nokler", nokkel.id)}>
+            <Redigeringskort key={nokkel.id} id={`rediger-nokler-${nokkel.id}`} tittel={nokkel.type || `Nøkkeltype ${indeks + 1}`} onDelete={() => fjern("nokler", nokkel.id)}>
               <Feltgrid>
                 <Tekstfelt label="Nøkkeltype" value={nokkel.type} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "type", v)} />
                 <Tekstfelt label="Antall" value={nokkel.antall} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "antall", v)} />
@@ -737,7 +753,7 @@ function Redigeringsvisning({
       <Redigeringsseksjon tittel="Utstyr og installasjoner" forklaring="Hvitevarer, varmtvannsbereder, varmepumpe og annet fast utstyr.">
         <div className="space-y-4">
           {data.utstyr.map((utstyr, indeks) => (
-            <Redigeringskort key={utstyr.id} tittel={utstyr.navn || `Utstyr ${indeks + 1}`} onDelete={() => fjern("utstyr", utstyr.id)}>
+            <Redigeringskort key={utstyr.id} id={`rediger-utstyr-${utstyr.id}`} tittel={utstyr.navn || `Utstyr ${indeks + 1}`} onDelete={() => fjern("utstyr", utstyr.id)}>
               <Feltgrid>
                 <Tekstfelt label="Navn" value={utstyr.navn} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "navn", v)} />
                 <Tekstfelt label="Merke og modell" value={utstyr.merkeModell} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "merkeModell", v)} />
@@ -756,7 +772,7 @@ function Redigeringsvisning({
       <Redigeringsseksjon tittel="Oppussingshistorikk" forklaring="Arbeid som allerede er utført på boligen.">
         <div className="space-y-4">
           {data.oppussing.map((oppussing, indeks) => (
-            <Redigeringskort key={oppussing.id} tittel={oppussing.tittel || `Oppføring ${indeks + 1}`} onDelete={() => fjern("oppussing", oppussing.id)}>
+            <Redigeringskort key={oppussing.id} id={`rediger-oppussing-${oppussing.id}`} tittel={oppussing.tittel || `Oppføring ${indeks + 1}`} onDelete={() => fjern("oppussing", oppussing.id)}>
               <Feltgrid>
                 <Tekstfelt type="date" label="Dato" value={oppussing.dato} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "dato", v)} />
                 <Tekstfelt label="Hva ble gjort?" value={oppussing.tittel} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "tittel", v)} />
@@ -794,7 +810,7 @@ function Redigeringsvisning({
       <Redigeringsseksjon tittel="Nyttige mål" forklaring="For eksempel vinduer, gardiner, dører og plass til hvitevarer.">
         <div className="space-y-4">
           {data.mal.map((mal, indeks) => (
-            <Redigeringskort key={mal.id} tittel={mal.navn || `Mål ${indeks + 1}`} onDelete={() => fjern("mal", mal.id)}>
+            <Redigeringskort key={mal.id} id={`rediger-mal-${mal.id}`} tittel={mal.navn || `Mål ${indeks + 1}`} onDelete={() => fjern("mal", mal.id)}>
               <Feltgrid>
                 <Tekstfelt label="Hva er målt?" value={mal.navn} onChange={(v) => oppdaterListe<Malinfo>("mal", mal.id, "navn", v)} />
                 <Tekstfelt label="Mål" value={mal.mal} onChange={(v) => oppdaterListe<Malinfo>("mal", mal.id, "mal", v)} placeholder="For eksempel 160 × 140 cm" />
@@ -842,7 +858,7 @@ function Redigeringsseksjon({ tittel, forklaring, children }: { tittel: string; 
 function Feltgrid({ children }: { children: React.ReactNode }) { return <div className="grid gap-4 sm:grid-cols-2">{children}</div>; }
 function Tekstfelt({ label, value, onChange, bred = false, placeholder = "", type = "text", inputMode }: { label: string; value: string; onChange: (verdi: string) => void; bred?: boolean; placeholder?: string; type?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"] }) { return <label className={bred ? "text-sm font-semibold sm:col-span-2" : "text-sm font-semibold"}><span className="mb-2 block">{label}</span><input type={type} inputMode={inputMode} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-emerald-500" /></label>; }
 function Valgfelt({ label, value, valg, onChange }: { label: string; value: string; valg: string[]; onChange: (verdi: string) => void }) { return <label className="text-sm font-semibold"><span className="mb-2 block">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500">{valg.map((alternativ) => <option key={alternativ} value={alternativ}>{alternativ}</option>)}</select></label>; }
-function Redigeringskort({ tittel, onDelete, children }: { tittel: string; onDelete: () => void; children: React.ReactNode }) { return <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold">{tittel}</h3><button type="button" onClick={onDelete} className="text-sm font-semibold text-red-600">Slett</button></div>{children}</article>; }
+function Redigeringskort({ id, tittel, onDelete, children }: { id?: string; tittel: string; onDelete: () => void; children: React.ReactNode }) { return <article id={id} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold">{tittel}</h3><button type="button" onClick={onDelete} className="text-sm font-semibold text-red-600">Slett</button></div>{children}</article>; }
 function LeggTilKnapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className="w-full rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 font-bold text-emerald-800">{children}</button>; }
 function Hurtigknapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm">{children}</button>; }
 function medEnhet(verdi: string, enhet: string) { if (!verdi.trim()) return ""; return verdi.toLowerCase().includes(enhet.toLowerCase()) ? verdi : `${verdi} ${enhet}`; }

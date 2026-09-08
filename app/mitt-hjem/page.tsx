@@ -42,6 +42,7 @@ export default function MittHjem() {
   const [laster, setLaster] = useState(true);
   const [feil, setFeil] = useState("");
   const [nyBolig, setNyBolig] = useState(false);
+  const forespurtBoligId = search.get("bolig") || "";
 
   const lastInn = useCallback(async (foretrukketId?: string) => {
     setFeil("");
@@ -62,7 +63,7 @@ export default function MittHjem() {
     } catch (error) { console.error(error); setFeil("Kunne ikke hente hjemmet ditt."); } finally { setLaster(false); }
   }, [router, supabase]);
 
-  useEffect(() => { lastInn(); }, [lastInn]);
+  useEffect(() => { lastInn(forespurtBoligId || undefined); }, [lastInn, forespurtBoligId]);
 
   const valgt = boliger.find((bolig) => String(bolig.id) === valgtId) || null;
   const aktivOnboarding = Boolean(innlogget && valgt && ((valgt.altOmBoligen as { onboarding?: { status?: string } } | undefined)?.onboarding?.status === "pagar"));
