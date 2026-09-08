@@ -33,8 +33,8 @@ export default function Tilbakemelding() {
   }
 
   return <>
-    <button type="button" onClick={() => { setApen(true); setStatus(""); }} className="fixed bottom-4 right-4 z-40 max-w-[220px] rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white shadow-xl transition hover:bg-emerald-600">
-      Fant du en feil eller savner du noe?
+    <button type="button" onClick={() => { setApen(true); setStatus(""); }} className="fixed bottom-3 right-3 z-30 max-w-[180px] rounded-full bg-slate-950 px-3 py-2 text-xs font-bold text-white shadow-xl transition hover:bg-emerald-600 sm:bottom-4 sm:right-4 sm:max-w-[220px] sm:px-5 sm:py-3 sm:text-sm">
+      Fant du en feil eller savner noe?
     </button>
     {apen && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Send tilbakemelding">
       <form onSubmit={send} className="mx-auto mt-12 max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:mt-24 sm:p-8">

@@ -13,8 +13,8 @@ function renBolig(bolig: BoligData, valg: Overforingsvalg) {
     adresse: String(bolig.adresse || ""), boligtype: String(bolig.boligtype || ""), byggeaar: String(bolig.byggeaar || ""), areal: bolig.areal || "", bolignummer: String(bolig.bolignummer || ""),
     kjopesum: 0, restlaan: 0, rente: 0, manedsleie: 0, felleskostnader: 0, kommunaleAvgifter: 0, stromInternett: 0, vedlikehold: 0, andreKostnader: 0,
     altOmBoligen: {
-      versjon: 1, generell: alt.generell || {}, teknisk: sikkerTeknisk || {}, sikkerhet: valg.sikkerhet ? alt.sikkerhet || {} : {}, tilleggsarealer: alt.tilleggsarealer || {},
-      rom: valg.rom ? alt.rom || [] : [], uteomrader: alt.uteomrader || [], garantier: alt.garantier || [], nokler, utstyr: valg.utstyr ? alt.utstyr || [] : [], oppussing: valg.oppussing ? alt.oppussing || [] : [], mal: [], notater: "", oppdatert: new Date().toISOString(),
+      versjon: 1, generell: alt.generell || {}, teknisk: sikkerTeknisk || {}, viktigeDeler: alt.viktigeDeler || {}, sikkerhet: valg.sikkerhet ? alt.sikkerhet || {} : {}, tilleggsarealer: alt.tilleggsarealer || {},
+      rom: valg.rom ? alt.rom || [] : [], uteomrader: alt.uteomrader || [], garantier: alt.garantier || [], nokler, utstyr: valg.utstyr ? alt.utstyr || [] : [], oppussing: valg.oppussing ? alt.oppussing || [] : [], historikk: valg.oppussing ? alt.historikk || [] : [], mal: [], onboarding: { status: "ferdig", steg: 5 }, notater: "", oppdatert: new Date().toISOString(),
     },
     overfortFra: "Digital boligoverlevering", overfortDato: new Date().toISOString(),
   };

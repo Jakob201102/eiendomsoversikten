@@ -43,6 +43,25 @@ export type Oppussinginfo = {
   beskrivelse: string;
 };
 
+export type Historikkinfo = {
+  id: string;
+  dato: string;
+  tittel: string;
+  omrade: string;
+  kostnad: number;
+  utfortAv: "selv" | "firma" | "";
+  firma: string;
+  beskrivelse: string;
+  dokumentIder: string[];
+  bildeIder: string[];
+  kildeVedlikeholdId: string;
+};
+
+export type Onboardinginfo = {
+  status: "ikke-startet" | "pagar" | "ferdig";
+  steg: number;
+};
+
 export type Malinfo = {
   id: string;
   navn: string;
@@ -98,6 +117,15 @@ export type AltOmBoligenData = {
     ventilasjon: string;
     internettleverandor: string;
   };
+  viktigeDeler: {
+    tak: string;
+    bad: string;
+    kjokken: string;
+    vinduer: string;
+    elektrisk: string;
+    ror: string;
+    oppvarming: string;
+  };
   sikkerhet: {
     roykvarslere: string;
     sistKontrollert: string;
@@ -118,9 +146,11 @@ export type AltOmBoligenData = {
   nokler: Nokkelinfo[];
   utstyr: Utstyrinfo[];
   oppussing: Oppussinginfo[];
+  historikk: Historikkinfo[];
   mal: Malinfo[];
   uteomrader: Uteomradeinfo[];
   garantier: Garantiinfo[];
+  onboarding: Onboardinginfo;
   notater: string;
   oppdatert: string;
 };
@@ -150,6 +180,16 @@ const tomTeknisk = {
   oppvarming: "",
   ventilasjon: "",
   internettleverandor: "",
+};
+
+const tomViktigeDeler = {
+  tak: "",
+  bad: "",
+  kjokken: "",
+  vinduer: "",
+  elektrisk: "",
+  ror: "",
+  oppvarming: "",
 };
 
 const tomSikkerhet = {
@@ -192,15 +232,18 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
       leilighetsnummer: tekst(bolig?.bolignummer),
     },
     teknisk: { ...tomTeknisk },
+    viktigeDeler: { ...tomViktigeDeler },
     sikkerhet: { ...tomSikkerhet },
     tilleggsarealer: { ...tomTilleggsarealer },
     rom: [],
     nokler: [],
     utstyr: [],
     oppussing: [],
+    historikk: [],
     mal: [],
     uteomrader: [],
     garantier: [],
+    onboarding: { status: "ikke-startet", steg: 1 },
     notater: "",
     oppdatert: "",
   };
@@ -219,6 +262,10 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     versjon: 1,
     generell: { ...grunnlag.generell, ...(lagret.generell || {}) },
     teknisk: { ...grunnlag.teknisk, ...(lagret.teknisk || {}) },
+    viktigeDeler: {
+      ...grunnlag.viktigeDeler,
+      ...(lagret.viktigeDeler || {}),
+    },
     sikkerhet: { ...grunnlag.sikkerhet, ...(lagret.sikkerhet || {}) },
     tilleggsarealer: {
       ...grunnlag.tilleggsarealer,
@@ -228,9 +275,19 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     nokler: liste<Nokkelinfo>(lagret.nokler),
     utstyr: liste<Utstyrinfo>(lagret.utstyr),
     oppussing: liste<Oppussinginfo>(lagret.oppussing),
+    historikk: liste<Historikkinfo>(lagret.historikk).map((hendelse) => ({
+      ...hendelse,
+      kostnad: Number(hendelse.kostnad || 0),
+      dokumentIder: liste<string>(hendelse.dokumentIder),
+      bildeIder: liste<string>(hendelse.bildeIder),
+    })),
     mal: liste<Malinfo>(lagret.mal),
     uteomrader: liste<Uteomradeinfo>(lagret.uteomrader),
     garantier: liste<Garantiinfo>(lagret.garantier),
+    onboarding: {
+      ...grunnlag.onboarding,
+      ...(lagret.onboarding || {}),
+    },
     notater: tekst(lagret.notater),
     oppdatert: tekst(lagret.oppdatert),
   };
@@ -266,6 +323,15 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       oppvarming: "Varmekabler på bad og panelovner",
       ventilasjon: "Naturlig ventilasjon",
       internettleverandor: "Altibox fiber",
+    },
+    viktigeDeler: {
+      tak: "2018",
+      bad: "2024",
+      kjokken: "2021",
+      vinduer: "2019",
+      elektrisk: "2024",
+      ror: "2024",
+      oppvarming: "Varmekabler og panelovner",
     },
     sikkerhet: {
       roykvarslere: "3 seriekoblede røykvarslere",
@@ -326,6 +392,10 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       { id: "demo-oppussing-1", dato: "2026-08-15", tittel: "Malt stue", rom: "Stue", beskrivelse: "Vegger malt i Washed Linen. Tak og lister ble flekkmalt." },
       { id: "demo-oppussing-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", rom: "Bad", beskrivelse: "Montert av autorisert rørlegger." },
     ],
+    historikk: [
+      { id: "demo-historikk-1", dato: "2026-08-15", tittel: "Malt stue", omrade: "Stue", kostnad: 4200, utfortAv: "selv", firma: "", beskrivelse: "Vegger malt i Washed Linen.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
+      { id: "demo-historikk-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", omrade: "Bad/vaskerom", kostnad: 14500, utfortAv: "firma", firma: "Rørlegger AS", beskrivelse: "Ny OSO Saga 200 montert.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
+    ],
     mal: [
       { id: "demo-mal-1", navn: "Vindu i stue", mal: "160 × 140 cm", notat: "Mål til innvendig rullegardin" },
       { id: "demo-mal-2", navn: "Plass til kjøleskap", mal: "60 × 200 × 65 cm", notat: "Bredde × høyde × dybde" },
@@ -367,6 +437,7 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       { id: "demo-garanti-2", navn: "Robotgressklipper", kjopsdato: "2024-10-15", utlopsdato: "2026-10-15", leverandor: "Obs BYGG", dokumentId: "", notat: "Utløper snart – kvittering er lagret." },
       { id: "demo-garanti-3", navn: "Kaffemaskin", kjopsdato: "2024-06-01", utlopsdato: "2026-06-01", leverandor: "Power", dokumentId: "", notat: "Garantien er utløpt." },
     ],
+    onboarding: { status: "ferdig", steg: 5 },
     notater: "Ring styret før arbeid som påvirker fasade eller felles rør.",
     oppdatert: "2026-08-30T12:00:00.000Z",
   };
