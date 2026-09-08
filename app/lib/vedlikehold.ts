@@ -7,6 +7,31 @@ export type Vedlikeholdsdata = {
   [felt: string]: unknown;
 };
 
+export type Gjentakelse = "aldri" | "maanedlig" | "halvaarlig" | "aarlig" | "toaarlig" | "egendefinert";
+
+export function nesteDato(dato: string, gjentakelse: Gjentakelse, egendefinertDager = 0) {
+  if (!dato || gjentakelse === "aldri") return "";
+  const neste = new Date(`${dato}T12:00:00`);
+  if (gjentakelse === "maanedlig") neste.setMonth(neste.getMonth() + 1);
+  if (gjentakelse === "halvaarlig") neste.setMonth(neste.getMonth() + 6);
+  if (gjentakelse === "aarlig") neste.setFullYear(neste.getFullYear() + 1);
+  if (gjentakelse === "toaarlig") neste.setFullYear(neste.getFullYear() + 2);
+  if (gjentakelse === "egendefinert") neste.setDate(neste.getDate() + Math.max(1, egendefinertDager));
+  return neste.toISOString().slice(0, 10);
+}
+
+export async function fullforVedlikeholdsoppgave(oppgave: Vedlikeholdsdata, endringer: Record<string, unknown> = {}) {
+  const gjentakelse = String(oppgave.gjentakelse || "aldri") as Gjentakelse;
+  const ferdigdato = String(endringer.ferdigdato || new Date().toISOString().slice(0, 10));
+  if (gjentakelse !== "aldri") {
+    const alle = await hentVedlikeholdsoppgaver();
+    const finnesNeste = alle.some((verdi) => String(verdi.gjentakelseFraId || "") === String(oppgave.id));
+    const frist = nesteDato(String(oppgave.frist || ferdigdato), gjentakelse, Number(oppgave.egendefinertDager || 0));
+    if (!finnesNeste && frist) await opprettVedlikeholdsoppgave({ ...oppgave, id: undefined, status: "planlagt", startdato: "", frist, ferdigdato: "", faktiskKostnad: 0, opprettet: new Date().toISOString(), gjentakelseFraId: String(oppgave.id) });
+  }
+  await oppdaterVedlikeholdsoppgave(String(oppgave.id), { ...endringer, status: "ferdig", ferdigdato });
+}
+
 function utenLokaleIdFelt(oppgave: Record<string, unknown>) {
   const { id: _gammelId, boligId: _gammelBoligId, ...data } =
     oppgave;

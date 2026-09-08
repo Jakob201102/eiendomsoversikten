@@ -28,7 +28,7 @@ export async function hentBoliger(): Promise<BoligData[]> {
 
   let { data: rader, error } = await supabase
     .from("boliger")
-    .select("id, data")
+    .select("id, user_id, data")
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -60,7 +60,7 @@ export async function hentBoliger(): Promise<BoligData[]> {
 
         const resultat = await supabase
           .from("boliger")
-          .select("id, data")
+          .select("id, user_id, data")
           .order("created_at", { ascending: true });
 
         if (resultat.error) {
@@ -77,9 +77,23 @@ export async function hentBoliger(): Promise<BoligData[]> {
     }
   }
 
+  const delteRoller = new Map<string, string>();
+  const { data: medlemskap } = await supabase
+    .from("boligmedlemmer")
+    .select("bolig_id, rolle")
+    .eq("user_id", bruker.id);
+
+  for (const medlemsrad of medlemskap || []) {
+    delteRoller.set(String(medlemsrad.bolig_id), String(medlemsrad.rolle));
+  }
+
   const boliger = (rader || []).map((rad) => ({
     ...((rad.data || {}) as Record<string, unknown>),
     id: rad.id,
+    tilgang:
+      rad.user_id === bruker.id
+        ? "eier"
+        : delteRoller.get(String(rad.id)) || "leser",
   }));
 
   return Promise.all(boliger.map(oppdaterAutomatiskVerdi));

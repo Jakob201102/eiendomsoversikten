@@ -208,6 +208,12 @@ export function byggAutomatiskeKalenderhendelser(
       automatisk: true,
       kildeUrl: "/vedlikehold",
     });
+    const paaminnelseDager = Number(oppgave.paaminnelseDager || 0);
+    if (paaminnelseDager > 0) {
+      const paaminnelsesdato = new Date(`${frist}T12:00:00`);
+      paaminnelsesdato.setDate(paaminnelsesdato.getDate() - paaminnelseDager);
+      hendelser.push({ id: `vedlikehold-varsel-${oppgave.id}`, tittel: `Påminnelse – ${String(oppgave.tittel || "vedlikehold")}`, type: "vedlikehold", dato: paaminnelsesdato.toISOString().slice(0, 10), klokkeslett: "", boligId: oppgave.boligId, boligAdresse: String(oppgave.boligAdresse || boligadresse(oppgave.boligId)), leietakerId: "", leietakerNavn: "", notat: `Oppgaven har frist ${frist}.`, automatisk: true, kildeUrl: "/vedlikehold" });
+    }
   }
 
   for (const bolig of boliger) {

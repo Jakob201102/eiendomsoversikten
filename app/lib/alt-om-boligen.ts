@@ -56,6 +56,34 @@ export type Historikkinfo = {
   dokumentIder: string[];
   bildeIder: string[];
   kildeVedlikeholdId: string;
+  handverkerId?: string;
+  kildeSkadeId?: string;
+};
+
+export type Kontaktinfo = {
+  id: string;
+  navn: string;
+  kategori: string;
+  telefon: string;
+  epost: string;
+  nettside: string;
+  notat: string;
+};
+
+export type Skadeinfo = {
+  id: string;
+  tittel: string;
+  omrade: string;
+  type: string;
+  oppdagetDato: string;
+  beskrivelse: string;
+  status: "apen" | "kontaktet" | "under-arbeid" | "lost";
+  handverkerId: string;
+  dokumentIder: string[];
+  bildeIder: string[];
+  lostDato: string;
+  kostnad: number;
+  losning: string;
 };
 
 export type Onboardinginfo = {
@@ -166,6 +194,8 @@ export type AltOmBoligenData = {
   uteomrader: Uteomradeinfo[];
   garantier: Garantiinfo[];
   forsikringer: Forsikringinfo[];
+  kontakter: Kontaktinfo[];
+  skader: Skadeinfo[];
   onboarding: Onboardinginfo;
   notater: string;
   oppdatert: string;
@@ -260,6 +290,8 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
     uteomrader: [],
     garantier: [],
     forsikringer: [],
+    kontakter: [],
+    skader: [],
     onboarding: { status: "ikke-startet", steg: 1 },
     notater: "",
     oppdatert: "",
@@ -298,11 +330,20 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       kostnad: Number(hendelse.kostnad || 0),
       dokumentIder: liste<string>(hendelse.dokumentIder),
       bildeIder: liste<string>(hendelse.bildeIder),
+      handverkerId: tekst(hendelse.handverkerId),
+      kildeSkadeId: tekst(hendelse.kildeSkadeId),
     })),
     mal: liste<Malinfo>(lagret.mal),
     uteomrader: liste<Uteomradeinfo>(lagret.uteomrader),
     garantier: liste<Garantiinfo>(lagret.garantier),
     forsikringer: liste<Forsikringinfo>(lagret.forsikringer),
+    kontakter: liste<Kontaktinfo>(lagret.kontakter),
+    skader: liste<Skadeinfo>(lagret.skader).map((skade) => ({
+      ...skade,
+      kostnad: Number(skade.kostnad || 0),
+      dokumentIder: liste<string>(skade.dokumentIder),
+      bildeIder: liste<string>(skade.bildeIder),
+    })),
     onboarding: {
       ...grunnlag.onboarding,
       ...(lagret.onboarding || {}),
@@ -472,6 +513,13 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     ],
     forsikringer: [
       { id: "demo-forsikring-1", type: "Husforsikring", selskap: "Fremtind", avtalenummer: "EKSEMPEL-48291", arspris: "12 480", egenandel: "10 000", gyldigFra: "2026-01-01", fornyes: "2027-01-01", kontakt: "915 02 300", dokumentId: "", notat: "Fullverdigaranti og utvidet dekning for vannskade." },
+    ],
+    kontakter: [
+      { id: "demo-kontakt-1", navn: "Bergen Rør AS", kategori: "Rørlegger", telefon: "55 55 55 55", epost: "post@bergenror.no", nettside: "bergenror.no", notat: "Monterte varmtvannsbereder i 2025." },
+      { id: "demo-kontakt-2", navn: "Trygg Elektro AS", kategori: "Elektriker", telefon: "55 44 33 22", epost: "post@tryggelektro.no", nettside: "", notat: "" },
+    ],
+    skader: [
+      { id: "demo-skade-1", tittel: "Fukt under servant", omrade: "Bad", type: "Fukt", oppdagetDato: "2026-09-08", beskrivelse: "Misfarging i skapbunnen under servanten.", status: "apen", handverkerId: "demo-kontakt-1", dokumentIder: [], bildeIder: [], lostDato: "", kostnad: 0, losning: "" },
     ],
     onboarding: { status: "ferdig", steg: 5 },
     notater: "Ring styret før arbeid som påvirker fasade eller felles rør.",

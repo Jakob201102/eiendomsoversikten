@@ -9,17 +9,22 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
+import SkaderAvvik from "../components/SkaderAvvik";
 import { hentBoliger } from "../lib/boliger";
 import {
+  fullforVedlikeholdsoppgave,
   hentVedlikeholdsoppgaver,
   oppdaterVedlikeholdsoppgave,
   opprettVedlikeholdsoppgave,
   slettVedlikeholdsoppgave,
+  type Gjentakelse,
 } from "../lib/vedlikehold";
 
 type Bolig = {
   id: string | number;
   adresse: string;
+  brukstype?: string;
+  tilgang?: "eier" | "redigerer" | "leser";
 };
 
 type Prioritet = "kritisk" | "hoy" | "normal" | "lav";
@@ -37,6 +42,9 @@ type Vedlikeholdsoppgave = {
   status: Status;
   notat: string;
   opprettet: string;
+  gjentakelse?: Gjentakelse;
+  egendefinertDager?: number;
+  paaminnelseDager?: number;
 };
 
 export default function Vedlikehold() {
@@ -48,6 +56,9 @@ export default function Vedlikehold() {
 
   const [visSkjema, setVisSkjema] = useState(false);
   const [filter, setFilter] = useState("aktive");
+  const [privatFane, setPrivatFane] = useState<
+    "kommende" | "skader" | "utfort"
+  >("kommende");
 
   const [boligId, setBoligId] = useState("");
   const [tittel, setTittel] = useState("");
@@ -57,6 +68,10 @@ export default function Vedlikehold() {
   const [frist, setFrist] = useState("");
   const [kostnad, setKostnad] = useState(0);
   const [notat, setNotat] = useState("");
+  const [gjentakelse, setGjentakelse] = useState<Gjentakelse>("aldri");
+  const [egendefinertDager, setEgendefinertDager] = useState(30);
+  const [paaminnelseDager, setPaaminnelseDager] = useState(7);
+  const [egenPaaminnelseDager, setEgenPaaminnelseDager] = useState(14);
   const [feilmelding, setFeilmelding] = useState("");
   const [laster, setLaster] = useState(true);
   const [lagrer, setLagrer] = useState(false);
@@ -77,7 +92,12 @@ export default function Vedlikehold() {
         );
 
         if (brukerboliger.length > 0) {
-          setBoligId(String(brukerboliger[0].id));
+          setBoligId(
+            String(
+              brukerboliger.find((bolig) => bolig.tilgang !== "leser")
+                ?.id || brukerboliger[0].id,
+            ),
+          );
         }
       } catch (feil) {
         if (
@@ -182,6 +202,10 @@ export default function Vedlikehold() {
   const ferdigeOppgaver = oppgaver.filter(
     (oppgave) => oppgave.status === "ferdig",
   ).length;
+  const valgtErPrivat = boliger.find((bolig) => String(bolig.id) === boligId)?.brukstype === "privat";
+  const harBoligSomKanRedigeres = boliger.some(
+    (bolig) => bolig.tilgang !== "leser",
+  );
 
   async function leggTilOppgave(event: FormEvent) {
     event.preventDefault();
@@ -225,6 +249,13 @@ export default function Vedlikehold() {
       kostnad,
       status: "planlagt",
       notat: notat.trim(),
+      gjentakelse: valgtErPrivat ? gjentakelse : "aldri",
+      egendefinertDager: valgtErPrivat && gjentakelse === "egendefinert" ? egendefinertDager : 0,
+      paaminnelseDager: valgtErPrivat
+        ? paaminnelseDager === -1
+          ? Math.max(0, egenPaaminnelseDager)
+          : paaminnelseDager
+        : 0,
       opprettet: new Date().toISOString(),
     };
 
@@ -242,6 +273,10 @@ export default function Vedlikehold() {
       setFrist("");
       setKostnad(0);
       setNotat("");
+      setGjentakelse("aldri");
+      setEgendefinertDager(30);
+      setPaaminnelseDager(7);
+      setEgenPaaminnelseDager(14);
       setVisSkjema(false);
     } catch {
       setFeilmelding("Kunne ikke lagre oppgaven. Prøv igjen.");
@@ -252,12 +287,21 @@ export default function Vedlikehold() {
 
   async function endreStatus(id: string, status: Status) {
     try {
-      await oppdaterVedlikeholdsoppgave(id, { status });
-      setOppgaver((forrige) =>
-        forrige.map((oppgave) =>
-          oppgave.id === id ? { ...oppgave, status } : oppgave,
-        ),
-      );
+      const valgtOppgave = oppgaver.find((oppgave) => oppgave.id === id);
+      if (status === "ferdig" && valgtOppgave) await fullforVedlikeholdsoppgave(valgtOppgave as unknown as import("../lib/vedlikehold").Vedlikeholdsdata);
+      else await oppdaterVedlikeholdsoppgave(id, { status });
+      if (status === "ferdig") {
+        const oppdaterte = await hentVedlikeholdsoppgaver();
+        setOppgaver(
+          oppdaterte as unknown as Vedlikeholdsoppgave[],
+        );
+      } else {
+        setOppgaver((forrige) =>
+          forrige.map((oppgave) =>
+            oppgave.id === id ? { ...oppgave, status } : oppgave,
+          ),
+        );
+      }
     } catch {
       setFeilmelding("Kunne ikke endre status. Prøv igjen.");
     }
@@ -307,13 +351,13 @@ export default function Vedlikehold() {
             </p>
           </div>
 
-          <button
+          {privatFane !== "skader" && harBoligSomKanRedigeres && <button
             type="button"
             onClick={() => setVisSkjema(!visSkjema)}
             className="rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950"
           >
             {visSkjema ? "Lukk skjema" : "+ Ny oppgave"}
-          </button>
+          </button>}
         </div>
       </header>
 
@@ -362,6 +406,45 @@ export default function Vedlikehold() {
           />
         </section>
 
+        {boliger.some((bolig) => bolig.brukstype === "privat") && (
+          <nav
+            aria-label="Vedlikeholdsvisning for privat bolig"
+            className="mt-5 grid grid-cols-3 gap-1 rounded-2xl bg-white p-1.5 shadow-sm"
+          >
+            {([
+              ["kommende", "Kommende"],
+              ["skader", "Skader & avvik"],
+              ["utfort", "Utført"],
+            ] as const).map(([verdi, tekst]) => (
+              <button
+                key={verdi}
+                type="button"
+                onClick={() => {
+                  setPrivatFane(verdi);
+                  setVisSkjema(false);
+                  if (verdi === "kommende") setFilter("aktive");
+                  if (verdi === "utfort") setFilter("ferdig");
+                }}
+                className={`min-h-11 rounded-xl px-2 py-2 text-sm font-semibold transition sm:text-base ${
+                  privatFane === verdi
+                    ? "bg-emerald-500 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {tekst}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {privatFane === "skader" &&
+        boliger.some((bolig) => bolig.brukstype === "privat") ? (
+          <div className="mt-6">
+            <SkaderAvvik />
+          </div>
+        ) : (
+          <>
+
         {visSkjema && (
           <form
             onSubmit={leggTilOppgave}
@@ -389,7 +472,9 @@ export default function Vedlikehold() {
                       }
                       className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
                     >
-                      {boliger.map((bolig) => (
+                      {boliger
+                        .filter((bolig) => bolig.tilgang !== "leser")
+                        .map((bolig) => (
                         <option
                           key={String(bolig.id)}
                           value={String(bolig.id)}
@@ -480,6 +565,13 @@ export default function Vedlikehold() {
                     />
                   </label>
 
+                  {valgtErPrivat && <>
+                    <label><Felttekst>Gjentas</Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri">Aldri</option><option value="maanedlig">Hver måned</option><option value="halvaarlig">Hver 6. måned</option><option value="aarlig">Årlig</option><option value="toaarlig">Hvert 2. år</option><option value="egendefinert">Egendefinert</option></select></label>
+                    {gjentakelse === "egendefinert" && <label><Felttekst>Antall dager mellom hver gang</Felttekst><input type="number" min="1" value={egendefinertDager} onChange={(event) => setEgendefinertDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
+                    <label><Felttekst>Påminnelse</Felttekst><select value={paaminnelseDager} onChange={(event) => setPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="0">Samme dag</option><option value="1">1 dag før</option><option value="7">1 uke før</option><option value="30">1 måned før</option><option value="-1">Egendefinert</option></select></label>
+                    {paaminnelseDager === -1 && <label><Felttekst>Antall dager før</Felttekst><input type="number" min="0" value={egenPaaminnelseDager} onChange={(event) => setEgenPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
+                  </>}
+
                   <label className="md:col-span-2">
                     <Felttekst>Notat</Felttekst>
 
@@ -567,11 +659,18 @@ export default function Vedlikehold() {
                   oppgave={oppgave}
                   endreStatus={endreStatus}
                   slett={slettOppgave}
+                  kanRedigere={
+                    boliger.find(
+                      (bolig) => String(bolig.id) === oppgave.boligId,
+                    )?.tilgang !== "leser"
+                  }
                 />
               ))}
             </div>
           )}
         </section>
+          </>
+        )}
           </>
         )}
       </div>
@@ -583,10 +682,12 @@ function Oppgavekort({
   oppgave,
   endreStatus,
   slett,
+  kanRedigere,
 }: {
   oppgave: Vedlikeholdsoppgave;
   endreStatus: (id: string, status: Status) => void;
   slett: (id: string) => void;
+  kanRedigere: boolean;
 }) {
   const utlopt = erUtlopt(oppgave);
 
@@ -613,6 +714,7 @@ function Oppgavekort({
               )}
 
               <Statusmerke status={oppgave.status} />
+              {oppgave.gjentakelse && oppgave.gjentakelse !== "aldri" && <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">↻ {gjentakelseTekst(oppgave.gjentakelse)}</span>}
             </div>
 
             <h3 className="mt-3 text-xl font-bold">
@@ -652,7 +754,7 @@ function Oppgavekort({
           </p>
         )}
 
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+        {kanRedigere && <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           {oppgave.status === "planlagt" && (
             <button
               type="button"
@@ -712,7 +814,7 @@ function Oppgavekort({
           >
             Slett
           </button>
-        </div>
+        </div>}
       </div>
     </article>
   );
@@ -900,3 +1002,5 @@ function kroner(belop: number) {
     maximumFractionDigits: 0,
   }).format(Number.isFinite(belop) ? belop : 0);
 }
+
+function gjentakelseTekst(verdi: Gjentakelse) { return { aldri: "Aldri", maanedlig: "Månedlig", halvaarlig: "Hver 6. måned", aarlig: "Årlig", toaarlig: "Hvert 2. år", egendefinert: "Egendefinert" }[verdi]; }

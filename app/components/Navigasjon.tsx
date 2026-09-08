@@ -18,7 +18,7 @@ const utleie: Gruppe[] = [
 ];
 const privat: Gruppe[] = [
   { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender" }] },
-  { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] },
+  { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] },
 ];
 const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
 
@@ -53,7 +53,7 @@ export default function Navigasjon() {
   useEffect(() => { setMenyApen(false); setApenGruppe(""); }, [pathname]);
 
   useEffect(() => {
-    const privatSide = pathname === "/mitt-hjem" || pathname === "/rom" || pathname === "/garantier" || pathname === "/forsikringer";
+    const privatSide = pathname === "/mitt-hjem" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
     const utleieSide = pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator";
     if (privatSide) { localStorage.setItem("demo_bruksomrade", "privat"); setDemoModus("privat"); }
     if (utleieSide) { localStorage.setItem("demo_bruksomrade", "utleie"); setDemoModus("utleie"); }
@@ -66,7 +66,7 @@ export default function Navigasjon() {
       return [om];
     }
     if (modus === "privat") return [...privat, om];
-    if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Privat bolig", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Rom", adresse: "/rom" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
+    if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Privat bolig", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Rom", adresse: "/rom" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
     return [...utleie, om];
   }, [epost, modus, demoModus]);
 

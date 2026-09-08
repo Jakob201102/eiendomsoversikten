@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Navigasjon from "../components/Navigasjon";
+import Boligadministrasjon from "../components/Boligadministrasjon";
 import {
   demoAltOmBoligen,
   lesAltOmBoligen,
   nyNokkel,
   nyOppussing,
-  nyRom,
   nyttMal,
   nyttUteomrade,
   nyttUtstyr,
@@ -16,7 +16,6 @@ import {
   type Malinfo,
   type Nokkelinfo,
   type Oppussinginfo,
-  type Rominfo,
   type Uteomradeinfo,
   type Utstyrinfo,
 } from "../lib/alt-om-boligen";
@@ -31,7 +30,7 @@ import {
 import { createClient } from "../lib/supabase/client";
 
 type Objektseksjon = "generell" | "teknisk" | "sikkerhet" | "tilleggsarealer";
-type Listefelt = "rom" | "uteomrader" | "nokler" | "utstyr" | "oppussing" | "mal";
+type Listefelt = "uteomrader" | "nokler" | "utstyr" | "oppussing" | "mal";
 
 const UTEOMRADETYPER = ["Hage", "Terrasse/uteplass", "Bod/redskapsbod", "Garasje", "Parkering", "Drivhus", "Gjerde/mur/port", "Annet"];
 
@@ -45,6 +44,7 @@ export default function AltOmBoligen() {
   const [innlogget, setInnlogget] = useState(false);
   const [laster, setLaster] = useState(true);
   const [redigerer, setRedigerer] = useState(false);
+  const [visHurtigvalg, setVisHurtigvalg] = useState(false);
   const [utkast, setUtkast] = useState<AltOmBoligenData | null>(null);
   const [jobber, setJobber] = useState(false);
   const [feil, setFeil] = useState("");
@@ -91,6 +91,7 @@ export default function AltOmBoligen() {
     () => boliger.find((bolig) => String(bolig.id) === valgtBoligId) || null,
     [boliger, valgtBoligId],
   );
+  const kanRedigere = String(valgtBolig?.tilgang || "eier") !== "leser";
 
   const data = useMemo(() => {
     if (!valgtBolig) return null;
@@ -98,14 +99,14 @@ export default function AltOmBoligen() {
   }, [valgtBolig, innlogget]);
 
   useEffect(() => {
-    if (!data || !innlogget || redigerer) return;
+    if (!data || !innlogget || !kanRedigere || redigerer) return;
     const url = new URL(window.location.href);
     if (url.searchParams.get("rediger") !== "1") return;
     setUtkast(structuredClone(data));
     setRedigerer(true);
     url.searchParams.delete("rediger");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, [data, innlogget, redigerer]);
+  }, [data, innlogget, kanRedigere, redigerer]);
 
   useEffect(() => {
     if (!redigerer && data) setUtkast(data);
@@ -157,9 +158,35 @@ export default function AltOmBoligen() {
       window.location.assign("/logg-inn");
       return;
     }
+    if (!kanRedigere) {
+      setFeil("Du har lesetilgang og kan derfor ikke redigere boligen.");
+      return;
+    }
     if (data) setUtkast(structuredClone(data));
     setFeil("");
     setMelding("");
+    setRedigerer(true);
+  }
+
+  function hurtigLeggTil(liste: Listefelt, startverdi = "") {
+    if (!innlogget) {
+      window.location.assign("/logg-inn");
+      return;
+    }
+    if (!kanRedigere || !data) return;
+    const nye = {
+      uteomrader: nyttUteomrade(startverdi || "Hage"),
+      nokler: nyNokkel(),
+      utstyr: nyttUtstyr(),
+      oppussing: nyOppussing(),
+      mal: nyttMal(),
+    };
+    const grunnlag = structuredClone(data);
+    setUtkast({
+      ...grunnlag,
+      [liste]: [...grunnlag[liste], nye[liste]],
+    });
+    setVisHurtigvalg(false);
     setRedigerer(true);
   }
 
@@ -171,7 +198,7 @@ export default function AltOmBoligen() {
     });
   }
 
-  function oppdaterListe<T extends Rominfo | Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(
+  function oppdaterListe<T extends Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(
     liste: Listefelt,
     id: string,
     felt: keyof T,
@@ -188,7 +215,6 @@ export default function AltOmBoligen() {
 
   function leggTil(liste: Listefelt, startverdi = "") {
     const nye = {
-      rom: nyRom(),
       uteomrader: nyttUteomrade(startverdi || "Hage"),
       nokler: nyNokkel(),
       utstyr: nyttUtstyr(),
@@ -296,7 +322,7 @@ export default function AltOmBoligen() {
           <p className="font-semibold text-emerald-400">PRAKTISK BOLIGINFO</p>
           <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Alt om boligen</h1>
           <p className="mt-3 max-w-3xl text-slate-300">
-            Samle bilder, plantegninger, rom, materialer, nøkler, installasjoner og viktig teknisk informasjon.
+            Samle bilder, plantegninger, uteområder, nøkler, installasjoner og viktig teknisk informasjon.
           </p>
         </div>
       </header>
@@ -340,17 +366,37 @@ export default function AltOmBoligen() {
                   {jobber ? "Lagrer…" : "Lagre endringer"}
                 </button>
               </>
-            ) : (
-              <button
-                type="button"
-                onClick={startRedigering}
-                className="rounded-xl bg-slate-950 px-5 py-3 font-bold text-white"
-              >
-                {innlogget ? "Rediger boliginfo" : "Logg inn for å legge inn data"}
-              </button>
-            )}
+            ) : (!innlogget || kanRedigere) ? (
+              <>
+                <button type="button" onClick={() => innlogget ? setVisHurtigvalg(!visHurtigvalg) : window.location.assign("/logg-inn")} className="rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">
+                  + Legg til
+                </button>
+                <button
+                  type="button"
+                  onClick={startRedigering}
+                  className="rounded-xl bg-slate-950 px-5 py-3 font-bold text-white"
+                >
+                  {innlogget ? "Rediger boliginfo" : "Logg inn for å legge inn data"}
+                </button>
+              </>
+            ) : null}
           </div>
         </section>
+
+        {visHurtigvalg && data && (
+          <section className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-bold text-emerald-900">Hva vil du legge til?</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Hurtigknapp onClick={() => hurtigLeggTil("uteomrader")}>Uteområde eller bod</Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("nokler")}>Nøkkeltype</Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("utstyr")}>Utstyr/installasjon</Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("oppussing")}>Utført arbeid</Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("mal")}>Nyttig mål</Hurtigknapp>
+              <Link href="/rom" className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm">Rom</Link>
+              <Link href="/dokumentarkiv" className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm">Dokument eller bilde</Link>
+            </div>
+          </section>
+        )}
 
         {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
         {melding && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">{melding}</p>}
@@ -375,6 +421,7 @@ export default function AltOmBoligen() {
             jobber={jobber}
           />
         ) : (
+          <>
           <Oversiktsvisning
             bolig={valgtBolig}
             data={data}
@@ -382,8 +429,11 @@ export default function AltOmBoligen() {
             plantegninger={plantegninger}
             filLenker={filLenker}
             innlogget={innlogget}
+            kanRedigere={kanRedigere}
             startRedigering={startRedigering}
           />
+          <Boligadministrasjon bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
+          </>
         )}
       </div>
     </main>
@@ -397,6 +447,7 @@ function Oversiktsvisning({
   plantegninger,
   filLenker,
   innlogget,
+  kanRedigere,
   startRedigering,
 }: {
   bolig: BoligData;
@@ -405,6 +456,7 @@ function Oversiktsvisning({
   plantegninger: Dokument[];
   filLenker: Record<string, string>;
   innlogget: boolean;
+  kanRedigere: boolean;
   startRedigering: () => void;
 }) {
   return (
@@ -489,31 +541,6 @@ function Oversiktsvisning({
         </InfoKort>
       </div>
 
-      <SamlingKort tittel="Rom, farger og materialer" antall={data.rom.length} tomtekst="Ingen rom er registrert.">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {data.rom.map((rom) => (
-            <article key={rom.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="text-lg font-bold">{rom.navn || "Rom uten navn"}</h3>
-                {rom.areal && <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold">{rom.areal}</span>}
-              </div>
-              <Detaljliste
-                kompakt
-                rader={[
-                  ["Vegger", kombiner(rom.maling, rom.veggfarge, rom.fargekode)],
-                  ["Glans", rom.glans],
-                  ["Gulv", rom.gulv],
-                  ["Tak", rom.tak],
-                  ["Lister", rom.lister],
-                  ["Sist pusset", rom.sistPusset],
-                  ["Notat", rom.notat],
-                ]}
-              />
-            </article>
-          ))}
-        </div>
-      </SamlingKort>
-
       <SamlingKort tittel="Uteområder og boder" antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.uteomrader.map((omrade) => (
@@ -585,9 +612,9 @@ function Oversiktsvisning({
       {data.notater && <InfoKort tittel="Egne notater" merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
 
       <div className="flex justify-center py-3">
-        <button type="button" onClick={startRedigering} className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">
+        {(!innlogget || kanRedigere) && <button type="button" onClick={startRedigering} className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">
           {innlogget ? "Rediger boliginfo" : "Opprett konto for å fylle inn egne data"}
-        </button>
+        </button>}
       </div>
     </div>
   );
@@ -610,7 +637,7 @@ function Redigeringsvisning({
   data: AltOmBoligenData;
   oppdaterObjekt: (seksjon: Objektseksjon, felt: string, verdi: string) => void;
   oppdaterNotat: (verdi: string) => void;
-  oppdaterListe: <T extends Rominfo | Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(liste: Listefelt, id: string, felt: keyof T, verdi: string) => void;
+  oppdaterListe: <T extends Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(liste: Listefelt, id: string, felt: keyof T, verdi: string) => void;
   leggTil: (liste: Listefelt, startverdi?: string) => void;
   fjern: (liste: Listefelt, id: string) => void;
   bilder: Dokument[];
@@ -657,29 +684,6 @@ function Redigeringsvisning({
         <div className="grid gap-5 md:grid-cols-2">
           <Filredigering tittel="Boligbilder" dokumenter={bilder} filLenker={filLenker} accept="image/*" kategori={BILDEKATEGORI} lastOpp={lastOpp} slettFil={slettFil} jobber={jobber} />
           <Filredigering tittel="Plantegninger" dokumenter={plantegninger} filLenker={filLenker} accept="image/*,.pdf" kategori={PLANTEGNINGKATEGORI} lastOpp={lastOpp} slettFil={slettFil} jobber={jobber} />
-        </div>
-      </Redigeringsseksjon>
-
-      <Redigeringsseksjon tittel="Rom, farger og materialer" forklaring="Registrer bare det du ønsker å huske for hvert rom.">
-        <div className="space-y-4">
-          {data.rom.map((rom, indeks) => (
-            <Redigeringskort key={rom.id} tittel={rom.navn || `Rom ${indeks + 1}`} onDelete={() => fjern("rom", rom.id)}>
-              <Feltgrid>
-                <Tekstfelt label="Romnavn" value={rom.navn} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "navn", v)} />
-                <Tekstfelt label="Areal" value={rom.areal} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "areal", v)} />
-                <Tekstfelt label="Veggfarge" value={rom.veggfarge} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "veggfarge", v)} />
-                <Tekstfelt label="Fargekode" value={rom.fargekode} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "fargekode", v)} />
-                <Tekstfelt label="Malingsmerke/type" value={rom.maling} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "maling", v)} />
-                <Tekstfelt label="Glansgrad" value={rom.glans} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "glans", v)} />
-                <Tekstfelt label="Gulvtype" value={rom.gulv} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "gulv", v)} />
-                <Tekstfelt label="Tak" value={rom.tak} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "tak", v)} />
-                <Tekstfelt label="Lister" value={rom.lister} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "lister", v)} />
-                <Tekstfelt label="Sist pusset opp" value={rom.sistPusset} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "sistPusset", v)} />
-                <Tekstfelt label="Notat" value={rom.notat} onChange={(v) => oppdaterListe<Rominfo>("rom", rom.id, "notat", v)} bred />
-              </Feltgrid>
-            </Redigeringskort>
-          ))}
-          <LeggTilKnapp onClick={() => leggTil("rom")}>+ Legg til rom</LeggTilKnapp>
         </div>
       </Redigeringsseksjon>
 
@@ -836,6 +840,7 @@ function Tekstfelt({ label, value, onChange, bred = false, placeholder = "", typ
 function Valgfelt({ label, value, valg, onChange }: { label: string; value: string; valg: string[]; onChange: (verdi: string) => void }) { return <label className="text-sm font-semibold"><span className="mb-2 block">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500">{valg.map((alternativ) => <option key={alternativ} value={alternativ}>{alternativ}</option>)}</select></label>; }
 function Redigeringskort({ tittel, onDelete, children }: { tittel: string; onDelete: () => void; children: React.ReactNode }) { return <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold">{tittel}</h3><button type="button" onClick={onDelete} className="text-sm font-semibold text-red-600">Slett</button></div>{children}</article>; }
 function LeggTilKnapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className="w-full rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 font-bold text-emerald-800">{children}</button>; }
+function Hurtigknapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) { return <button type="button" onClick={onClick} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm">{children}</button>; }
 function medEnhet(verdi: string, enhet: string) { if (!verdi.trim()) return ""; return verdi.toLowerCase().includes(enhet.toLowerCase()) ? verdi : `${verdi} ${enhet}`; }
 function kombiner(...verdier: string[]) { return verdier.filter((verdi) => verdi.trim()).join(" · "); }
 function formatDato(verdi: string) { if (!verdi) return "Dato ikke registrert"; return new Intl.DateTimeFormat("nb-NO").format(new Date(`${verdi}T12:00:00`)); }
