@@ -2,7 +2,7 @@ import { createClient } from "./supabase/client";
 import type { AltOmBoligenData } from "./alt-om-boligen";
 import type { BoligData } from "./boliger";
 
-export type Overforingsvalg = { rom: boolean; oppussing: boolean; teknisk: boolean; utstyr: boolean; sikkerhet: boolean; dokumentIder: string[] };
+export type Overforingsvalg = { generell: boolean; viktigeDeler: boolean; rom: boolean; oppussing: boolean; teknisk: boolean; utstyr: boolean; sikkerhet: boolean; uteomrader: boolean; garantier: boolean; forsikringer: boolean; dokumentIder: string[] };
 
 function renBolig(bolig: BoligData, valg: Overforingsvalg) {
   const alt = (bolig.altOmBoligen || {}) as Partial<AltOmBoligenData>;
@@ -10,11 +10,11 @@ function renBolig(bolig: BoligData, valg: Overforingsvalg) {
   const nokler = valg.teknisk && Array.isArray(alt.nokler) ? alt.nokler.map((n) => ({ ...n, merking: "", notat: "" })) : [];
   return {
     brukstype: "privat",
-    adresse: String(bolig.adresse || ""), boligtype: String(bolig.boligtype || ""), byggeaar: String(bolig.byggeaar || ""), areal: bolig.areal || "", bolignummer: String(bolig.bolignummer || ""),
+    adresse: String(bolig.adresse || ""), boligtype: valg.generell ? String(bolig.boligtype || "") : "", byggeaar: valg.generell ? String(bolig.byggeaar || "") : "", areal: valg.generell ? bolig.areal || "" : "", bolignummer: valg.generell ? String(bolig.bolignummer || "") : "",
     kjopesum: 0, restlaan: 0, rente: 0, manedsleie: 0, felleskostnader: 0, kommunaleAvgifter: 0, stromInternett: 0, vedlikehold: 0, andreKostnader: 0,
     altOmBoligen: {
-      versjon: 1, generell: alt.generell || {}, teknisk: sikkerTeknisk || {}, viktigeDeler: alt.viktigeDeler || {}, sikkerhet: valg.sikkerhet ? alt.sikkerhet || {} : {}, tilleggsarealer: alt.tilleggsarealer || {},
-      rom: valg.rom ? alt.rom || [] : [], uteomrader: alt.uteomrader || [], garantier: alt.garantier || [], nokler, utstyr: valg.utstyr ? alt.utstyr || [] : [], oppussing: valg.oppussing ? alt.oppussing || [] : [], historikk: valg.oppussing ? alt.historikk || [] : [], mal: [], onboarding: { status: "ferdig", steg: 5 }, notater: "", oppdatert: new Date().toISOString(),
+      versjon: 1, generell: valg.generell ? alt.generell || {} : {}, teknisk: sikkerTeknisk || {}, viktigeDeler: valg.viktigeDeler ? alt.viktigeDeler || {} : {}, sikkerhet: valg.sikkerhet ? alt.sikkerhet || {} : {}, tilleggsarealer: valg.generell ? alt.tilleggsarealer || {} : {},
+      rom: valg.rom ? alt.rom || [] : [], uteomrader: valg.uteomrader ? alt.uteomrader || [] : [], garantier: valg.garantier ? alt.garantier || [] : [], forsikringer: valg.forsikringer ? alt.forsikringer || [] : [], nokler, utstyr: valg.utstyr ? alt.utstyr || [] : [], oppussing: valg.oppussing ? alt.oppussing || [] : [], historikk: valg.oppussing ? alt.historikk || [] : [], mal: [], onboarding: { status: "ferdig", steg: 5 }, notater: "", oppdatert: new Date().toISOString(),
     },
     overfortFra: "Digital boligoverlevering", overfortDato: new Date().toISOString(),
   };

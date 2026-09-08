@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { lesAltOmBoligen, type Historikkinfo } from "../lib/alt-om-boligen";
+import { lesAltOmBoligen, type Historikkinfo, type Rominfo } from "../lib/alt-om-boligen";
 import { oppdaterBolig, type BoligData } from "../lib/boliger";
 import { dokumentLenke, lastOppDokument, type Dokument } from "../lib/dokumenter";
 import { oppdaterVedlikeholdsoppgave, opprettVedlikeholdsoppgave, slettVedlikeholdsoppgave, type Vedlikeholdsdata } from "../lib/vedlikehold";
 
 type Visning = "valg" | "historikk" | "vedlikehold" | "dokument" | "bilder" | "fullfor" | "boliginfo" | null;
-type HistorikkSkjema = { tittel: string; dato: string; omrade: string; kostnad: string; utfortAv: "selv" | "firma"; firma: string; beskrivelse: string };
+type HistorikkSkjema = { tittel: string; dato: string; omrade: string; romId: string; kostnad: string; utfortAv: "selv" | "firma"; firma: string; beskrivelse: string };
 type VedlikeholdSkjema = { tittel: string; frist: string; omrade: string; kostnad: string; notat: string };
 type BoliginfoSkjema = { adresse: string; boligtype: string; byggeaar: string; areal: string; etasjer: string; soverom: string; tak: string; bad: string; kjokken: string; vinduer: string; elektrisk: string; ror: string; oppvarming: string };
 
-const tomHistorikk: HistorikkSkjema = { tittel: "", dato: new Date().toISOString().slice(0, 10), omrade: "", kostnad: "", utfortAv: "selv", firma: "", beskrivelse: "" };
+const tomHistorikk: HistorikkSkjema = { tittel: "", dato: new Date().toISOString().slice(0, 10), omrade: "", romId: "", kostnad: "", utfortAv: "selv", firma: "", beskrivelse: "" };
 const tomVedlikehold: VedlikeholdSkjema = { tittel: "", frist: "", omrade: "", kostnad: "", notat: "" };
 const omrader = ["Kjøkken", "Bad", "Stue", "Soverom", "Kjeller", "Loft", "Tak", "Fasade", "Hage", "Garasje", "Annet"];
 
@@ -94,7 +94,7 @@ export default function MittHjemDashboard({
       const id = crypto.randomUUID();
       const dato = historikkSkjema.dato || new Date().toISOString().slice(0, 10);
       const vedlegg = await lastOppVedlegg(id, dato);
-      const hendelse: Historikkinfo = { id, dato, tittel: historikkSkjema.tittel.trim(), omrade: historikkSkjema.omrade, kostnad: Number(historikkSkjema.kostnad) || 0, utfortAv: historikkSkjema.utfortAv, firma: historikkSkjema.utfortAv === "firma" ? historikkSkjema.firma.trim() : "", beskrivelse: historikkSkjema.beskrivelse.trim(), dokumentIder: vedlegg.dokumentIder, bildeIder: vedlegg.bildeIder, kildeVedlikeholdId: fullforer ? String(fullforer.id) : "" };
+      const hendelse: Historikkinfo = { id, dato, tittel: historikkSkjema.tittel.trim(), omrade: historikkSkjema.omrade, romId: historikkSkjema.romId, kostnad: Number(historikkSkjema.kostnad) || 0, utfortAv: historikkSkjema.utfortAv, firma: historikkSkjema.utfortAv === "firma" ? historikkSkjema.firma.trim() : "", beskrivelse: historikkSkjema.beskrivelse.trim(), dokumentIder: vedlegg.dokumentIder, bildeIder: vedlegg.bildeIder, kildeVedlikeholdId: fullforer ? String(fullforer.id) : "" };
       const finnesFraOppgave = fullforer && data.historikk.some((verdi) => verdi.kildeVedlikeholdId === String(fullforer.id));
       const nyHistorikk = finnesFraOppgave ? data.historikk.map((verdi) => verdi.kildeVedlikeholdId === String(fullforer?.id) ? hendelse : verdi) : [...data.historikk, hendelse];
       await oppdaterBolig(String(bolig.id), { ...bolig, altOmBoligen: { ...data, historikk: nyHistorikk, oppdatert: new Date().toISOString() } });
@@ -136,8 +136,10 @@ export default function MittHjemDashboard({
   }
 
   function startFullforing(oppgave: Vedlikeholdsdata) {
+    const omrade = String(oppgave.omrade || "");
+    const tilknyttetRom = data.rom.find((rom) => rom.navn.trim().toLowerCase() === omrade.trim().toLowerCase());
     setFullforer(oppgave);
-    setHistorikkSkjema({ ...tomHistorikk, tittel: String(oppgave.tittel || oppgave.navn || "Vedlikehold"), omrade: String(oppgave.omrade || ""), kostnad: String(oppgave.kostnad || ""), beskrivelse: String(oppgave.notat || "") });
+    setHistorikkSkjema({ ...tomHistorikk, tittel: String(oppgave.tittel || oppgave.navn || "Vedlikehold"), omrade, romId: tilknyttetRom?.id || "", kostnad: String(oppgave.kostnad || ""), beskrivelse: String(oppgave.notat || "") });
     aapne("fullfor");
   }
 
@@ -181,17 +183,27 @@ export default function MittHjemDashboard({
     {visning && <Modal tittel={modaltittel(visning, Boolean(fullforer), Boolean(redigererOppgaveId))} onLukk={() => { setVisning(null); setFullforer(null); setRedigererOppgaveId(""); setFeil(""); }}>
       {feil && <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{feil}</p>}
       {visning === "valg" && <div className="grid gap-3 sm:grid-cols-2"><Valg ikon="🔨" tittel="Noe jeg har gjort" tekst="Bytte, oppussing eller reparasjon" onClick={() => setVisning("historikk")} /><Valg ikon="📅" tittel="Fremtidig vedlikehold" tekst="Noe som skal gjøres senere" onClick={() => setVisning("vedlikehold")} /><Valg ikon="📄" tittel="Dokument" tekst="Faktura, kvittering eller rapport" onClick={() => setVisning("dokument")} /><Valg ikon="📸" tittel="Bilder" tekst="Ta eller last opp bilder" onClick={() => setVisning("bilder")} /></div>}
-      {(visning === "historikk" || visning === "fullfor") && <><Historikkskjema verdi={historikkSkjema} onEndre={setHistorikkSkjema} bilder={bilder} filer={filer} setBilder={setBilder} setFiler={setFiler} /><Lagre onClick={lagreHistorikk} jobber={jobber} tekst={visning === "fullfor" ? "Marker som utført og lagre" : "Lagre i historikken"} /></>}
+      {(visning === "historikk" || visning === "fullfor") && <><Historikkskjema verdi={historikkSkjema} onEndre={setHistorikkSkjema} rom={data.rom} bilder={bilder} filer={filer} setBilder={setBilder} setFiler={setFiler} /><Lagre onClick={lagreHistorikk} jobber={jobber} tekst={visning === "fullfor" ? "Marker som utført og lagre" : "Lagre i historikken"} /></>}
       {visning === "vedlikehold" && <><Vedlikeholdsskjema verdi={vedlikeholdSkjema} onEndre={setVedlikeholdSkjema} /><Lagre onClick={lagreVedlikehold} jobber={jobber} tekst={redigererOppgaveId ? "Lagre endringer" : "Legg til vedlikehold"} /></>}
       {visning === "dokument" && <><div className="space-y-4"><Felt label="Navn (valgfritt)"><input value={dokumentnavn} onChange={(event) => setDokumentnavn(event.target.value)} className="felt" /></Felt><Felt label="Kategori"><select value={dokumentkategori} onChange={(event) => setDokumentkategori(event.target.value)} className="felt"><option value="kvittering">Kvittering</option><option value="faktura">Faktura</option><option value="garanti">Garanti</option><option value="samsvarserklaring">Samsvarserklæring</option><option value="plantegning">Tegning</option><option value="takst">Rapport/takst</option><option value="annet">Annet</option></select></Felt><Felt label="Velg fil(er)"><input type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" onChange={(event) => setFiler(Array.from(event.target.files || []))} className="felt text-sm" /></Felt></div><Lagre onClick={() => lagreDokumenter(false)} jobber={jobber} tekst="Last opp dokument" /></>}
-      {visning === "bilder" && <><label className="block rounded-2xl border-2 border-dashed border-stone-300 p-6 text-center"><span className="text-3xl">📸</span><span className="mt-2 block font-bold">Ta bilde eller velg fra mobilen</span><input type="file" multiple accept="image/*" capture="environment" onChange={(event) => setBilder(Array.from(event.target.files || []))} className="mt-4 w-full text-sm" /></label><Lagre onClick={() => lagreDokumenter(true)} jobber={jobber} tekst="Last opp bilder" /></>}
+      {visning === "bilder" && <><div className="grid gap-3 sm:grid-cols-2"><label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center"><span className="text-3xl">📷</span><span className="mt-2 block font-bold">Ta nye bilder</span><span className="mt-1 block text-xs text-slate-500">Åpner kameraet på mobilen</span><input type="file" multiple accept="image/*" capture="environment" onChange={(event) => setBilder((gamle) => [...gamle, ...Array.from(event.target.files || [])])} className="mt-4 w-full text-sm" /></label><label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center"><span className="text-3xl">📁</span><span className="mt-2 block font-bold">Last opp fra Bilder eller Filer</span><span className="mt-1 block text-xs text-slate-500">Velg eksisterende bildefiler</span><input type="file" multiple accept="image/*,.heic,.heif" onChange={(event) => setBilder((gamle) => [...gamle, ...Array.from(event.target.files || [])])} className="mt-4 w-full text-sm" /></label></div>{bilder.length > 0 && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">{bilder.length} bilde{bilder.length === 1 ? "" : "r"} valgt</p>}<Lagre onClick={() => lagreDokumenter(true)} jobber={jobber} tekst="Last opp bilder" /></>}
       {visning === "boliginfo" && <><Boliginfoskjema verdi={grunninfo} onEndre={setGrunninfo} /><Lagre onClick={lagreBoliginfo} jobber={jobber} tekst="Lagre boliginformasjon" /><Link href={`/alt-om-boligen?bolig=${bolig.id}&rediger=1`} className="mt-4 block text-center text-sm font-semibold text-slate-500">Åpne alle boligdetaljer</Link></>}
     </Modal>}
   </>;
 }
 
-function Historikkskjema({ verdi, onEndre, bilder, filer, setBilder, setFiler }: { verdi: HistorikkSkjema; onEndre: (verdi: HistorikkSkjema) => void; bilder: File[]; filer: File[]; setBilder: (filer: File[]) => void; setFiler: (filer: File[]) => void }) {
-  return <div className="grid gap-4 sm:grid-cols-2"><Felt label="Hva ble gjort? *"><input autoFocus value={verdi.tittel} onChange={(event) => onEndre({ ...verdi, tittel: event.target.value })} placeholder="For eksempel byttet varmtvannsbereder" className="felt" /></Felt><Felt label="Når?"><input type="date" value={verdi.dato} onChange={(event) => onEndre({ ...verdi, dato: event.target.value })} className="felt" /></Felt><Felt label="Hvor på boligen?"><select value={verdi.omrade} onChange={(event) => onEndre({ ...verdi, omrade: event.target.value })} className="felt"><option value="">Velg område</option>{omrader.map((omrade) => <option key={omrade}>{omrade}</option>)}</select></Felt><Felt label="Kostnad (valgfritt)"><input inputMode="numeric" value={verdi.kostnad} onChange={(event) => onEndre({ ...verdi, kostnad: event.target.value })} className="felt" /></Felt><Felt label="Utført av"><select value={verdi.utfortAv} onChange={(event) => onEndre({ ...verdi, utfortAv: event.target.value as "selv" | "firma" })} className="felt"><option value="selv">Meg selv</option><option value="firma">Firma/håndverker</option></select></Felt>{verdi.utfortAv === "firma" && <Felt label="Firma (valgfritt)"><input value={verdi.firma} onChange={(event) => onEndre({ ...verdi, firma: event.target.value })} className="felt" /></Felt>}<label className="text-sm font-semibold sm:col-span-2">Notat<textarea rows={3} value={verdi.beskrivelse} onChange={(event) => onEndre({ ...verdi, beskrivelse: event.target.value })} className="felt mt-2" /></label><Felt label={`Bilder${bilder.length ? ` (${bilder.length})` : ""}`}><input type="file" multiple accept="image/*" capture="environment" onChange={(event) => setBilder(Array.from(event.target.files || []))} className="felt text-sm" /></Felt><Felt label={`Faktura/dokumentasjon${filer.length ? ` (${filer.length})` : ""}`}><input type="file" multiple accept="image/*,.pdf,.doc,.docx" onChange={(event) => setFiler(Array.from(event.target.files || []))} className="felt text-sm" /></Felt></div>;
+function Historikkskjema({ verdi, onEndre, rom, bilder, filer, setBilder, setFiler }: { verdi: HistorikkSkjema; onEndre: (verdi: HistorikkSkjema) => void; rom: Rominfo[]; bilder: File[]; filer: File[]; setBilder: (filer: File[]) => void; setFiler: (filer: File[]) => void }) {
+  const valgtOmrade = verdi.romId ? `rom:${verdi.romId}` : verdi.omrade;
+  function velgOmrade(valg: string) {
+    if (valg.startsWith("rom:")) {
+      const romId = valg.slice(4);
+      const valgtRom = rom.find((verdi) => verdi.id === romId);
+      onEndre({ ...verdi, romId, omrade: valgtRom?.navn || "" });
+      return;
+    }
+    onEndre({ ...verdi, romId: "", omrade: valg });
+  }
+  return <div className="grid gap-4 sm:grid-cols-2"><Felt label="Hva ble gjort? *"><input autoFocus value={verdi.tittel} onChange={(event) => onEndre({ ...verdi, tittel: event.target.value })} placeholder="For eksempel byttet varmtvannsbereder" className="felt" /></Felt><Felt label="Når?"><input type="date" value={verdi.dato} onChange={(event) => onEndre({ ...verdi, dato: event.target.value })} className="felt" /></Felt><Felt label="Hvor på boligen?"><select value={valgtOmrade} onChange={(event) => velgOmrade(event.target.value)} className="felt"><option value="">Velg rom eller område</option>{rom.length > 0 && <optgroup label="Dine rom">{rom.map((verdi) => <option key={verdi.id} value={`rom:${verdi.id}`}>{verdi.navn}</option>)}</optgroup>}<optgroup label="Andre områder">{omrader.map((omrade) => <option key={omrade} value={omrade}>{omrade}</option>)}</optgroup></select></Felt><Felt label="Kostnad (valgfritt)"><input inputMode="numeric" value={verdi.kostnad} onChange={(event) => onEndre({ ...verdi, kostnad: event.target.value })} className="felt" /></Felt><Felt label="Utført av"><select value={verdi.utfortAv} onChange={(event) => onEndre({ ...verdi, utfortAv: event.target.value as "selv" | "firma" })} className="felt"><option value="selv">Meg selv</option><option value="firma">Firma/håndverker</option></select></Felt>{verdi.utfortAv === "firma" && <Felt label="Firma (valgfritt)"><input value={verdi.firma} onChange={(event) => onEndre({ ...verdi, firma: event.target.value })} className="felt" /></Felt>}<label className="text-sm font-semibold sm:col-span-2">Notat<textarea rows={3} value={verdi.beskrivelse} onChange={(event) => onEndre({ ...verdi, beskrivelse: event.target.value })} className="felt mt-2" /></label><Felt label={`Bilder${bilder.length ? ` (${bilder.length})` : ""}`}><input type="file" multiple accept="image/*" capture="environment" onChange={(event) => setBilder(Array.from(event.target.files || []))} className="felt text-sm" /></Felt><Felt label={`Faktura/dokumentasjon${filer.length ? ` (${filer.length})` : ""}`}><input type="file" multiple accept="image/*,.pdf,.doc,.docx" onChange={(event) => setFiler(Array.from(event.target.files || []))} className="felt text-sm" /></Felt></div>;
 }
 
 function Vedlikeholdsskjema({ verdi, onEndre }: { verdi: VedlikeholdSkjema; onEndre: (verdi: VedlikeholdSkjema) => void }) {

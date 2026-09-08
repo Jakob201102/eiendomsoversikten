@@ -48,6 +48,7 @@ export type Historikkinfo = {
   dato: string;
   tittel: string;
   omrade: string;
+  romId?: string;
   kostnad: number;
   utfortAv: "selv" | "firma" | "";
   firma: string;
@@ -86,6 +87,20 @@ export type Garantiinfo = {
   kjopsdato: string;
   utlopsdato: string;
   leverandor: string;
+  dokumentId: string;
+  notat: string;
+};
+
+export type Forsikringinfo = {
+  id: string;
+  type: string;
+  selskap: string;
+  avtalenummer: string;
+  arspris: string;
+  egenandel: string;
+  gyldigFra: string;
+  fornyes: string;
+  kontakt: string;
   dokumentId: string;
   notat: string;
 };
@@ -150,6 +165,7 @@ export type AltOmBoligenData = {
   mal: Malinfo[];
   uteomrader: Uteomradeinfo[];
   garantier: Garantiinfo[];
+  forsikringer: Forsikringinfo[];
   onboarding: Onboardinginfo;
   notater: string;
   oppdatert: string;
@@ -243,6 +259,7 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
     mal: [],
     uteomrader: [],
     garantier: [],
+    forsikringer: [],
     onboarding: { status: "ikke-startet", steg: 1 },
     notater: "",
     oppdatert: "",
@@ -277,6 +294,7 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     oppussing: liste<Oppussinginfo>(lagret.oppussing),
     historikk: liste<Historikkinfo>(lagret.historikk).map((hendelse) => ({
       ...hendelse,
+      romId: tekst(hendelse.romId),
       kostnad: Number(hendelse.kostnad || 0),
       dokumentIder: liste<string>(hendelse.dokumentIder),
       bildeIder: liste<string>(hendelse.bildeIder),
@@ -284,6 +302,7 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     mal: liste<Malinfo>(lagret.mal),
     uteomrader: liste<Uteomradeinfo>(lagret.uteomrader),
     garantier: liste<Garantiinfo>(lagret.garantier),
+    forsikringer: liste<Forsikringinfo>(lagret.forsikringer),
     onboarding: {
       ...grunnlag.onboarding,
       ...(lagret.onboarding || {}),
@@ -378,6 +397,20 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
         sistPusset: "Mai 2025",
         notat: "",
       },
+      {
+        id: "demo-rom-3",
+        navn: "Bad",
+        areal: "7 m²",
+        veggfarge: "Klassisk hvit",
+        fargekode: "9918",
+        maling: "Våtromsmaling",
+        glans: "20",
+        gulv: "Grå flis, 60 × 60 cm",
+        tak: "Klassisk hvit",
+        lister: "Flislagt sokkel",
+        sistPusset: "Mars 2024",
+        notat: "Reservefliser og fugemasse står i kjellerboden.",
+      },
     ],
     nokler: [
       { id: "demo-nokkel-1", type: "Ytterdør", antall: "4", merking: "Systemnøkkel", kategori: "Hovednøkkel", notat: "" },
@@ -393,8 +426,8 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       { id: "demo-oppussing-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", rom: "Bad", beskrivelse: "Montert av autorisert rørlegger." },
     ],
     historikk: [
-      { id: "demo-historikk-1", dato: "2026-08-15", tittel: "Malt stue", omrade: "Stue", kostnad: 4200, utfortAv: "selv", firma: "", beskrivelse: "Vegger malt i Washed Linen.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
-      { id: "demo-historikk-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", omrade: "Bad/vaskerom", kostnad: 14500, utfortAv: "firma", firma: "Rørlegger AS", beskrivelse: "Ny OSO Saga 200 montert.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
+      { id: "demo-historikk-1", dato: "2026-08-15", tittel: "Malt stue", omrade: "Stue", romId: "demo-rom-1", kostnad: 4200, utfortAv: "selv", firma: "", beskrivelse: "Vegger malt i Washed Linen.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
+      { id: "demo-historikk-2", dato: "2025-03-12", tittel: "Ny varmtvannsbereder", omrade: "Bad", romId: "demo-rom-3", kostnad: 14500, utfortAv: "firma", firma: "Rørlegger AS", beskrivelse: "Ny OSO Saga 200 montert.", dokumentIder: [], bildeIder: [], kildeVedlikeholdId: "" },
     ],
     mal: [
       { id: "demo-mal-1", navn: "Vindu i stue", mal: "160 × 140 cm", notat: "Mål til innvendig rullegardin" },
@@ -436,6 +469,9 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       { id: "demo-garanti-1", navn: "Bosch oppvaskmaskin", kjopsdato: "2026-05-14", utlopsdato: "2031-05-14", leverandor: "Elkjøp", dokumentId: "", notat: "Kvittering er lagret." },
       { id: "demo-garanti-2", navn: "Robotgressklipper", kjopsdato: "2024-10-15", utlopsdato: "2026-10-15", leverandor: "Obs BYGG", dokumentId: "", notat: "Utløper snart – kvittering er lagret." },
       { id: "demo-garanti-3", navn: "Kaffemaskin", kjopsdato: "2024-06-01", utlopsdato: "2026-06-01", leverandor: "Power", dokumentId: "", notat: "Garantien er utløpt." },
+    ],
+    forsikringer: [
+      { id: "demo-forsikring-1", type: "Husforsikring", selskap: "Fremtind", avtalenummer: "EKSEMPEL-48291", arspris: "12 480", egenandel: "10 000", gyldigFra: "2026-01-01", fornyes: "2027-01-01", kontakt: "915 02 300", dokumentId: "", notat: "Fullverdigaranti og utvidet dekning for vannskade." },
     ],
     onboarding: { status: "ferdig", steg: 5 },
     notater: "Ring styret før arbeid som påvirker fasade eller felles rør.",
