@@ -36,7 +36,7 @@ export default function MittHjemDashboard({
   demo?: boolean;
 }) {
   const data = lesAltOmBoligen(bolig);
-  const kanRedigere = String(bolig.tilgang || "eier") !== "leser";
+  const kanRedigere = !demo && String(bolig.tilgang || "eier") !== "leser";
   const [visning, setVisning] = useState<Visning>(null);
   const [menyApen, setMenyApen] = useState(false);
   const [historikkSkjema, setHistorikkSkjema] = useState<HistorikkSkjema>(tomHistorikk);
