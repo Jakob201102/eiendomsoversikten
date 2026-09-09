@@ -7,12 +7,13 @@ export type Vedlikeholdsdata = {
   [felt: string]: unknown;
 };
 
-export type Gjentakelse = "aldri" | "maanedlig" | "halvaarlig" | "aarlig" | "toaarlig" | "egendefinert";
+export type Gjentakelse = "aldri" | "maanedlig" | "kvartalsvis" | "halvaarlig" | "aarlig" | "toaarlig" | "egendefinert";
 
 export function nesteDato(dato: string, gjentakelse: Gjentakelse, egendefinertDager = 0) {
   if (!dato || gjentakelse === "aldri") return "";
   const neste = new Date(`${dato}T12:00:00`);
   if (gjentakelse === "maanedlig") neste.setMonth(neste.getMonth() + 1);
+  if (gjentakelse === "kvartalsvis") neste.setMonth(neste.getMonth() + 3);
   if (gjentakelse === "halvaarlig") neste.setMonth(neste.getMonth() + 6);
   if (gjentakelse === "aarlig") neste.setFullYear(neste.getFullYear() + 1);
   if (gjentakelse === "toaarlig") neste.setFullYear(neste.getFullYear() + 2);

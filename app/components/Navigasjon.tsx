@@ -17,7 +17,7 @@ const utleie: Gruppe[] = [
   { navn: "Verktøy", lenker: [{ navn: "Boligkalkulator", adresse: "/kalkulator" }] },
 ];
 const privat: Gruppe[] = [
-  { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender" }] },
+  { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender?modus=privat" }] },
   { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] },
 ];
 const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
@@ -70,7 +70,10 @@ export default function Navigasjon() {
     return [...utleie, om];
   }, [epost, modus, demoModus]);
 
-  const erAktiv = (adresse: string) => adresse === "/" ? pathname === "/" : pathname.startsWith(adresse);
+  const erAktiv = (adresse: string) => {
+    const sti = adresse.split("?")[0];
+    return sti === "/" ? pathname === "/" : pathname.startsWith(sti);
+  };
   const gruppeAktiv = (lenker: Lenke[]) => lenker.some((lenke) => erAktiv(lenke.adresse));
   const kompaktPrivatMobil = epost ? modus === "privat" : demoModus === "privat";
 
@@ -103,7 +106,10 @@ export default function Navigasjon() {
         {grupper.map((gruppe) => <div key={gruppe.navn} className="relative" onMouseEnter={() => setApenGruppe(gruppe.navn)} onMouseLeave={() => setApenGruppe("")}><button type="button" onClick={() => setApenGruppe(apenGruppe === gruppe.navn ? "" : gruppe.navn)} className={gruppeAktiv(gruppe.lenker) ? aktivKlasse : vanligKlasse}>{gruppe.navn} <span className="ml-1 text-xs">⌄</span></button>{apenGruppe === gruppe.navn && <div className="absolute left-0 top-full min-w-56 pt-2"><div className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenke.adresse} className={erAktiv(lenke.adresse) ? "block rounded-lg bg-emerald-400 px-4 py-3 font-semibold text-slate-950" : "block rounded-lg px-4 py-3 text-sm text-slate-200 hover:bg-slate-800"}>{lenke.navn}</Link>)}</div></div>}</div>)}
         {!sjekker && (epost ? <div className="ml-2 flex items-center gap-2"><Link href="/konto" className={erAktiv("/konto") ? aktivKlasse : vanligKlasse}>Min konto</Link><button onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold">{loggerUt ? "Logger ut…" : "Logg ut"}</button></div> : <Link href="/logg-inn" className="ml-2 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950">Logg inn</Link>)}
       </div>
-      <button type="button" onClick={() => setMenyApen(!menyApen)} className={`rounded-lg border border-slate-700 font-semibold lg:hidden ${kompaktPrivatMobil ? "px-3 py-1.5 text-sm" : "px-4 py-2"}`}>{menyApen ? "Lukk" : "Meny"}</button>
+      <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
+        {!sjekker && (epost ? <button type="button" onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-slate-200 disabled:opacity-50">{loggerUt ? "Venter…" : "Logg ut"}</button> : <Link href="/logg-inn" className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-bold text-slate-950">Logg inn</Link>)}
+        <button type="button" onClick={() => setMenyApen(!menyApen)} className={`rounded-lg border border-slate-700 font-semibold ${kompaktPrivatMobil ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm"}`}>{menyApen ? "Lukk" : "Meny"}</button>
+      </div>
     </div>
     {menyApen && <div className={`overflow-y-auto border-t border-slate-800 lg:hidden ${kompaktPrivatMobil ? "max-h-[calc(100vh-3.5rem)] py-2" : "max-h-[calc(100vh-4rem)] py-4"}`}>
       <Link href="/" className={erAktiv("/") ? (kompaktPrivatMobil ? mobilAktivKompakt : mobilAktiv) : (kompaktPrivatMobil ? mobilVanligKompakt : mobilVanlig)}>Forside</Link>

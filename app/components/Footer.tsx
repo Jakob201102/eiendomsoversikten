@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-semibold text-white">Eiendomsoversikten</p>
-          <p className="mt-1">Enklere oversikt for boligeiere og utleiere.</p>
+          <p className="mt-1">Alt om eiendommene dine – samlet på ett sted.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:items-end">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { hentBoliger, type BoligData } from "../lib/boliger";
 import { hentLeietakere, type Leietaker } from "../lib/leietakere";
@@ -18,6 +19,7 @@ import {
   type KalenderhendelseSkjema,
 } from "../lib/kalender";
 import { createClient } from "../lib/supabase/client";
+import { lesBruksomrade } from "../lib/bruksomrade";
 
 const TOMT_SKJEMA: KalenderhendelseSkjema = {
   tittel: "",
@@ -39,6 +41,7 @@ const TYPEINFO: Record<Hendelsestype, { navn: string; prikk: string; merke: stri
 };
 
 export default function Kalender() {
+  const search = useSearchParams();
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [leietakere, setLeietakere] = useState<Leietaker[]>([]);
   const [vedlikehold, setVedlikehold] = useState<Vedlikeholdsdata[]>([]);
@@ -49,6 +52,7 @@ export default function Kalender() {
   const [redigererId, setRedigererId] = useState<string | null>(null);
   const [skjema, setSkjema] = useState<KalenderhendelseSkjema>(TOMT_SKJEMA);
   const [innlogget, setInnlogget] = useState(false);
+  const [privatModus, setPrivatModus] = useState(false);
   const [laster, setLaster] = useState(true);
   const [lagrer, setLagrer] = useState(false);
   const [feil, setFeil] = useState("");
@@ -60,6 +64,7 @@ export default function Kalender() {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       setInnlogget(Boolean(data.user));
+      setPrivatModus(lesBruksomrade(data.user) === "privat" || search.get("modus") === "privat");
       const [boligdata, leietakerdata, vedlikeholdsdata] = await Promise.all([
         hentBoliger(),
         hentLeietakere(),
@@ -80,15 +85,17 @@ export default function Kalender() {
 
   useEffect(() => {
     lastData();
-  }, []);
+  }, [search]);
 
-  const hendelser = useMemo(
-    () => sorterHendelser([
+  const hendelser = useMemo(() => {
+    const alle = sorterHendelser([
       ...manuelle,
       ...byggAutomatiskeKalenderhendelser(boliger, leietakere, vedlikehold),
-    ]),
-    [boliger, leietakere, manuelle, vedlikehold],
-  );
+    ]);
+    return privatModus
+      ? alle.filter((hendelse) => hendelse.type !== "kontrakt" && hendelse.type !== "visning")
+      : alle;
+  }, [boliger, leietakere, manuelle, privatModus, vedlikehold]);
 
   const dager = useMemo(() => kalenderdager(maaned), [maaned]);
   const valgteHendelser = hendelser.filter((hendelse) => hendelse.dato === valgtDato);
@@ -102,7 +109,7 @@ export default function Kalender() {
       return;
     }
     setRedigererId(null);
-    setSkjema({ ...TOMT_SKJEMA, dato });
+    setSkjema({ ...TOMT_SKJEMA, type: privatModus ? "mote" : "visning", dato });
     setFeil("");
     setSkjemaAapent(true);
   }
@@ -167,8 +174,9 @@ export default function Kalender() {
             <p className="font-semibold text-emerald-700">PLANLEGGING</p>
             <h1 className="mt-1 text-3xl font-bold sm:text-4xl">Kalender</h1>
             <p className="mt-2 max-w-2xl text-slate-600">
-              Garantier, kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger,
-              møter, befaringer og andre avtaler selv.
+              {privatModus
+                ? "Garantier, brannkontroller og vedlikeholdsfrister legges inn automatisk. Legg til møter, befaringer og andre avtaler selv."
+                : "Garantier, kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger, møter, befaringer og andre avtaler selv."}
             </p>
           </div>
           <button
@@ -181,7 +189,7 @@ export default function Kalender() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          {(Object.keys(TYPEINFO) as Hendelsestype[]).map((type) => (
+          {(Object.keys(TYPEINFO) as Hendelsestype[]).filter((type) => !privatModus || (type !== "kontrakt" && type !== "visning")).map((type) => (
             <span key={type} className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm shadow-sm">
               <span className={`h-2.5 w-2.5 rounded-full ${TYPEINFO[type].prikk}`} />
               {TYPEINFO[type].navn}
@@ -272,7 +280,7 @@ export default function Kalender() {
             </label>
             <label className="mt-4 block text-sm font-semibold">Type
               <select value={skjema.type} onChange={(e) => setSkjema({ ...skjema, type: e.target.value as Hendelsestype })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
-                <option value="visning">Visning</option>
+                {!privatModus && <option value="visning">Visning</option>}
                 <option value="mote">Møte / befaring</option>
                 <option value="annet">Annet</option>
               </select>
@@ -291,12 +299,12 @@ export default function Kalender() {
                 {boliger.map((bolig) => <option key={bolig.id} value={bolig.id}>{String(bolig.adresse || "Uten adresse")}</option>)}
               </select>
             </label>
-            <label className="mt-4 block text-sm font-semibold">Leietaker (valgfritt)
+            {!privatModus && <label className="mt-4 block text-sm font-semibold">Leietaker (valgfritt)
               <select value={skjema.leietakerId} onChange={(e) => setSkjema({ ...skjema, leietakerId: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
                 <option value="">Ingen leietaker</option>
                 {filtrerteLeietakere.map((leietaker) => <option key={leietaker.id} value={leietaker.id}>{leietaker.navn}</option>)}
               </select>
-            </label>
+            </label>}
             <label className="mt-4 block text-sm font-semibold">Notat
               <textarea value={skjema.notat} onChange={(e) => setSkjema({ ...skjema, notat: e.target.value })} rows={3} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
             </label>

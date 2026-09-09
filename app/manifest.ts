@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Eiendomsoversikten",
     short_name: "Eiendomsoversikten",
     description:
-      "Full kontroll på boliger, leietakere, økonomi og vedlikehold.",
+      "Alt om eiendommene dine – samlet på ett sted.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

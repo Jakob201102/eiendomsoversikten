@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Navigasjon from "../components/Navigasjon";
 import Boligadministrasjon from "../components/Boligadministrasjon";
+import Brannkontroll from "../components/Brannkontroll";
 import {
   demoAltOmBoligen,
   lesAltOmBoligen,
@@ -115,6 +116,11 @@ export default function AltOmBoligen() {
   useEffect(() => {
     if (!redigerer && data) setUtkast(data);
   }, [data, redigerer]);
+
+  useEffect(() => {
+    if (laster || !data || redigerer || window.location.hash !== "#del-tilgang") return;
+    requestAnimationFrame(() => document.getElementById("del-tilgang")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [laster, data, redigerer]);
 
   const boligfiler = useMemo(
     () => dokumenter.filter((dokument) => dokument.boligId === valgtBoligId),
@@ -450,7 +456,9 @@ export default function AltOmBoligen() {
             kanRedigere={kanRedigere}
             startRedigering={startRedigering}
           />
-          <Boligadministrasjon bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
+          <div id="del-tilgang" className="scroll-mt-24">
+            <Boligadministrasjon bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
+          </div>
           </>
         )}
       </div>
@@ -557,6 +565,7 @@ function Oversiktsvisning({
               ["Notat", data.sikkerhet.notat],
             ]}
           />
+          <Brannkontroll bolig={bolig} kanRedigere={innlogget && kanRedigere} />
         </InfoKort>
       </div>
 

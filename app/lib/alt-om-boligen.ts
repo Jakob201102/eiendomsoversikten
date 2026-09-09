@@ -50,7 +50,7 @@ export type Historikkinfo = {
   omrade: string;
   romId?: string;
   kostnad: number;
-  utfortAv: "selv" | "firma" | "";
+  utfortAv: "selv" | "firma" | "tidligere-eier" | "";
   firma: string;
   beskrivelse: string;
   dokumentIder: string[];

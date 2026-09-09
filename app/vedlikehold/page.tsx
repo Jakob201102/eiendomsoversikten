@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import SkaderAvvik from "../components/SkaderAvvik";
 import { hentBoliger } from "../lib/boliger";
@@ -49,6 +49,7 @@ type Vedlikeholdsoppgave = {
 
 export default function Vedlikehold() {
   const router = useRouter();
+  const search = useSearchParams();
   const [boliger, setBoliger] = useState<Bolig[]>([]);
   const [oppgaver, setOppgaver] = useState<
     Vedlikeholdsoppgave[]
@@ -59,6 +60,8 @@ export default function Vedlikehold() {
   const [privatFane, setPrivatFane] = useState<
     "kommende" | "skader" | "utfort"
   >("kommende");
+
+  useEffect(() => { if (search.get("fane") === "skader") setPrivatFane("skader"); }, [search]);
 
   const [boligId, setBoligId] = useState("");
   const [tittel, setTittel] = useState("");
@@ -440,7 +443,7 @@ export default function Vedlikehold() {
         {privatFane === "skader" &&
         boliger.some((bolig) => bolig.brukstype === "privat") ? (
           <div className="mt-6">
-            <SkaderAvvik />
+            <SkaderAvvik startApen={search.get("ny") === "1"} forvalgtBoligId={search.get("bolig") || ""} />
           </div>
         ) : (
           <>
@@ -566,7 +569,7 @@ export default function Vedlikehold() {
                   </label>
 
                   {valgtErPrivat && <>
-                    <label><Felttekst>Gjentas</Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri">Aldri</option><option value="maanedlig">Hver måned</option><option value="halvaarlig">Hver 6. måned</option><option value="aarlig">Årlig</option><option value="toaarlig">Hvert 2. år</option><option value="egendefinert">Egendefinert</option></select></label>
+                    <label><Felttekst>Gjentas</Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri">Aldri</option><option value="maanedlig">Hver måned</option><option value="kvartalsvis">Hver 3. måned</option><option value="halvaarlig">Hver 6. måned</option><option value="aarlig">Årlig</option><option value="toaarlig">Hvert 2. år</option><option value="egendefinert">Egendefinert</option></select></label>
                     {gjentakelse === "egendefinert" && <label><Felttekst>Antall dager mellom hver gang</Felttekst><input type="number" min="1" value={egendefinertDager} onChange={(event) => setEgendefinertDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
                     <label><Felttekst>Påminnelse</Felttekst><select value={paaminnelseDager} onChange={(event) => setPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="0">Samme dag</option><option value="1">1 dag før</option><option value="7">1 uke før</option><option value="30">1 måned før</option><option value="-1">Egendefinert</option></select></label>
                     {paaminnelseDager === -1 && <label><Felttekst>Antall dager før</Felttekst><input type="number" min="0" value={egenPaaminnelseDager} onChange={(event) => setEgenPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
@@ -1003,4 +1006,4 @@ function kroner(belop: number) {
   }).format(Number.isFinite(belop) ? belop : 0);
 }
 
-function gjentakelseTekst(verdi: Gjentakelse) { return { aldri: "Aldri", maanedlig: "Månedlig", halvaarlig: "Hver 6. måned", aarlig: "Årlig", toaarlig: "Hvert 2. år", egendefinert: "Egendefinert" }[verdi]; }
+function gjentakelseTekst(verdi: Gjentakelse) { return { aldri: "Aldri", maanedlig: "Månedlig", kvartalsvis: "Hver 3. måned", halvaarlig: "Hver 6. måned", aarlig: "Årlig", toaarlig: "Hvert 2. år", egendefinert: "Egendefinert" }[verdi]; }
