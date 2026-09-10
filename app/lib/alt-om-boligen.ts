@@ -143,6 +143,9 @@ export type AltOmBoligenData = {
     braI: string;
     braE: string;
     totalareal: string;
+    tomteareal: string;
+    bruttoareal: string;
+    energimerking: string;
     antallRom: string;
     soverom: string;
     etasje: string;
@@ -171,6 +174,8 @@ export type AltOmBoligenData = {
     elektrisk: string;
     ror: string;
     oppvarming: string;
+    fasade: string;
+    boligen: string;
   };
   sikkerhet: {
     roykvarslere: string;
@@ -210,6 +215,9 @@ const tomGenerell = {
   braI: "",
   braE: "",
   totalareal: "",
+  tomteareal: "",
+  bruttoareal: "",
+  energimerking: "",
   antallRom: "",
   soverom: "",
   etasje: "",
@@ -240,6 +248,8 @@ const tomViktigeDeler = {
   elektrisk: "",
   ror: "",
   oppvarming: "",
+  fasade: "",
+  boligen: "",
 };
 
 const tomSikkerhet = {
@@ -371,6 +381,9 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       braI: "82",
       braE: "6",
       totalareal: "88",
+      tomteareal: "620",
+      bruttoareal: "104",
+      energimerking: "D – Oransje",
       antallRom: "4",
       soverom: "3",
       etasje: "2. etasje",
@@ -400,6 +413,8 @@ export function demoAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       elektrisk: "2024",
       ror: "2024",
       oppvarming: "Varmekabler og panelovner",
+      fasade: "2020",
+      boligen: "2024",
     },
     sikkerhet: {
       roykvarslere: "3 seriekoblede røykvarslere",

@@ -14,6 +14,7 @@ import {
   dokumentLenke,
   hentDokumenter,
   lastOppDokument,
+  slettDokument,
   type Dokument,
 } from "../lib/dokumenter";
 import {
@@ -38,6 +39,8 @@ export default function Bolighistorikk() {
   const [valgtId, setValgtId] = useState("");
   const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
   const [fane, setFane] = useState<Arkivfane>("alle");
+  const [aarFilter, setAarFilter] = useState("alle");
+  const [romFilter, setRomFilter] = useState("alle");
   const [redigerer, setRedigerer] = useState<Historikkinfo | null>(null);
   const [redigeringsmodus, setRedigeringsmodus] =
     useState<Redigeringsmodus>(null);
@@ -128,10 +131,17 @@ export default function Bolighistorikk() {
     }
     return resultat.sort((a, b) => (b.dato || "").localeCompare(a.dato || ""));
   }, [data]);
-  const viste =
-    fane === "alle"
-      ? hendelser
-      : hendelser.filter((hendelse) => hendelse.arkivtype === fane);
+  const viste = hendelser.filter((hendelse) => {
+    if (fane !== "alle" && hendelse.arkivtype !== fane) return false;
+    if (aarFilter !== "alle" && hendelse.dato?.slice(0, 4) !== aarFilter) return false;
+    if (romFilter.startsWith("rom:")) {
+      const romId = romFilter.slice(4);
+      const rom = data?.rom.find((verdi) => verdi.id === romId);
+      if (hendelse.romId !== romId && hendelse.omrade.toLocaleLowerCase("nb-NO") !== String(rom?.navn || "").toLocaleLowerCase("nb-NO")) return false;
+    }
+    if (romFilter.startsWith("omrade:") && hendelse.omrade !== romFilter.slice(7)) return false;
+    return true;
+  });
   const boligDokumenter = dokumenter.filter(
     (dokument) => dokument.boligId === valgtId,
   );
@@ -173,7 +183,7 @@ export default function Bolighistorikk() {
       kanRedigeres: _kanRedigeres,
       ...lagretHendelse
     } = hendelse;
-    setRedigerer(lagretHendelse);
+    setRedigerer({ ...lagretHendelse, beskrivelse: rensSynligTekst(lagretHendelse.beskrivelse) });
     setRedigeringsmodus("hendelse");
     setFeil("");
   }
@@ -323,6 +333,35 @@ export default function Bolighistorikk() {
     }
   }
 
+  async function slettVedleggFraHendelse(dokument: Dokument) {
+    if (!bolig || !data || !redigerer || !kanRedigere) return;
+    if (!confirm(`Slett «${dokument.navn}»? Filen fjernes også fra dokumentarkivet.`)) return;
+    setJobber(true);
+    setFeil("");
+    try {
+      const oppdatert = {
+        ...redigerer,
+        dokumentIder: redigerer.dokumentIder.filter((id) => id !== dokument.id),
+        bildeIder: redigerer.bildeIder.filter((id) => id !== dokument.id),
+      };
+      await oppdaterBolig(String(bolig.id), {
+        ...bolig,
+        altOmBoligen: {
+          ...data,
+          historikk: data.historikk.map((hendelse) => hendelse.id === oppdatert.id ? oppdatert : hendelse),
+          oppdatert: new Date().toISOString(),
+        },
+      });
+      await slettDokument(dokument);
+      setRedigerer(oppdatert);
+      setDokumenter((gamle) => gamle.filter((verdi) => verdi.id !== dokument.id));
+    } catch {
+      setFeil("Kunne ikke slette vedlegget.");
+    } finally {
+      setJobber(false);
+    }
+  }
+
   if (laster)
     return (
       <main className="min-h-screen bg-stone-50">
@@ -332,7 +371,7 @@ export default function Bolighistorikk() {
     );
 
   return (
-    <main className="min-h-screen bg-stone-50 text-slate-900">
+    <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900">
       <Navigasjon />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
         <Link
@@ -412,6 +451,23 @@ export default function Bolighistorikk() {
             </button>
           ))}
         </div>
+        <div className="mt-3 grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2">
+          <label className="min-w-0 text-sm font-semibold">
+            År
+            <select value={aarFilter} onChange={(event) => setAarFilter(event.target.value)} className="felt mt-2">
+              <option value="alle">Alle år</option>
+              {[...new Set(hendelser.map((hendelse) => hendelse.dato?.slice(0, 4)).filter(Boolean))].sort().reverse().map((aar) => <option key={aar} value={aar}>{aar}</option>)}
+            </select>
+          </label>
+          <label className="min-w-0 text-sm font-semibold">
+            Rom / område
+            <select value={romFilter} onChange={(event) => setRomFilter(event.target.value)} className="felt mt-2">
+              <option value="alle">Alle rom og områder</option>
+              {(data?.rom || []).map((rom) => <option key={rom.id} value={`rom:${rom.id}`}>{rom.navn}</option>)}
+              {[...new Set(hendelser.filter((hendelse) => !hendelse.romId && hendelse.omrade).map((hendelse) => hendelse.omrade))].sort().map((omrade) => <option key={omrade} value={`omrade:${omrade}`}>{omrade}</option>)}
+            </select>
+          </label>
+        </div>
         <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           {viste.length ? (
             <div className="divide-y divide-stone-100">
@@ -449,6 +505,21 @@ export default function Bolighistorikk() {
             rom={data?.rom || []}
             onEndre={setRedigerer}
           />
+          {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-bold">Bilder og dokumenter</p>
+              <div className="mt-2 space-y-2">
+                {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
+                  <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
+                    <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
+                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {dokument.navn}
+                    </button>
+                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50">Slett</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <button
             type="button"
             onClick={lagreHendelse}
@@ -515,6 +586,21 @@ export default function Bolighistorikk() {
               onVelg={setFiler}
             />
           </div>
+          {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).length > 0 && (
+            <div className="mt-5">
+              <p className="text-sm font-bold">Eksisterende bilder og dokumenter</p>
+              <div className="mt-2 space-y-2">
+                {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
+                  <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
+                    <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
+                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {dokument.navn}
+                    </button>
+                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50">Slett</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <button
             type="button"
             onClick={lagreDokumentasjon}
@@ -556,9 +642,9 @@ function Historikkrad({
   );
   const komplett = krav.length > 0 && mangler.length === 0;
   return (
-    <article className="py-5 first:pt-0 last:pb-0">
+    <article className="min-w-0 max-w-full py-5 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
             {maanedAar(hendelse.dato)}
           </p>
@@ -583,8 +669,8 @@ function Historikkrad({
           {typenavn(hendelse.arkivtype)}
         </span>
       </div>
-      {hendelse.beskrivelse && (
-        <p className="mt-3 text-sm text-slate-600">{hendelse.beskrivelse}</p>
+      {rensSynligTekst(hendelse.beskrivelse) && (
+        <p className="mt-3 max-w-full break-words text-sm text-slate-600">{rensSynligTekst(hendelse.beskrivelse)}</p>
       )}
       {krav.length > 0 && (
         <div
@@ -614,7 +700,7 @@ function Historikkrad({
               key={dokument.id}
               type="button"
               onClick={() => onAapne(dokument)}
-              className="text-sm font-bold text-emerald-700"
+              className="min-w-0 max-w-full break-words text-left text-sm font-bold text-emerald-700"
             >
               {dokument.filtype.startsWith("image/") ? "📸" : "📄"}{" "}
               {dokument.navn}
@@ -895,4 +981,13 @@ function maanedAar(dato: string) {
   } catch {
     return dato;
   }
+}
+
+function rensSynligTekst(verdi: string) {
+  return String(verdi || "")
+    .replace(/s?https?:\/\/\S+/gi, "")
+    .replace(/\bfinncdn\.no\S*/gi, "")
+    .replace(/^[\s,'"()[\]{};]+|[\s,'"()[\]{};]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }

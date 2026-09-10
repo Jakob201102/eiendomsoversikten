@@ -90,7 +90,7 @@ export default function Navigasjon() {
     setEpost(null); setModus(null); setLoggerUt(false); router.push("/"); router.refresh();
   }
 
-  const logoLenke = epost ? (modus === "privat" ? "/mitt-hjem" : "/oversikt") : "/";
+  const logoLenke = "/";
 
   if (!hydrert) {
     return <nav className="relative z-40 bg-slate-950 text-white"><div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between px-4 sm:px-6"><Link href="/" className="flex items-center gap-2 text-lg font-bold xl:text-xl"><span>Eiendomsoversikten</span><span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-400">BETA</span></Link><span className="text-sm text-slate-500">Laster meny…</span></div></nav>;

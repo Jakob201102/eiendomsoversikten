@@ -2,7 +2,7 @@ import { createClient } from "./supabase/client";
 import { sendTilInnlogging } from "./demo-data";
 
 const BUCKET = "dokumentarkiv";
-const MAKS = 25 * 1024 * 1024;
+const MAKS = 80 * 1024 * 1024;
 
 export type Dokument = { id: string; boligId: string; navn: string; kategori: string; ar: number; dokumentdato: string; notat: string; filsti: string; filnavn: string; filtype: string; filstorrelse: number; createdAt: string; kilde: "arkiv" | "okonomi" };
 type Rad = { id: string; bolig_id: string | null; navn: string; kategori: string; ar: number; dokumentdato: string | null; notat: string | null; filsti: string; filnavn: string; filtype: string | null; filstorrelse: number | null; created_at: string };
@@ -27,8 +27,30 @@ export async function lastOppDokument(fil: File, felt: { boligId: string; navn: 
   if (error) { await supabase.storage.from(BUCKET).remove([sti]); throw error; }
   return id;
 }
+export async function lagreDokumentlenke(felt: { boligId: string; navn: string; kategori: string; ar: number; dokumentdato: string; url: string; notat?: string }) {
+  const url = new URL(felt.url);
+  if (url.protocol !== "https:") throw new Error("UGYLDIG_LENKE");
+  const { supabase, user } = await bruker();
+  const id = crypto.randomUUID();
+  const { error } = await supabase.from("dokumenter").insert({
+    id,
+    user_id: user.id,
+    bolig_id: felt.boligId || null,
+    navn: felt.navn.trim() || "Nettlenke",
+    kategori: felt.kategori,
+    ar: felt.ar,
+    dokumentdato: felt.dokumentdato || null,
+    notat: [felt.url, felt.notat].filter(Boolean).join("\n"),
+    filsti: "",
+    filnavn: url.hostname,
+    filtype: "text/uri-list",
+    filstorrelse: 0,
+  });
+  if (error) throw error;
+  return id;
+}
 export async function dokumentLenke(sti: string) { const { supabase } = await bruker(); const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(sti, 60); if (error || !data?.signedUrl) throw error || new Error("MANGLER_LENKE"); return data.signedUrl; }
-export async function slettDokument(dokument: Dokument) { const { supabase } = await bruker(); const { error: filfeil } = await supabase.storage.from(BUCKET).remove([dokument.filsti]); if (filfeil) throw filfeil; const { error } = await supabase.from("dokumenter").delete().eq("id", dokument.id); if (error) throw error; }
+export async function slettDokument(dokument: Dokument) { const { supabase } = await bruker(); if (dokument.filsti) { const { error: filfeil } = await supabase.storage.from(BUCKET).remove([dokument.filsti]); if (filfeil) throw filfeil; } const { error } = await supabase.from("dokumenter").delete().eq("id", dokument.id); if (error) throw error; }
 
 function demoDokumenter(): Dokument[] { const ar = new Date().getFullYear(); return [
   { id: "demo-dok-1", boligId: "demo-bolig-1", navn: "Forsikringsbevis", kategori: "forsikring", ar, dokumentdato: `${ar}-01-15`, notat: "Eksempeldokument", filsti: "", filnavn: "forsikringsbevis-eksempel.pdf", filtype: "application/pdf", filstorrelse: 340000, createdAt: `${ar}-01-15T12:00:00Z`, kilde: "arkiv" },

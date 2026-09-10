@@ -339,7 +339,7 @@ export default function AltOmBoligen() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-900">
+    <main className="privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
       <Navigasjon />
       <header className="bg-slate-950 px-4 py-10 text-white sm:px-6 sm:py-14">
         <div className="mx-auto max-w-7xl">
@@ -504,22 +504,16 @@ function Oversiktsvisning({
         </div>
       </section>
 
-      <Filoversikt
-        bilder={bilder}
-        plantegninger={plantegninger}
-        filLenker={filLenker}
-        innlogget={innlogget}
-      />
-
       <div className="grid gap-6 lg:grid-cols-2">
         <InfoKort tittel="Generell informasjon" merke="BOLIG">
           <Detaljliste
             rader={[
               ["Boligtype", data.generell.boligtype],
               ["Byggeår", data.generell.byggeaar],
-              ["BRA-i", medEnhet(data.generell.braI, "m²")],
-              ["BRA-e", medEnhet(data.generell.braE, "m²")],
               ["Totalareal", medEnhet(data.generell.totalareal, "m²")],
+              ["Tomteareal", medEnhet(data.generell.tomteareal, "m²")],
+              ["Bruttoareal", medEnhet(data.generell.bruttoareal, "m²")],
+              ["Energimerking", data.generell.energimerking],
               ["Antall rom", data.generell.antallRom],
               ["Soverom", data.generell.soverom],
               ["Etasje", data.generell.etasje],
@@ -639,6 +633,13 @@ function Oversiktsvisning({
 
       {data.notater && <InfoKort tittel="Egne notater" merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
 
+      <Filoversikt
+        bilder={bilder}
+        plantegninger={plantegninger}
+        filLenker={filLenker}
+        innlogget={innlogget}
+      />
+
       <div className="flex justify-center py-3">
         {(!innlogget || kanRedigere) && <button type="button" onClick={startRedigering} className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">
           {innlogget ? "Rediger boliginfo" : "Opprett konto for å fylle inn egne data"}
@@ -681,9 +682,10 @@ function Redigeringsvisning({
         <Feltgrid>
           <Tekstfelt label="Boligtype" value={data.generell.boligtype} onChange={(v) => oppdaterObjekt("generell", "boligtype", v)} />
           <Tekstfelt label="Byggeår" value={data.generell.byggeaar} onChange={(v) => oppdaterObjekt("generell", "byggeaar", v)} inputMode="numeric" />
-          <Tekstfelt label="BRA-i (m²)" value={data.generell.braI} onChange={(v) => oppdaterObjekt("generell", "braI", v)} />
-          <Tekstfelt label="BRA-e (m²)" value={data.generell.braE} onChange={(v) => oppdaterObjekt("generell", "braE", v)} />
           <Tekstfelt label="Totalareal (m²)" value={data.generell.totalareal} onChange={(v) => oppdaterObjekt("generell", "totalareal", v)} />
+          <Tekstfelt label="Tomteareal (m²)" value={data.generell.tomteareal} onChange={(v) => oppdaterObjekt("generell", "tomteareal", v)} />
+          <Tekstfelt label="Bruttoareal (m²)" value={data.generell.bruttoareal} onChange={(v) => oppdaterObjekt("generell", "bruttoareal", v)} />
+          <Tekstfelt label="Energimerking" value={data.generell.energimerking} onChange={(v) => oppdaterObjekt("generell", "energimerking", v)} />
           <Tekstfelt label="Antall rom" value={data.generell.antallRom} onChange={(v) => oppdaterObjekt("generell", "antallRom", v)} inputMode="numeric" />
           <Tekstfelt label="Antall soverom" value={data.generell.soverom} onChange={(v) => oppdaterObjekt("generell", "soverom", v)} />
           <Tekstfelt label="Etasje" value={data.generell.etasje} onChange={(v) => oppdaterObjekt("generell", "etasje", v)} />
@@ -839,11 +841,14 @@ function Redigeringsvisning({
 }
 
 function Filoversikt({ bilder, plantegninger, filLenker, innlogget }: { bilder: Dokument[]; plantegninger: Dokument[]; filLenker: Record<string, string>; innlogget: boolean }) {
+  const [visAlle, setVisAlle] = useState(false);
   const harFiler = bilder.length > 0 || plantegninger.length > 0;
+  const alleFiler = [...bilder, ...plantegninger];
+  const visteFiler = visAlle ? alleFiler : alleFiler.slice(0, 8);
   return (
     <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-7">
       <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700">BILDER OG TEGNINGER</p><h2 className="mt-2 text-xl font-bold">Visuelt arkiv</h2></div>{innlogget && <Link href="/dokumentarkiv" className="text-sm font-semibold text-emerald-700">Åpne dokumentarkivet →</Link>}</div>
-      {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel="Stue" farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel="Kjøkken" farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel="Plantegning" farge="from-blue-100 to-slate-200" /></div> : <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{bilder.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}{plantegninger.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>}
+      {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel="Stue" farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel="Kjøkken" farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel="Plantegning" farge="from-blue-100 to-slate-200" /></div> : <><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{visteFiler.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>{alleFiler.length > 8 && <button type="button" onClick={() => setVisAlle((verdi) => !verdi)} className="mt-5 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{visAlle ? "Vis færre" : `Se resten (${alleFiler.length - 8})`}</button>}</>}
     </section>
   );
 }

@@ -12,8 +12,10 @@ import {
   opprettBolig,
   type BoligData,
 } from "../lib/boliger";
-import { lastOppDokument } from "../lib/dokumenter";
+import { lagreDokumentlenke, lastOppDokument } from "../lib/dokumenter";
 import { opprettVedlikeholdsoppgave } from "../lib/vedlikehold";
+import { analyserBoligtekst } from "../lib/boligimport";
+import BoligimportKilder from "./BoligimportKilder";
 
 type Adresseforslag = {
   adressetekst: string;
@@ -32,6 +34,9 @@ type Grunninfo = {
   areal: string;
   braI: string;
   braE: string;
+  tomteareal: string;
+  bruttoareal: string;
+  energimerking: string;
   etasjer: string;
   antallRom: string;
   soverom: string;
@@ -50,6 +55,7 @@ type ImportForslag = Partial<Grunninfo> & {
     omrade: string;
     beskrivelse: string;
   }[];
+  bildeForslag?: string[];
 };
 type ImportMetode = "finn" | "pdf" | "tekst";
 
@@ -61,6 +67,9 @@ const tomGrunninfo: Grunninfo = {
   areal: "",
   braI: "",
   braE: "",
+  tomteareal: "",
+  bruttoareal: "",
+  energimerking: "",
   etasjer: "",
   antallRom: "",
   soverom: "",
@@ -120,6 +129,9 @@ export default function MittHjemOppsett({
   const [finnKilde, setFinnKilde] = useState("");
   const [importerer, setImporterer] = useState(false);
   const [importMelding, setImportMelding] = useState("");
+  const [valgteImportbilder, setValgteImportbilder] = useState<string[]>([]);
+  const [importKildebilder, setImportKildebilder] = useState<File[]>([]);
+  const [importKildepdfer, setImportKildepdfer] = useState<File[]>([]);
   const [delerData, setDelerData] = useState<Record<string, string>>(() =>
     bolig ? { ...lesAltOmBoligen(bolig).viktigeDeler } : {},
   );
@@ -187,16 +199,22 @@ export default function MittHjemOppsett({
     setImportMelding("");
     setFinnForslag(null);
     try {
-      let svar: Response;
       if (importMetode === "pdf" && salgsoppgave) {
-        const skjema = new FormData();
-        skjema.append("fil", salgsoppgave);
-        svar = await fetch("/api/importer-salgsoppgave", {
-          method: "POST",
-          body: skjema,
-        });
+        if (salgsoppgave.size > 80 * 1024 * 1024) throw new Error("PDF-en kan maksimalt være 80 MB.");
+        setImportMelding("Leser alle sidene i salgsoppgaven …");
+        const { extractText, getDocumentProxy } = await import("unpdf");
+        const pdf = await getDocumentProxy(new Uint8Array(await salgsoppgave.arrayBuffer()));
+        const lest = await extractText(pdf, { mergePages: true });
+        const tekst = String(lest.text || "").trim();
+        if (tekst.length < 100) throw new Error("PDF-en ser ut til å være skannet uten lesbar tekst. Last ned originalen fra megler/FINN, eller bruk «Lim inn tekst».");
+        const data = analyserBoligtekst(tekst);
+        setFinnForslag(data);
+        setFinnKilde("");
+        setValgteImportbilder([]);
+        setImportMelding(`Salgsoppgaven er lest (${lest.totalPages} sider). Kontroller forslagene før de brukes.`);
+        return;
       } else {
-        svar = await fetch("/api/importer-bolig", {
+        const svar = await fetch("/api/importer-bolig", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
@@ -205,17 +223,13 @@ export default function MittHjemOppsett({
               : { tekst: annonseTekst.trim() },
           ),
         });
+        const resultat = (await svar.json()) as { data?: ImportForslag; kildeUrl?: string; melding?: string; feil?: string };
+        if (!svar.ok || !resultat.data) throw new Error(resultat.feil || "Kunne ikke hente opplysningene.");
+        setFinnForslag(resultat.data);
+        setFinnKilde(resultat.kildeUrl || "");
+        setValgteImportbilder((resultat.data.bildeForslag || []).slice(0, 12));
+        setImportMelding(resultat.melding || "Kontroller forslagene før de brukes.");
       }
-      const resultat = (await svar.json()) as {
-        data?: ImportForslag;
-        kildeUrl?: string;
-        feil?: string;
-      };
-      if (!svar.ok || !resultat.data) {
-        throw new Error(resultat.feil || "Kunne ikke hente opplysningene.");
-      }
-      setFinnForslag(resultat.data);
-      setFinnKilde(resultat.kildeUrl || "");
     } catch (error) {
       setImportMelding(
         error instanceof Error
@@ -248,6 +262,109 @@ export default function MittHjemOppsett({
     );
   }
 
+  function brukSammenslattForslag(
+    importert: ImportForslag,
+    kildeUrl: string,
+    finnBilder: string[],
+    kildeBilder: File[],
+    kildePdfer: File[],
+  ) {
+    setGrunninfo((forrige) => {
+      const neste = { ...forrige };
+      for (const [felt, verdi] of Object.entries(importert)) {
+        if (typeof verdi === "string" && verdi && felt in neste)
+          neste[felt as keyof Grunninfo] = verdi;
+      }
+      return neste;
+    });
+    setDelerData((forrige) => ({ ...forrige, ...(importert.viktigeDeler || {}) }));
+    setImportEkstra(importert);
+    setFinnKilde(kildeUrl);
+    setValgteImportbilder(finnBilder);
+    setImportKildebilder(kildeBilder);
+    setImportKildepdfer(kildePdfer);
+    setImportMelding("Forslagene er overført. Kontroller feltene og opprett boligen når du er klar.");
+  }
+
+  async function lastOppImportbilder(boligId: string) {
+    let feilAntall = 0;
+    for (const [indeks, url] of valgteImportbilder.slice(0, 40).entries()) {
+      try {
+        const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
+        if (!svar.ok) throw new Error("Kunne ikke hente bildet");
+        const blob = await svar.blob();
+        const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+        const endelse = type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+        const fil = new File([blob], `finn-bilde-${indeks + 1}.${endelse}`, { type });
+        await lastOppDokument(fil, {
+          boligId,
+          navn: `Boligbilde fra FINN ${indeks + 1}`,
+          kategori: "boligbilde",
+          ar: new Date().getFullYear(),
+          dokumentdato: new Date().toISOString().slice(0, 10),
+          notat: "Importert fra godkjent FINN-annonse",
+        });
+      } catch {
+        feilAntall += 1;
+      }
+    }
+    return feilAntall;
+  }
+
+  async function lastOppKildebilder(boligId: string) {
+    let feilAntall = 0;
+    for (const [indeks, fil] of importKildebilder.entries()) {
+      try {
+        await lastOppDokument(fil, {
+          boligId,
+          navn: fil.name.replace(/\.[^.]+$/, "") || `Importert bilde ${indeks + 1}`,
+          kategori: "boligbilde",
+          ar: new Date().getFullYear(),
+          dokumentdato: new Date().toISOString().slice(0, 10),
+          notat: "Lagt til som kilde under boligopprettelsen",
+        });
+      } catch {
+        feilAntall += 1;
+      }
+    }
+    return feilAntall;
+  }
+
+  async function lagreImportkilder(boligId: string) {
+    let feilAntall = 0;
+    const dato = new Date().toISOString().slice(0, 10);
+    for (const fil of importKildepdfer) {
+      try {
+        await lastOppDokument(fil, {
+          boligId,
+          navn: fil.name.replace(/\.[^.]+$/, "") || "Salgsoppgave",
+          kategori: "salgsoppgave",
+          ar: new Date().getFullYear(),
+          dokumentdato: dato,
+          notat: "Brukt som kilde da boligen ble opprettet",
+        });
+      } catch {
+        feilAntall += 1;
+      }
+    }
+    if (finnKilde) {
+      try {
+        await lagreDokumentlenke({
+          boligId,
+          navn: "FINN-annonse for boligen",
+          kategori: "finnlenke",
+          ar: new Date().getFullYear(),
+          dokumentdato: dato,
+          url: finnKilde,
+          notat: "Brukt som kilde da boligen ble opprettet",
+        });
+      } catch {
+        feilAntall += 1;
+      }
+    }
+    return feilAntall;
+  }
+
   async function opprett() {
     if (!grunninfo.adresse.trim()) {
       setFeil("Skriv inn adressen til boligen.");
@@ -264,6 +381,9 @@ export default function MittHjemOppsett({
         totalareal: grunninfo.areal,
         braI: grunninfo.braI,
         braE: grunninfo.braE,
+        tomteareal: grunninfo.tomteareal,
+        bruttoareal: grunninfo.bruttoareal,
+        energimerking: grunninfo.energimerking,
         soverom: grunninfo.soverom,
         antallRom: grunninfo.antallRom,
         etasje: grunninfo.etasjer,
@@ -315,6 +435,9 @@ export default function MittHjemOppsett({
         boligtype: grunninfo.boligtype,
         byggeaar: grunninfo.byggeaar,
         areal: Number(grunninfo.areal) || 0,
+        tomteareal: Number(grunninfo.tomteareal) || 0,
+        bruttoareal: Number(grunninfo.bruttoareal) || 0,
+        energimerking: grunninfo.energimerking,
         soverom: Number(grunninfo.soverom) || 0,
         antallRom: Number(grunninfo.antallRom) || 0,
         etasje: grunninfo.etasjer,
@@ -333,6 +456,16 @@ export default function MittHjemOppsett({
             String(verdi.brukstype || "") === "privat" &&
             String(verdi.adresse || "") === grunninfo.adresse.trim(),
         );
+      const bildeFeil = nyBolig && finnKilde && valgteImportbilder.length
+        ? await lastOppImportbilder(String(nyBolig.id))
+        : 0;
+      const kildebildeFeil = nyBolig && importKildebilder.length
+        ? await lastOppKildebilder(String(nyBolig.id))
+        : 0;
+      const kildeFeil = nyBolig
+        ? await lagreImportkilder(String(nyBolig.id))
+        : 0;
+      if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(`${bildeFeil + kildebildeFeil + kildeFeil} vedlegg kunne ikke lagres. Resten av boligen ble lagret.`);
       onOppdatert(
         alle.filter((verdi) => String(verdi.brukstype || "") === "privat"),
         String(nyBolig?.id || ""),
@@ -631,7 +764,10 @@ export default function MittHjemOppsett({
               Start med adressen. Resten kan du fylle ut nå eller senere.
             </p>
 
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
+            <BoligimportKilder onGodkjenn={brukSammenslattForslag} />
+            {importMelding && <p className="break-words rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{importMelding}</p>}
+
+            <div className="hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
               <p className="font-bold text-emerald-950">
                 Fyll inn boligen raskere (valgfritt)
               </p>
@@ -683,7 +819,7 @@ export default function MittHjemOppsett({
                     className="mt-3 block w-full text-sm"
                   />
                   <span className="mt-2 block text-xs font-normal text-slate-500">
-                    Maks 12 MB. Filen analyseres under importen og lagres ikke
+                    Maks 80 MB. Filen leses på enheten din og lagres ikke
                     automatisk.
                   </span>
                 </label>
@@ -764,6 +900,36 @@ export default function MittHjemOppsett({
                       {finnForslag.historikkForslag?.length} tidligere arbeid
                       foreslås lagt i bolighistorikken.
                     </p>
+                  )}
+                  {(finnForslag.bildeForslag?.length || 0) > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Boligbilder</p>
+                          <p className="mt-1 text-xs text-slate-500">Velg bildene som skal lagres i Bilder og dokumentasjon. Maks 12.</p>
+                        </div>
+                        <span className="text-xs font-semibold text-emerald-700">{valgteImportbilder.length} valgt</span>
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {finnForslag.bildeForslag?.slice(0, 24).map((url, indeks) => {
+                          const valgt = valgteImportbilder.includes(url);
+                          return (
+                            <label key={url} className={`relative aspect-[4/3] cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}>
+                              {/* Vanlig img brukes fordi FINN-bilder har dynamiske vertsnavn. */}
+                              <img src={url} alt={`Boligbilde ${indeks + 1}`} className="h-full w-full object-cover" />
+                              <input
+                                type="checkbox"
+                                checked={valgt}
+                                onChange={() => setValgteImportbilder((forrige) =>
+                                  valgt ? forrige.filter((verdi) => verdi !== url) : forrige.length < 12 ? [...forrige, url] : forrige
+                                )}
+                                className="absolute right-2 top-2 h-5 w-5 accent-emerald-600"
+                              />
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                   <p className="mt-3 text-xs text-slate-500">
                     Kontroller opplysningene mot annonsen. Du kan endre alle
@@ -877,23 +1043,33 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="BRA-i i m² (valgfritt)">
+              <Felt label="Tomteareal i m² (valgfritt)">
                 <input
                   inputMode="decimal"
-                  value={grunninfo.braI}
+                  value={grunninfo.tomteareal}
                   onChange={(event) =>
-                    setGrunninfo({ ...grunninfo, braI: event.target.value })
+                    setGrunninfo({ ...grunninfo, tomteareal: event.target.value })
                   }
                   className="felt"
                 />
               </Felt>
-              <Felt label="BRA-e i m² (valgfritt)">
+              <Felt label="Bruttoareal i m² (valgfritt)">
                 <input
                   inputMode="decimal"
-                  value={grunninfo.braE}
+                  value={grunninfo.bruttoareal}
                   onChange={(event) =>
-                    setGrunninfo({ ...grunninfo, braE: event.target.value })
+                    setGrunninfo({ ...grunninfo, bruttoareal: event.target.value })
                   }
+                  className="felt"
+                />
+              </Felt>
+              <Felt label="Energimerking (valgfritt)">
+                <input
+                  value={grunninfo.energimerking}
+                  onChange={(event) =>
+                    setGrunninfo({ ...grunninfo, energimerking: event.target.value })
+                  }
+                  placeholder="For eksempel D – Oransje"
                   className="felt"
                 />
               </Felt>
@@ -1350,8 +1526,11 @@ function finnVisningsfelt(forslag: ImportForslag) {
     bolignavn: "Boligens navn",
     byggeaar: "Byggeår",
     areal: "Størrelse",
-    braI: "BRA-i",
-    braE: "BRA-e",
+    braI: "BRA-i (eldre opplysning)",
+    braE: "BRA-e (eldre opplysning)",
+    tomteareal: "Tomteareal",
+    bruttoareal: "Bruttoareal",
+    energimerking: "Energimerking",
     etasjer: "Etasje",
     antallRom: "Antall rom",
     soverom: "Soverom",

@@ -28,7 +28,7 @@ export default function GarantierSide() {
   }
   useEffect(() => { lastData(); }, []);
   const harPrivatBolig = boliger.some((bolig) => String(bolig.brukstype || "") === "privat");
-  return <main className="min-h-screen bg-stone-50 text-slate-900"><Navigasjon />
+  return <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900"><Navigasjon />
     <header className="bg-gradient-to-br from-amber-100 via-stone-100 to-emerald-100 px-4 py-12 sm:px-6"><div className="mx-auto max-w-6xl"><p className="text-sm font-bold tracking-wider text-amber-800">MITT HJEM</p><h1 className="mt-2 text-4xl font-bold">Garantier</h1><p className="mt-3 max-w-2xl text-slate-600">Hold kontroll på kvitteringer og når garantiene på ting i hjemmet går ut.</p></div></header>
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}{laster ? <p className="py-16 text-center text-slate-500">Laster garantier…</p> : harPrivatBolig ? <Garantier boliger={boliger} dokumenter={dokumenter} onEndret={lastData} /> : <section className="rounded-3xl bg-white p-10 text-center shadow-sm"><h2 className="text-2xl font-bold">Ingen privat bolig</h2><p className="mt-2 text-slate-500">Opprett en privat bolig under Mitt hjem før du legger inn garantier.</p></section>}</div>
   </main>;

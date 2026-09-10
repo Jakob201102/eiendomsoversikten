@@ -57,3 +57,19 @@ body {
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgb(16 185 129 / 12%);
 }
+
+@media (max-width: 640px) {
+  .privat-omrade :where(div, section, article, header, form, label) {
+    min-width: 0;
+  }
+
+  .privat-omrade :where(p, h1, h2, h3, h4, li, dd, dt, a, button, span, strong) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .privat-omrade :where(img, video, canvas, iframe, input, textarea, select) {
+    max-width: 100%;
+  }
+}

@@ -48,7 +48,7 @@ export default function KontakterSide() {
     boliger.find((verdi) => String(verdi.id) === boligId) || boliger[0];
 
   return (
-    <main className="min-h-screen bg-stone-50 text-slate-900">
+    <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900">
       <Navigasjon />
       <header className="bg-slate-900 px-4 py-9 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
