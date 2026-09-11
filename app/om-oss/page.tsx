@@ -4,7 +4,7 @@ import Navigasjon from "../components/Navigasjon";
 export const metadata = {
   title: "Om oss",
   description:
-    "Eiendomsoversikten gir norske utleiere kontroll på boliger, leietakere, økonomi og vedlikehold.",
+    "Eiendomsoversikten samler boliginformasjon, dokumentasjon, vedlikehold og utleie på ett sted.",
   alternates: { canonical: "/om-oss" },
 };
 
@@ -19,11 +19,10 @@ export default function OmOss() {
             OM EIENDOMSOVERSIKTEN
           </p>
           <h1 className="mt-4 text-4xl font-bold sm:text-5xl">
-            Enklere oversikt for utleiere
+            Alt om eiendommene dine – samlet
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            Samle boliger, leietakere, kontrakter, økonomi og vedlikehold på
-            ett sted.
+            En digital boligoversikt for vanlige boligeiere og utleiere.
           </p>
         </div>
       </header>
@@ -37,13 +36,13 @@ export default function OmOss() {
                 Alt samlet i én tjeneste
               </h2>
               <p className="mt-4 leading-7 text-slate-600">
-                Eiendomsoversikten er laget for private og profesjonelle
-                utleiere som ønsker bedre kontroll uten spredte regneark,
+                Eiendomsoversikten samler praktisk boliginformasjon,
+                dokumenter, bilder, historikk og vedlikehold uten spredte
                 notater og mapper.
               </p>
               <p className="mt-4 leading-7 text-slate-600">
-                Målet er å gjøre det raskt å se porteføljen, følge
-                leieforhold og holde oversikt over vedlikehold.
+                Utleiere får i tillegg oversikt over leieforhold, økonomi,
+                kontrakter og årsrapport.
               </p>
             </article>
 
@@ -84,7 +83,7 @@ export default function OmOss() {
               href="/kalkulator"
               className="rounded-xl bg-slate-950 px-6 py-3 text-center font-semibold text-white hover:bg-slate-800"
             >
-              Legg til en bolig
+              Kom i gang
             </Link>
             <Link
               href="/personvern"

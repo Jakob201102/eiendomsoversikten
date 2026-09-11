@@ -40,9 +40,9 @@ export default function Personvern() {
           <Personvernkort tittel="1. Hvem erklæringen gjelder for">
             <p>
               Denne personvernerklæringen gjelder for brukere av
-              Eiendomsoversikten. Tjenesten er laget for å hjelpe utleiere og
-              eiendomsinvestorer med å administrere boliger, leietakere,
-              leiekontrakter, økonomiske nøkkeltall og vedlikehold.
+              Eiendomsoversikten. Tjenesten hjelper boligeiere og utleiere
+              med å samle boliginformasjon, dokumentasjon, vedlikehold og,
+              når det er relevant, leieforhold og økonomi.
             </p>
           </Personvernkort>
 
@@ -72,7 +72,7 @@ export default function Personvern() {
             <ul className="mt-4 list-disc space-y-2 pl-6">
               <li>opprette og sikre brukerkontoen din</li>
               <li>lagre og vise opplysningene du registrerer</li>
-              <li>beregne nøkkeltall og lage porteføljeoversikter</li>
+              <li>lage boligoversikter og beregne nøkkeltall for utleie</li>
               <li>koble leietakere og vedlikehold til riktige eiendommer</li>
               <li>lagre og gjøre leiekontrakter tilgjengelige for deg</li>
               <li>forebygge misbruk og rette tekniske feil</li>

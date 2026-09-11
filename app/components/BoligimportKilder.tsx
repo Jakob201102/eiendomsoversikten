@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   analyserBoligtekst,
+  erPlantegningstekst,
   slaSammenBoligimport,
   type BoligimportKilde,
   type BoligimportKonflikt,
@@ -23,6 +24,7 @@ type Kildetype = "finn" | "pdf" | "tekst" | "bilder" | "adresse" | "ingen";
 
 const tomtResultat = (): ImportertBolig => ({
   romForslag: [],
+  romDetaljer: [],
   viktigeDeler: {},
   tilleggsarealer: {},
   historikkForslag: [],
@@ -65,6 +67,7 @@ export default function BoligimportKilder({
   const [tekstKilder, setTekstKilder] = useState<string[]>([]);
   const [tekst, setTekst] = useState("");
   const [bildeFiler, setBildeFiler] = useState<File[]>([]);
+  const [uttruknePlantegninger, setUttruknePlantegninger] = useState<File[]>([]);
   const [adresse, setAdresse] = useState("");
   const [adresseValgt, setAdresseValgt] = useState<Adresseforslag | null>(null);
   const [adresseforslag, setAdresseforslag] = useState<Adresseforslag[]>([]);
@@ -151,11 +154,15 @@ export default function BoligimportKilder({
         setFremdrift(`Leser PDF ${indeks + 1} av ${pdfFiler.length}: ${fil.name}`);
         try {
           if (fil.size > 80 * 1024 * 1024) throw new Error();
-          const pdfTekst = await lesPdfFil(fil, (side, totalt, skannet) =>
+          const pdfResultat = await lesPdfFil(fil, (side, totalt, skannet) =>
             setFremdrift(`${skannet ? "Tekstleser skannet PDF" : "Leser PDF"} ${indeks + 1} av ${pdfFiler.length} · side ${side} av ${totalt}`),
           );
-          if (pdfTekst.length < 60) throw new Error();
-          kilder.push({ kilde: fil.name, data: analyserBoligtekst(pdfTekst) });
+          if (pdfResultat.tekst.length < 60) throw new Error();
+          kilder.push({ kilde: fil.name, data: analyserBoligtekst(pdfResultat.tekst) });
+          setUttruknePlantegninger((forrige) => {
+            const andrePdfSider = forrige.filter((plantegning) => !plantegning.name.startsWith(`${fil.name}-side-`));
+            return [...andrePdfSider, ...pdfResultat.plantegninger];
+          });
         } catch {
           problemer.push(`${fil.name} kunne ikke leses sikkert. De andre kildene ble fortsatt analysert.`);
         }
@@ -260,7 +267,11 @@ export default function BoligimportKilder({
         <p className="mt-1 text-sm text-slate-600">Dobbelsjekk og rediger før du bruker opplysningene.</p>
         {["Grunninformasjon", "Matrikkel", "Tilleggsarealer"].map((gruppe) => <div key={gruppe} className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{gruppe}</p><div className="mt-2 grid gap-3 sm:grid-cols-2">{felter.filter((felt) => felt.gruppe === gruppe).map((felt) => <Kontrollfelt key={String(felt.key)} label={felt.navn} verdi={String(resultat[felt.key] || "")} konflikt={konflikterPerFelt.get(String(felt.key))} onChange={(verdi) => endreFelt(felt.key, verdi)} onVelgKonflikt={(verdi) => endreKonflikt(String(felt.key), verdi)} />)}</div></div>)}
 
-        <RedigerListe tittel="Rom" tomTekst="Ingen rom ble funnet sikkert." verdier={resultat.romForslag} onChange={(romForslag) => setResultat({ ...resultat, romForslag })} />
+        <Romredigering
+          navn={resultat.romForslag}
+          detaljer={resultat.romDetaljer}
+          onChange={(romForslag, romDetaljer) => setResultat({ ...resultat, romForslag, romDetaljer })}
+        />
         <Oppslag tittel="Teknisk informasjon og viktige deler" verdier={resultat.viktigeDeler} konflikter={konflikterPerFelt} prefiks="viktigeDeler" onChange={(viktigeDeler) => setResultat({ ...resultat, viktigeDeler })} onVelgKonflikt={endreKonflikt} />
         <Oppslag tittel="Andre tilleggsarealer" verdier={resultat.tilleggsarealer} konflikter={konflikterPerFelt} prefiks="tilleggsarealer" onChange={(tilleggsarealer) => setResultat({ ...resultat, tilleggsarealer })} onVelgKonflikt={endreKonflikt} />
         <Historikkforslag verdier={resultat.historikkForslag} onChange={(historikkForslag) => setResultat({ ...resultat, historikkForslag })} />
@@ -270,7 +281,8 @@ export default function BoligimportKilder({
         {!guide && <div className="mt-5 rounded-xl bg-stone-50 p-4"><p className="font-bold">Mangler det informasjon?</p><p className="mt-1 text-sm text-slate-600">Du kan legge til flere kilder over uten at forslagene dine nullstilles, eller fylle ut noen vanlige mangler trinnvis.</p><button type="button" onClick={() => { setGuide(true); setGuideIndeks(0); }} className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800">Ja, hjelp meg</button></div>}
         {guide && <GuideSporsmal key={guideIndeks} sporsmal={guideFelter[guideIndeks][1]} onSvar={svarGuide} />}
 
-        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim(), valgteFinnBilder, bildeFiler, pdfFiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
+        {uttruknePlantegninger.length > 0 && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Vi fant {uttruknePlantegninger.length} mulig{uttruknePlantegninger.length === 1 ? "" : "e"} plantegning{uttruknePlantegninger.length === 1 ? "" : "er"} i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning.</p>}
+        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
         <p className="mt-2 text-center text-xs text-slate-500">Boligen opprettes først når du bruker hovedknappen nederst i skjemaet.</p>
       </div>}
     </div>
@@ -289,6 +301,19 @@ function RedigerListe({ tittel, tomTekst, verdier, onChange }: { tittel: string;
   return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tittel}</p>{!verdier.length && <p className="mt-2 text-sm text-slate-500">{tomTekst}</p>}<div className="mt-2 space-y-2">{verdier.map((verdi, indeks) => <div key={indexKey(verdi, indeks)} className="flex min-w-0 gap-2"><input value={verdi} onChange={(e) => onChange(verdier.map((v, i) => i === indeks ? e.target.value : v))} className="felt min-w-0 flex-1" /><button type="button" onClick={() => onChange(verdier.filter((_, i) => i !== indeks))} className="shrink-0 rounded-lg px-2 text-sm font-bold text-red-600" aria-label={`Fjern ${verdi}`}>Slett</button></div>)}</div><button type="button" onClick={() => onChange([...verdier, `${tittel === "Rom" ? "Nytt rom" : "Ny verdi"}`])} className="mt-2 text-sm font-bold text-emerald-700">+ Legg til</button></div>;
 }
 
+function Romredigering({ navn, detaljer, onChange }: { navn: string[]; detaljer: ImportertBolig["romDetaljer"]; onChange: (navn: string[], detaljer: ImportertBolig["romDetaljer"]) => void }) {
+  const rader = navn.map((romnavn) => detaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === romnavn.toLocaleLowerCase("nb-NO")) || { navn: romnavn, areal: "", sistPusset: "" });
+  const oppdater = (indeks: number, felt: "navn" | "areal" | "sistPusset", verdi: string) => {
+    const neste = rader.map((rad, radindeks) => radindeks === indeks ? { ...rad, [felt]: verdi } : rad);
+    onChange(neste.map((rad) => rad.navn), neste);
+  };
+  const fjern = (indeks: number) => {
+    const neste = rader.filter((_, radindeks) => radindeks !== indeks);
+    onChange(neste.map((rad) => rad.navn), neste);
+  };
+  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Rom</p>{!rader.length && <p className="mt-2 text-sm text-slate-500">Ingen rom ble funnet sikkert.</p>}<div className="mt-2 space-y-2">{rader.map((rom, indeks) => <div key={`${rom.navn}-${indeks}`} className="grid min-w-0 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_110px_120px_auto]"><input value={rom.navn} onChange={(e) => oppdater(indeks, "navn", e.target.value)} className="felt min-w-0" aria-label="Romnavn"/><input value={rom.areal} onChange={(e) => oppdater(indeks, "areal", e.target.value)} className="felt min-w-0" placeholder="Areal m²" aria-label="Areal"/><input value={rom.sistPusset} onChange={(e) => oppdater(indeks, "sistPusset", e.target.value)} className="felt min-w-0" placeholder="Oppusset år" aria-label="Oppussingsår"/><button type="button" onClick={() => fjern(indeks)} className="rounded-lg px-2 text-sm font-bold text-red-600">Slett</button></div>)}</div><button type="button" onClick={() => onChange([...navn, "Nytt rom"], [...rader, { navn: "Nytt rom", areal: "", sistPusset: "" }])} className="mt-2 text-sm font-bold text-emerald-700">+ Legg til rom</button></div>;
+}
+
 function Oppslag({ tittel, verdier, konflikter, prefiks, onChange, onVelgKonflikt }: { tittel: string; verdier: Record<string, string>; konflikter: Map<string, BoligimportKonflikt>; prefiks: string; onChange: (verdier: Record<string, string>) => void; onVelgKonflikt: (felt: string, verdi: string) => void }) {
   return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">{tittel}</p><div className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(verdier).map(([felt, verdi]) => <Kontrollfelt key={felt} label={felt.replace(/([A-Z])/g, " $1")} verdi={verdi} konflikt={konflikter.get(`${prefiks}.${felt}`)} onChange={(ny) => onChange({ ...verdier, [felt]: ny })} onVelgKonflikt={(ny) => onVelgKonflikt(`${prefiks}.${felt}`, ny)} />)}</div></div>;
 }
@@ -305,6 +330,14 @@ function GuideSporsmal({ sporsmal, onSvar }: { sporsmal: string; onSvar: (verdi?
 function beholdKontrollerteVerdier(gammelt: ImportertBolig, nytt: ImportertBolig): ImportertBolig {
   const resultat = { ...nytt, ...gammelt };
   resultat.romForslag = unike([...gammelt.romForslag, ...nytt.romForslag]);
+  resultat.romDetaljer = [...gammelt.romDetaljer, ...nytt.romDetaljer].reduce<ImportertBolig["romDetaljer"]>((alle, rom) => {
+    const eksisterende = alle.find((verdi) => verdi.navn.toLocaleLowerCase("nb-NO") === rom.navn.toLocaleLowerCase("nb-NO"));
+    if (eksisterende) {
+      eksisterende.areal ||= rom.areal;
+      eksisterende.sistPusset ||= rom.sistPusset;
+    } else alle.push({ ...rom });
+    return alle;
+  }, []);
   resultat.bildeForslag = unike([...gammelt.bildeForslag, ...nytt.bildeForslag]);
   resultat.viktigeDeler = { ...nytt.viktigeDeler, ...gammelt.viktigeDeler };
   resultat.tilleggsarealer = { ...nytt.tilleggsarealer, ...gammelt.tilleggsarealer };
@@ -323,22 +356,29 @@ async function lesPdfFil(
   const pdf = await getDocumentProxy(new Uint8Array(await fil.arrayBuffer()));
   const lest = await extractText(pdf, { mergePages: true });
   const vanligTekst = String(lest.text || "").trim();
+  const plantegninger: File[] = [];
+  const pdfDokument = pdf as unknown as {
+    numPages: number;
+    getPage: (nummer: number) => Promise<{
+      getViewport: (valg: { scale: number }) => { width: number; height: number };
+      getTextContent?: () => Promise<{ items: { str?: string }[] }>;
+      render: (valg: Record<string, unknown>) => { promise: Promise<void> };
+    }>;
+  };
   if (vanligTekst.length >= 60) {
-    onFremdrift(lest.totalPages, lest.totalPages, false);
-    return vanligTekst;
+    for (let side = 1; side <= pdfDokument.numPages; side += 1) {
+      onFremdrift(side, pdfDokument.numPages, false);
+      const pdfSide = await pdfDokument.getPage(side);
+      const sideTekst = pdfSide.getTextContent ? (await pdfSide.getTextContent()).items.map((element) => element.str || "").join(" ") : "";
+      if (erPlantegningstekst(sideTekst)) plantegninger.push(await renderPdfSideSomBilde(pdfSide, `${fil.name}-side-${side}-plantegning.png`));
+    }
+    return { tekst: vanligTekst, plantegninger };
   }
 
   // Skannede salgsoppgaver har ofte ingen tekstlag. Da tekstleses hver side lokalt i nettleseren.
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("nor+eng");
   const sider: string[] = [];
-  const pdfDokument = pdf as unknown as {
-    numPages: number;
-    getPage: (nummer: number) => Promise<{
-      getViewport: (valg: { scale: number }) => { width: number; height: number };
-      render: (valg: Record<string, unknown>) => { promise: Promise<void> };
-    }>;
-  };
   try {
     for (let side = 1; side <= pdfDokument.numPages; side += 1) {
       onFremdrift(side, pdfDokument.numPages, true);
@@ -351,10 +391,28 @@ async function lesPdfFil(
       if (!canvasContext) continue;
       await pdfSide.render({ canvasContext, viewport, canvas }).promise;
       const lestSide = await worker.recognize(canvas);
-      if (lestSide.data.text.trim()) sider.push(lestSide.data.text.trim());
+      const sideTekst = lestSide.data.text.trim();
+      if (sideTekst) sider.push(sideTekst);
+      if (erPlantegningstekst(sideTekst)) {
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (blob) plantegninger.push(new File([blob], `${fil.name}-side-${side}-plantegning.png`, { type: "image/png" }));
+      }
     }
   } finally {
     await worker.terminate();
   }
-  return sider.join("\n\n");
+  return { tekst: sider.join("\n\n"), plantegninger };
+}
+
+async function renderPdfSideSomBilde(pdfSide: { getViewport: (valg: { scale: number }) => { width: number; height: number }; render: (valg: Record<string, unknown>) => { promise: Promise<void> } }, filnavn: string) {
+  const viewport = pdfSide.getViewport({ scale: 1.5 });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const canvasContext = canvas.getContext("2d");
+  if (!canvasContext) throw new Error("Kunne ikke klargjøre PDF-siden");
+  await pdfSide.render({ canvasContext, viewport, canvas }).promise;
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("Kunne ikke lage plantegning fra PDF-siden");
+  return new File([blob], filnavn, { type: "image/png" });
 }

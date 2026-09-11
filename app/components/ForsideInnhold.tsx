@@ -341,8 +341,43 @@ function OffentligForside() {
           </div>
         </div>
       </section>
+      <section className="bg-white px-4 py-16 sm:px-6 sm:py-24">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-center text-sm font-bold text-emerald-700">SLIK FUNGER DET</p>
+          <h2 className="mt-2 text-center text-3xl font-bold sm:text-4xl">Fra boligpapirer til ryddig oversikt</h2>
+          <div className="mt-9 grid gap-4 md:grid-cols-3">
+            <Forsidesteg nummer="1" tittel="Legg inn det du har" tekst="Bruk adresse, en offentlig FINN-lenke eller last opp salgsoppgaven." />
+            <Forsidesteg nummer="2" tittel="Kontroller forslagene" tekst="Vi foreslår boligopplysninger, rom, bilder, dokumenter og tidligere arbeid. Du godkjenner før lagring." />
+            <Forsidesteg nummer="3" tittel="Få én boligoversikt" tekst="Fyll på med vedlikehold, garantier, bilder og dokumentasjon gjennom eiertiden." />
+          </div>
+          <div className="mt-10 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 sm:p-6">
+            <strong>Automatisk hjelp, med deg i kontroll.</strong> Kildene analyseres samlet, men du retter og godkjenner alltid opplysningene før boligen opprettes. Automatisk innhenting fra kommunale byggesaksarkiver kommer kommunevis og er ikke tilgjengelig overalt ennå.
+          </div>
+        </div>
+      </section>
+      <section className="bg-slate-950 px-4 py-16 text-white sm:px-6 sm:py-24">
+        <div className="mx-auto max-w-7xl">
+          <p className="text-sm font-bold text-emerald-400">SE MER AV TJENESTEN</p>
+          <h2 className="mt-2 text-3xl font-bold sm:text-4xl">Mer enn en mappe med dokumenter</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Produktforhandsvisning ikon="🏠" tittel="Mitt hjem" tekst="Historikk og kommende oppgaver." />
+            <Produktforhandsvisning ikon="📁" tittel="Dokumentarkiv" tekst="Papirer koblet til riktig bolig." />
+            <Produktforhandsvisning ikon="🔧" tittel="Vedlikehold" tekst="Planlagte oppgaver og skader." />
+            <Produktforhandsvisning ikon="🛡️" tittel="Garantier" tekst="Utløpsdatoer og kvitteringer." />
+            <Produktforhandsvisning ikon="🏘️" tittel="Utleieoversikt" tekst="Leietakere, økonomi og rapporter." />
+          </div>
+        </div>
+      </section>
     </>
   );
+}
+
+function Forsidesteg({ nummer, tittel, tekst }: { nummer: string; tittel: string; tekst: string }) {
+  return <article className="rounded-3xl border border-stone-200 bg-stone-50 p-6"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 font-black text-white">{nummer}</span><h3 className="mt-4 text-xl font-bold">{tittel}</h3><p className="mt-2 leading-7 text-slate-600">{tekst}</p></article>;
+}
+
+function Produktforhandsvisning({ ikon, tittel, tekst }: { ikon: string; tittel: string; tekst: string }) {
+  return <article className="rounded-2xl border border-white/10 bg-white/5 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold">{tittel}</h3><p className="mt-2 text-sm leading-6 text-slate-300">{tekst}</p></article>;
 }
 
 function Mini({ tittel, verdi }: { tittel: string; verdi: string }) {

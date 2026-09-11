@@ -143,8 +143,8 @@ export default function LoggInn() {
             {glemt
               ? "Skriv inn e-posten din, så sender vi en tilbakestillingslenke."
               : modus === "logg-inn"
-                ? "Logg inn for å se eiendommene dine."
-                : "Opprett en konto for å lagre porteføljen din."}
+                ? "Logg inn for å se boligen eller eiendomsporteføljen din."
+                : "Opprett en konto for å samle boligen eller eiendomsporteføljen din."}
           </p>
 
           {!glemt && (

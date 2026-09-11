@@ -20,7 +20,7 @@ const privat: Gruppe[] = [
   { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender?modus=privat" }] },
   { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] },
 ];
-const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
+const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Priser", adresse: "/priser" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
 
 export default function Navigasjon() {
   const pathname = usePathname() || "";
@@ -118,7 +118,7 @@ export default function Navigasjon() {
       {!sjekker && <div className={`border-t border-slate-800 px-4 ${kompaktPrivatMobil ? "mt-2 pt-2" : "mt-4 pt-4"}`}>{epost ? <div className="grid gap-1 sm:grid-cols-2"><Link href="/konto" className={kompaktPrivatMobil ? mobilVanligKompakt : mobilVanlig}>Min konto</Link><button onClick={loggUt} className={`rounded-xl border border-red-400 font-semibold text-red-300 ${kompaktPrivatMobil ? "px-3 py-2 text-sm" : "px-4 py-3"}`}>Logg ut</button></div> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950">Logg inn / opprett konto</Link>}</div>}
     </div>}
     </div></nav>
-    {!sjekker && !epost && pathname !== "/" && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-3 text-slate-900"><div className="mx-auto flex max-w-7xl flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between"><p><strong>Du ser eksempeldata.</strong> Logg inn eller opprett konto for å legge inn egne opplysninger.</p><Link href="/logg-inn" className="shrink-0 font-semibold text-emerald-700">Logg inn / opprett konto →</Link></div></div>}
+    {!sjekker && !epost && pathname !== "/" && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5 text-slate-900"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 text-sm"><p className="min-w-0"><strong>Du ser eksempeldata.</strong> Egne opplysninger lagres når du har konto.</p><Link href="/logg-inn" className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 font-bold text-white">Opprett konto</Link></div></div>}
   </>;
 }
 

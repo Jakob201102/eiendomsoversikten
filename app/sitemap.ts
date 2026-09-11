@@ -21,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { sti: "/forsikringer", prioritet: 0.7, frekvens: "monthly" as const },
     { sti: "/okonomi", prioritet: 0.7, frekvens: "monthly" as const },
     { sti: "/om-oss", prioritet: 0.6, frekvens: "yearly" as const },
+    { sti: "/priser", prioritet: 0.7, frekvens: "monthly" as const },
     { sti: "/personvern", prioritet: 0.3, frekvens: "yearly" as const },
     { sti: "/bruksvilkar", prioritet: 0.3, frekvens: "yearly" as const },
   ];

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BoligoverforingKort from "../components/BoligoverforingKort";
@@ -100,7 +99,6 @@ export default function MittHjem() {
 
   return <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900"><Navigasjon />
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
-      {!innlogget && <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm"><strong>Du ser et eksempel på Mitt hjem.</strong> Opprett konto for å registrere din egen bolig.</p><Link href="/logg-inn" className="shrink-0 text-sm font-bold text-emerald-800">Opprett konto →</Link></div>}
       {search.get("overfort") === "ja" && <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">Boligmappen er mottatt og ligger nå under Mitt hjem.</p>}
       {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
 

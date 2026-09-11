@@ -21,7 +21,7 @@ export async function DELETE(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const authorization =
     request.headers.get("authorization");
@@ -35,7 +35,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json(
       {
         error:
-          "Serveren mangler nødvendig konfigurasjon.",
+          "Kontosletting er ikke ferdig konfigurert på serveren. Legg inn SUPABASE_SECRET_KEY i Vercel.",
       },
       {
         status: 500,

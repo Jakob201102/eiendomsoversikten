@@ -200,7 +200,9 @@ export default function Konto() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const resultat = await respons.json();
+    const resultat = await respons.json().catch(() => ({
+      error: "Serveren svarte ikke som forventet. Prøv igjen senere.",
+    }));
 
     if (!respons.ok) {
       setFeil(resultat.error || "Kontoen kunne ikke slettes.");

@@ -5,6 +5,7 @@ import {
   lesAltOmBoligen,
   tomAltOmBoligen,
   type Historikkinfo,
+  nyttUteomrade,
 } from "../lib/alt-om-boligen";
 import {
   hentBoliger,
@@ -14,7 +15,7 @@ import {
 } from "../lib/boliger";
 import { lagreDokumentlenke, lastOppDokument } from "../lib/dokumenter";
 import { opprettVedlikeholdsoppgave } from "../lib/vedlikehold";
-import { analyserBoligtekst } from "../lib/boligimport";
+import { analyserBoligtekst, erPlantegningstekst, type ImportertRom } from "../lib/boligimport";
 import BoligimportKilder from "./BoligimportKilder";
 
 type Adresseforslag = {
@@ -47,6 +48,7 @@ type Grunninfo = {
 
 type ImportForslag = Partial<Grunninfo> & {
   romForslag?: string[];
+  romDetaljer?: ImportertRom[];
   viktigeDeler?: Record<string, string>;
   tilleggsarealer?: Record<string, string>;
   historikkForslag?: {
@@ -104,6 +106,44 @@ const vedlikeholdsvalg = [
   "Male terrasse",
   "Annet",
 ];
+
+async function finnPlantegninger(filer: File[]) {
+  const resultat = new Set<File>();
+  if (!filer.length) return resultat;
+  try {
+    const { createWorker } = await import("tesseract.js");
+    const worker = await createWorker("nor+eng");
+    for (const fil of filer) {
+      try {
+        const lest = await worker.recognize(fil);
+        if (erPlantegningstekst(String(lest.data.text || ""))) resultat.add(fil);
+      } catch {
+        // Bildet beholdes som vanlig boligbilde dersom klassifiseringen feiler.
+      }
+    }
+    await worker.terminate();
+  } catch {
+    // Opplasting skal fortsatt fungere dersom OCR ikke er tilgjengelig.
+  }
+  return resultat;
+}
+
+function lagUteomraderFraImport(verdier: Record<string, string>) {
+  const typer: Record<string, string> = {
+    hage: "Hage",
+    balkong: verdier.balkong?.toLocaleLowerCase("nb-NO").includes("terrasse") ? "Terrasse/uteplass" : "Annet",
+    bod: "Bod/redskapsbod",
+    garasje: "Garasje",
+    parkering: "Parkering",
+  };
+  return Object.entries(verdier)
+    .filter(([nokkel, verdi]) => Boolean(verdi) && Boolean(typer[nokkel]))
+    .map(([nokkel, verdi]) => ({
+      ...nyttUteomrade(typer[nokkel]),
+      navn: typer[nokkel],
+      notat: verdi,
+    }));
+}
 
 export default function MittHjemOppsett({
   bolig,
@@ -288,6 +328,7 @@ export default function MittHjemOppsett({
 
   async function lastOppImportbilder(boligId: string) {
     let feilAntall = 0;
+    const filer: { fil: File; indeks: number }[] = [];
     for (const [indeks, url] of valgteImportbilder.slice(0, 40).entries()) {
       try {
         const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
@@ -296,10 +337,19 @@ export default function MittHjemOppsett({
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
         const endelse = type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
         const fil = new File([blob], `finn-bilde-${indeks + 1}.${endelse}`, { type });
+        filer.push({ fil, indeks });
+      } catch {
+        feilAntall += 1;
+      }
+    }
+    const plantegninger = await finnPlantegninger(filer.map(({ fil }) => fil));
+    for (const { fil, indeks } of filer) {
+      try {
+        const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
           boligId,
-          navn: `Boligbilde fra FINN ${indeks + 1}`,
-          kategori: "boligbilde",
+          navn: erPlantegning ? `Plantegning fra FINN ${indeks + 1}` : `Boligbilde fra FINN ${indeks + 1}`,
+          kategori: erPlantegning ? "plantegning" : "boligbilde",
           ar: new Date().getFullYear(),
           dokumentdato: new Date().toISOString().slice(0, 10),
           notat: "Importert fra godkjent FINN-annonse",
@@ -313,12 +363,14 @@ export default function MittHjemOppsett({
 
   async function lastOppKildebilder(boligId: string) {
     let feilAntall = 0;
+    const plantegninger = await finnPlantegninger(importKildebilder);
     for (const [indeks, fil] of importKildebilder.entries()) {
       try {
+        const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
           boligId,
           navn: fil.name.replace(/\.[^.]+$/, "") || `Importert bilde ${indeks + 1}`,
-          kategori: "boligbilde",
+          kategori: erPlantegning ? "plantegning" : "boligbilde",
           ar: new Date().getFullYear(),
           dokumentdato: new Date().toISOString().slice(0, 10),
           notat: "Lagt til som kilde under boligopprettelsen",
@@ -399,10 +451,14 @@ export default function MittHjemOppsett({
         ...grunnlag.viktigeDeler,
         ...(importEkstra?.viktigeDeler || {}),
       };
-      grunnlag.rom = (importEkstra?.romForslag || []).map((navn) => ({
+      grunnlag.teknisk.oppvarming = importEkstra?.viktigeDeler?.oppvarming || "";
+      const romDetaljer = importEkstra?.romDetaljer || [];
+      grunnlag.rom = (importEkstra?.romForslag || []).map((navn) => {
+        const detaljer = romDetaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === navn.toLocaleLowerCase("nb-NO"));
+        return ({
         id: crypto.randomUUID(),
         navn,
-        areal: "",
+        areal: detaljer?.areal || "",
         veggfarge: "",
         fargekode: "",
         maling: "",
@@ -410,9 +466,11 @@ export default function MittHjemOppsett({
         gulv: "",
         tak: "",
         lister: "",
-        sistPusset: "",
+        sistPusset: detaljer?.sistPusset || "",
         notat: "Importert som forslag – fyll inn det du vet senere.",
-      }));
+      });
+      });
+      grunnlag.uteomrader = lagUteomraderFraImport(importEkstra?.tilleggsarealer || {});
       grunnlag.historikk = (importEkstra?.historikkForslag || []).map(
         (hendelse) => ({
           id: crypto.randomUUID(),

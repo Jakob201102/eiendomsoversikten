@@ -422,6 +422,8 @@ export default function AltOmBoligen() {
           </section>
         )}
 
+        {data && <Seksjonsmeny />}
+
         {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
         {melding && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">{melding}</p>}
 
@@ -505,7 +507,7 @@ function Oversiktsvisning({
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <InfoKort tittel="Generell informasjon" merke="BOLIG">
+        <InfoKort id="grunninformasjon" tittel="Generell informasjon" merke="BOLIG">
           <Detaljliste
             rader={[
               ["Boligtype", data.generell.boligtype],
@@ -524,7 +526,7 @@ function Oversiktsvisning({
           />
         </InfoKort>
 
-        <InfoKort tittel="Viktige plasseringer" merke="FINN DET RASKT">
+        <InfoKort id="viktige-plasseringer" tittel="Viktige plasseringer" merke="FINN DET RASKT">
           <Detaljliste
             rader={[
               ["Hovedstoppekran", data.teknisk.hovedstoppekran],
@@ -539,7 +541,7 @@ function Oversiktsvisning({
           />
         </InfoKort>
 
-        <InfoKort tittel="Teknisk informasjon" merke="TEKNISK">
+        <InfoKort id="teknisk-sikkerhet" tittel="Teknisk informasjon" merke="TEKNISK">
           <Detaljliste
             rader={[
               ["Oppvarming", data.teknisk.oppvarming],
@@ -563,7 +565,7 @@ function Oversiktsvisning({
         </InfoKort>
       </div>
 
-      <SamlingKort tittel="Uteområder og boder" antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
+      <SamlingKort id="uteomrader" tittel="Uteområder og boder" antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.uteomrader.map((omrade) => (
             <article key={omrade.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -581,7 +583,7 @@ function Oversiktsvisning({
       </SamlingKort>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SamlingKort tittel="Nøkkeloversikt" antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
+        <SamlingKort id="nokler-utstyr" tittel="Nøkkeloversikt" antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
@@ -610,7 +612,7 @@ function Oversiktsvisning({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <InfoKort tittel="Tilleggsarealer og tilbehør" merke="TILHØRER BOLIGEN">
+        <InfoKort id="tilleggsarealer" tittel="Tilleggsarealer og tilbehør" merke="TILHØRER BOLIGEN">
           <Detaljliste rader={[
             ["Bod", data.tilleggsarealer.bod], ["Parkering", data.tilleggsarealer.parkering], ["Garasje", data.tilleggsarealer.garasje], ["Balkong/terrasse", data.tilleggsarealer.balkong], ["Postkasse", data.tilleggsarealer.postkasse], ["Fellesareal", data.tilleggsarealer.fellesareal], ["Fast inventar", data.tilleggsarealer.fastInventar],
           ]} />
@@ -620,7 +622,7 @@ function Oversiktsvisning({
         </SamlingKort>
       </div>
 
-      <SamlingKort tittel="Oppussingshistorikk" antall={data.oppussing.length} tomtekst="Ingen oppussing er registrert.">
+      <SamlingKort id="historikk" tittel="Oppussingshistorikk" antall={data.oppussing.length} tomtekst="Ingen oppussing er registrert.">
         <div className="space-y-3">
           {[...data.oppussing].sort((a, b) => b.dato.localeCompare(a.dato)).map((oppussing) => (
             <article key={oppussing.id} className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[130px_1fr]">
@@ -846,7 +848,7 @@ function Filoversikt({ bilder, plantegninger, filLenker, innlogget }: { bilder: 
   const alleFiler = [...bilder, ...plantegninger];
   const visteFiler = visAlle ? alleFiler : alleFiler.slice(0, 8);
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-7">
+    <section id="bilder-dokumenter" className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7">
       <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700">BILDER OG TEGNINGER</p><h2 className="mt-2 text-xl font-bold">Visuelt arkiv</h2></div>{innlogget && <Link href="/dokumentarkiv" className="text-sm font-semibold text-emerald-700">Åpne dokumentarkivet →</Link>}</div>
       {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel="Stue" farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel="Kjøkken" farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel="Plantegning" farge="from-blue-100 to-slate-200" /></div> : <><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{visteFiler.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>{alleFiler.length > 8 && <button type="button" onClick={() => setVisAlle((verdi) => !verdi)} className="mt-5 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{visAlle ? "Vis færre" : `Se resten (${alleFiler.length - 8})`}</button>}</>}
     </section>
@@ -863,8 +865,22 @@ function Filkort({ dokument, url }: { dokument: Dokument; url?: string }) {
 }
 
 function Eksempelbilde({ tittel, farge }: { tittel: string; farge: string }) { return <div className="overflow-hidden rounded-2xl border bg-white"><div className={`flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${farge}`}><span className="rounded-lg bg-white/80 px-3 py-2 text-xs font-bold text-slate-600">EKSEMPELBILDE</span></div><p className="p-3 font-semibold">{tittel}</p></div>; }
-function InfoKort({ tittel, merke, children }: { tittel: string; merke: string; children: React.ReactNode }) { return <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-7"><p className="text-xs font-bold tracking-wider text-emerald-700">{merke}</p><h2 className="mt-2 text-xl font-bold">{tittel}</h2><div className="mt-5">{children}</div></section>; }
-function SamlingKort({ tittel, antall, tomtekst, children }: { tittel: string; antall: number; tomtekst: string; children: React.ReactNode }) { return <section className="rounded-3xl bg-white p-6 shadow-sm sm:p-7"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">{tittel}</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{antall}</span></div><div className="mt-5">{antall ? children : <TomInnhold tekst={tomtekst} />}</div></section>; }
+function InfoKort({ id, tittel, merke, children }: { id?: string; tittel: string; merke: string; children: React.ReactNode }) { return <section id={id} className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7"><p className="text-xs font-bold tracking-wider text-emerald-700">{merke}</p><h2 className="mt-2 text-xl font-bold">{tittel}</h2><div className="mt-5">{children}</div></section>; }
+function SamlingKort({ id, tittel, antall, tomtekst, children }: { id?: string; tittel: string; antall: number; tomtekst: string; children: React.ReactNode }) { return <section id={id} className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">{tittel}</h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{antall}</span></div><div className="mt-5">{antall ? children : <TomInnhold tekst={tomtekst} />}</div></section>; }
+
+function Seksjonsmeny() {
+  const valg = [
+    ["Grunninformasjon", "grunninformasjon"],
+    ["Viktige plasseringer", "viktige-plasseringer"],
+    ["Teknisk og sikkerhet", "teknisk-sikkerhet"],
+    ["Uteområder", "uteomrader"],
+    ["Nøkler og utstyr", "nokler-utstyr"],
+    ["Tilleggsarealer", "tilleggsarealer"],
+    ["Historikk", "historikk"],
+    ["Bilder og dokumenter", "bilder-dokumenter"],
+  ];
+  return <nav aria-label="Seksjoner i Alt om boligen" className="sticky top-0 z-20 -mx-1 mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"><div className="flex min-w-max gap-1">{valg.map(([navn, id]) => <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-800">{navn}</a>)}</div></nav>;
+}
 function Detaljliste({ rader, kompakt = false }: { rader: [string, string][]; kompakt?: boolean }) { const synlige = rader.filter(([, verdi]) => verdi.trim()); if (!synlige.length) return <TomInnhold tekst="Ingen opplysninger er registrert." />; return <dl className={kompakt ? "mt-4 space-y-2 text-sm" : "divide-y divide-slate-100"}>{synlige.map(([label, verdi]) => <div key={label} className={kompakt ? "grid grid-cols-[95px_1fr] gap-3" : "grid gap-1 py-3 first:pt-0 sm:grid-cols-[150px_1fr] sm:gap-4"}><dt className="text-slate-500">{label}</dt><dd className="font-medium text-slate-800">{verdi}</dd></div>)}</dl>; }
 function TomInnhold({ tekst }: { tekst: string }) { return <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">{tekst}</p>; }
 function TomSide() { return <section className="mt-6 rounded-3xl bg-white p-12 text-center shadow-sm"><h2 className="text-2xl font-bold">Ingen bolig å vise</h2><p className="mt-2 text-slate-500">Opprett en bolig først, så kan du samle praktisk informasjon her.</p><Link href="/kalkulator" className="mt-6 inline-block rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white">Opprett bolig</Link></section>; }
