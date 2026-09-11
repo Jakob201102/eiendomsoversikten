@@ -61,7 +61,7 @@ const kildevalg: { type: Kildetype; ikon: string; navn: string }[] = [
 export default function BoligimportKilder({
   onGodkjenn,
 }: {
-  onGodkjenn: (data: ImportertBolig, finnKilde: string, finnBilder: string[], kildeBilder: File[], kildePdfer: File[]) => void;
+  onGodkjenn: (data: ImportertBolig, finnKilde: string, finnBilder: string[], kildeBilder: File[], kildePdfer: File[], finnPlantegninger: string[], finnBildefiler: { url: string; fil: File }[]) => void;
 }) {
   const [aktiv, setAktiv] = useState<Kildetype | null>(null);
   const [finnLenke, setFinnLenke] = useState("");
@@ -78,6 +78,8 @@ export default function BoligimportKilder({
   const [konflikter, setKonflikter] = useState<BoligimportKonflikt[]>([]);
   const [finnBilder, setFinnBilder] = useState<string[]>([]);
   const [valgteFinnBilder, setValgteFinnBilder] = useState<string[]>([]);
+  const [finnPlantegningBilder, setFinnPlantegningBilder] = useState<string[]>([]);
+  const [finnBildefiler, setFinnBildefiler] = useState<{ url: string; fil: File }[]>([]);
   const [analyserer, setAnalyserer] = useState(false);
   const [fremdrift, setFremdrift] = useState("");
   const [meldinger, setMeldinger] = useState<string[]>([]);
@@ -121,10 +123,12 @@ export default function BoligimportKilder({
     }
     setAnalyserer(true);
     setMeldinger([]);
+    setFinnBildefiler([]);
+    setFinnPlantegningBilder([]);
     const kilder: BoligimportKilde[] = [];
     const problemer: string[] = [];
     let hentedeFinnBilder: string[] = [];
-    let finnPlantegningBilder: string[] = [];
+    let oppdagedeFinnPlantegninger: string[] = [];
     try {
       if (adresseValgt) {
         const fullAdresse = `${adresseValgt.adressetekst}, ${adresseValgt.postnummer} ${adresseValgt.poststed}`;
@@ -154,7 +158,8 @@ export default function BoligimportKilder({
                 hentedeFinnBilder,
                 (melding) => setFremdrift(melding),
               );
-              finnPlantegningBilder = plantegninger.adresser;
+              oppdagedeFinnPlantegninger = plantegninger.adresser;
+              setFinnBildefiler(plantegninger.filer);
               plantegninger.tekster.forEach((verdi, indeks) =>
                 kilder.push({ kilde: `FINN-plantegning ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
               );
@@ -217,10 +222,11 @@ export default function BoligimportKilder({
       const neste = resultat ? beholdKontrollerteVerdier(resultat, sammenslatt.resultat) : sammenslatt.resultat;
       setResultat(neste);
       setKonflikter(sammenslatt.konflikter);
+      setFinnPlantegningBilder(oppdagedeFinnPlantegninger);
       setFinnBilder(hentedeFinnBilder.length ? hentedeFinnBilder : finnBilder);
       setValgteFinnBilder((forrige) => {
         const grunnlag = forrige.length ? forrige : hentedeFinnBilder.slice(0, 24);
-        return unike([...grunnlag, ...finnPlantegningBilder]).slice(0, 40);
+        return unike([...grunnlag, ...oppdagedeFinnPlantegninger]).slice(0, 40);
       });
       setMeldinger(problemer.length ? problemer : ["Alle kildene er analysert. Dobbelsjekk forslagene før de brukes."]);
     } finally {
@@ -302,7 +308,7 @@ export default function BoligimportKilder({
         {guide && <GuideSporsmal key={guideIndeks} sporsmal={guideFelter[guideIndeks][1]} onSvar={svarGuide} />}
 
         {uttruknePlantegninger.length > 0 && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Vi fant {uttruknePlantegninger.length} mulig{uttruknePlantegninger.length === 1 ? "" : "e"} plantegning{uttruknePlantegninger.length === 1 ? "" : "er"} i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning.</p>}
-        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
+        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
         <p className="mt-2 text-center text-xs text-slate-500">Boligen opprettes først når du bruker hovedknappen nederst i skjemaet.</p>
       </div>}
     </div>
@@ -372,8 +378,8 @@ async function lesFinnPlantegninger(
   adresser: string[],
   onFremdrift: (melding: string) => void,
 ) {
-  const kandidater: { fil: File; indeks: number; adresse: string }[] = [];
   const nedlastede: { fil: File; indeks: number; adresse: string }[] = [];
+  const visueltPlantegning = new Set<File>();
   const begrenset = adresser.slice(0, 40);
   let neste = 0;
   await Promise.all(Array.from({ length: Math.min(5, begrenset.length) }, async () => {
@@ -388,19 +394,15 @@ async function lesFinnPlantegninger(
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
         const fil = new File([blob], `finn-${indeks + 1}.${type.includes("png") ? "png" : "jpg"}`, { type });
         nedlastede.push({ fil, indeks, adresse: begrenset[indeks] });
-        if (await serUtSomPlantegningVisuelt(fil)) kandidater.push({ fil, indeks, adresse: begrenset[indeks] });
+        if (await serUtSomPlantegningVisuelt(fil)) visueltPlantegning.add(fil);
       } catch {
         // Én bildefeil skal ikke stoppe resten av boligimporten.
       }
     }
   }));
 
-  // Plantegninger ligger ofte sist i annonsen. Bruk noen få som reserve dersom
-  // den forsiktige visuelle sjekken ikke finner en kandidat.
-  const valgte = (kandidater.length ? kandidater : nedlastede.sort((a, b) => b.indeks - a.indeks).slice(0, 3))
-    .sort((a, b) => a.indeks - b.indeks)
-    .slice(0, 5);
-  if (!valgte.length) return { tekster: [] as string[], adresser: [] as string[] };
+  const valgte = nedlastede.sort((a, b) => a.indeks - b.indeks);
+  if (!valgte.length) return { tekster: [] as string[], adresser: [] as string[], filer: [] as { url: string; fil: File }[] };
 
   const { createWorker } = await import("tesseract.js");
   const worker = await createWorker("nor+eng");
@@ -408,18 +410,26 @@ async function lesFinnPlantegninger(
   const plantegningAdresser: string[] = [];
   try {
     for (const [indeks, kandidat] of valgte.entries()) {
-      onFremdrift(`Leser mulig plantegning ${indeks + 1} av ${valgte.length}`);
-      const lest = await worker.recognize(kandidat.fil);
-      const tekst = String(lest.data.text || "").trim();
-      if (tekst.length >= 5 && erPlantegningstekst(tekst)) {
-        tekster.push(tekst);
-        plantegningAdresser.push(kandidat.adresse);
+      onFremdrift(`Kontrollerer FINN-bilde ${indeks + 1} av ${valgte.length}`);
+      try {
+        const lest = await worker.recognize(kandidat.fil);
+        const tekst = String(lest.data.text || "").trim();
+        if (visueltPlantegning.has(kandidat.fil) || erPlantegningstekst(tekst)) {
+          if (tekst.length >= 5) tekster.push(tekst);
+          plantegningAdresser.push(kandidat.adresse);
+        }
+      } catch {
+        if (visueltPlantegning.has(kandidat.fil)) plantegningAdresser.push(kandidat.adresse);
       }
     }
   } finally {
     await worker.terminate();
   }
-  return { tekster, adresser: plantegningAdresser };
+  return {
+    tekster,
+    adresser: plantegningAdresser,
+    filer: valgte.map(({ adresse: url, fil }) => ({ url, fil })),
+  };
 }
 
 async function lesPdfFil(

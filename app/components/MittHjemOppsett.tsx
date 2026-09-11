@@ -191,6 +191,9 @@ export default function MittHjemOppsett({
   const [importerer, setImporterer] = useState(false);
   const [importMelding, setImportMelding] = useState("");
   const [valgteImportbilder, setValgteImportbilder] = useState<string[]>([]);
+  const [importPlantegningbilder, setImportPlantegningbilder] = useState<string[]>([]);
+  const [importFinnBildefiler, setImportFinnBildefiler] = useState<{ url: string; fil: File }[]>([]);
+  const [gjenbrukImportanalyse, setGjenbrukImportanalyse] = useState(false);
   const [importKildebilder, setImportKildebilder] = useState<File[]>([]);
   const [importKildepdfer, setImportKildepdfer] = useState<File[]>([]);
   const [delerData, setDelerData] = useState<Record<string, string>>(() =>
@@ -259,6 +262,9 @@ export default function MittHjemOppsett({
     setImporterer(true);
     setImportMelding("");
     setFinnForslag(null);
+    setGjenbrukImportanalyse(false);
+    setImportPlantegningbilder([]);
+    setImportFinnBildefiler([]);
     try {
       if (importMetode === "pdf" && salgsoppgave) {
         if (salgsoppgave.size > 80 * 1024 * 1024) throw new Error("PDF-en kan maksimalt være 80 MB.");
@@ -304,6 +310,9 @@ export default function MittHjemOppsett({
 
   function brukFinnForslag() {
     if (!finnForslag) return;
+    setGjenbrukImportanalyse(false);
+    setImportPlantegningbilder([]);
+    setImportFinnBildefiler([]);
     setGrunninfo((forrige) => {
       const neste = { ...forrige };
       for (const [felt, verdi] of Object.entries(finnForslag)) {
@@ -329,6 +338,8 @@ export default function MittHjemOppsett({
     finnBilder: string[],
     kildeBilder: File[],
     kildePdfer: File[],
+    finnPlantegninger: string[],
+    finnBildefiler: { url: string; fil: File }[],
   ) {
     setGrunninfo((forrige) => {
       const neste = { ...forrige };
@@ -342,6 +353,9 @@ export default function MittHjemOppsett({
     setImportEkstra(importert);
     setFinnKilde(kildeUrl);
     setValgteImportbilder(finnBilder);
+    setImportPlantegningbilder(finnPlantegninger);
+    setImportFinnBildefiler(finnBildefiler);
+    setGjenbrukImportanalyse(true);
     setImportKildebilder(kildeBilder);
     setImportKildepdfer(kildePdfer);
     setImportMelding("Forslagene er overført. Kontroller feltene og opprett boligen når du er klar.");
@@ -349,23 +363,32 @@ export default function MittHjemOppsett({
 
   async function lastOppImportbilder(boligId: string) {
     let feilAntall = 0;
-    const filer: { fil: File; indeks: number }[] = [];
+    const filer: { fil: File; indeks: number; url: string }[] = [];
     const bilder = valgteImportbilder.slice(0, 40);
+    const analyserteFiler = new Map(importFinnBildefiler.map(({ url, fil }) => [url, fil]));
     await kjorBegrenset(bilder, 4, async (url, indeks) => {
       try {
+        const analysertFil = analyserteFiler.get(url);
+        if (analysertFil) {
+          filer.push({ fil: analysertFil, indeks, url });
+          return;
+        }
         const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
         if (!svar.ok) throw new Error("Kunne ikke hente bildet");
         const blob = await svar.blob();
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
         const endelse = type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
         const fil = new File([blob], `finn-bilde-${indeks + 1}.${endelse}`, { type });
-        filer.push({ fil, indeks });
+        filer.push({ fil, indeks, url });
       } catch {
         feilAntall += 1;
       }
     });
     filer.sort((a, b) => a.indeks - b.indeks);
-    const plantegninger = await finnPlantegninger(filer.map(({ fil }) => fil));
+    const kjentePlantegninger = new Set(filer.filter(({ url }) => importPlantegningbilder.includes(url)).map(({ fil }) => fil));
+    const usikreFiler = gjenbrukImportanalyse ? [] : filer.map(({ fil }) => fil).filter((fil) => !kjentePlantegninger.has(fil));
+    const kontrollertePlantegninger = usikreFiler.length ? await finnPlantegninger(usikreFiler) : new Set<File>();
+    const plantegninger = new Set([...kjentePlantegninger, ...kontrollertePlantegninger]);
     await kjorBegrenset(filer, 3, async ({ fil, indeks }) => {
       try {
         const erPlantegning = plantegninger.has(fil);
