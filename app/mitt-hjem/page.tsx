@@ -80,7 +80,7 @@ export default function MittHjem() {
     }
 
     const adresse = String(bolig.adresse || "denne boligen");
-    if (!window.confirm(`Vil du slette ${adresse}?\n\nBoligen fjernes fra Eiendomsoversikten. Dette kan ikke angres.`)) return;
+    if (!window.confirm(`Vil du slette ${adresse}?\n\nBoligen og alle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.`)) return;
 
     setFeil("");
     try {
@@ -103,7 +103,7 @@ export default function MittHjem() {
       {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
 
       {innlogget && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : valgt ? <>
-        <MittHjemDashboard key={`dashboard-${valgt.id}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} />
+        <MittHjemDashboard key={`dashboard-${valgt.id}-${search.get("leggtil") || "vanlig"}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} startVisning={search.get("leggtil") === "1" ? "valg" : null} />
         {innlogget && <BoligoverforingKort bolig={valgt} dokumenter={dokumenter} />}
       </> : <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold">Mitt hjem</h1><p className="mt-2 text-slate-500">Opprett din første private bolig for å komme i gang.</p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white">+ Legg til privat bolig</button></section>}
     </div>

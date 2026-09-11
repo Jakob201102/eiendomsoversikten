@@ -50,6 +50,11 @@ export async function lagreDokumentlenke(felt: { boligId: string; navn: string; 
   return id;
 }
 export async function dokumentLenke(sti: string) { const { supabase } = await bruker(); const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(sti, 60); if (error || !data?.signedUrl) throw error || new Error("MANGLER_LENKE"); return data.signedUrl; }
+export async function oppdaterDokumentkategori(id: string, kategori: string) {
+  const { supabase } = await bruker();
+  const { error } = await supabase.from("dokumenter").update({ kategori }).eq("id", id);
+  if (error) throw error;
+}
 export async function slettDokument(dokument: Dokument) { const { supabase } = await bruker(); if (dokument.filsti) { const { error: filfeil } = await supabase.storage.from(BUCKET).remove([dokument.filsti]); if (filfeil) throw filfeil; } const { error } = await supabase.from("dokumenter").delete().eq("id", dokument.id); if (error) throw error; }
 
 function demoDokumenter(): Dokument[] { const ar = new Date().getFullYear(); return [

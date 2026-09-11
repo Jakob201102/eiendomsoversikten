@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Boligadministrasjon from "../components/Boligadministrasjon";
 import Navigasjon from "../components/Navigasjon";
 import { demoAltOmBoligen } from "../lib/alt-om-boligen";
@@ -11,6 +12,7 @@ const demoGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", a
 const demoBolig: BoligData = { ...demoGrunnlag, altOmBoligen: demoAltOmBoligen(demoGrunnlag) };
 
 export default function KontakterSide() {
+  const search = useSearchParams();
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [boligId, setBoligId] = useState("");
   const [innlogget, setInnlogget] = useState(false);
@@ -29,7 +31,9 @@ export default function KontakterSide() {
         : [demoBolig];
       setBoliger(privateBoliger);
       setBoligId((gammel) =>
-        privateBoliger.some((bolig) => String(bolig.id) === gammel)
+        privateBoliger.some((bolig) => String(bolig.id) === String(search.get("bolig") || ""))
+          ? String(search.get("bolig"))
+          : privateBoliger.some((bolig) => String(bolig.id) === gammel)
           ? gammel
           : String(privateBoliger[0]?.id || ""),
       );
@@ -42,7 +46,7 @@ export default function KontakterSide() {
 
   useEffect(() => {
     lastInn();
-  }, []);
+  }, [search]);
 
   const bolig =
     boliger.find((verdi) => String(verdi.id) === boligId) || boliger[0];

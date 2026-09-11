@@ -25,6 +25,7 @@ import {
   dokumentLenke,
   hentDokumenter,
   lastOppDokument,
+  oppdaterDokumentkategori,
   slettDokument,
   type Dokument,
 } from "../lib/dokumenter";
@@ -338,6 +339,27 @@ export default function AltOmBoligen() {
     }
   }
 
+  async function flyttFil(dokument: Dokument, kategori: string) {
+    if (![BILDEKATEGORI, PLANTEGNINGKATEGORI].includes(kategori)) return;
+    setJobber(true);
+    setFeil("");
+    try {
+      await oppdaterDokumentkategori(dokument.id, kategori);
+      setDokumenter((gamle) =>
+        gamle.map((fil) => fil.id === dokument.id ? { ...fil, kategori } : fil),
+      );
+      setMelding(
+        kategori === PLANTEGNINGKATEGORI
+          ? `«${dokument.navn}» er flyttet til plantegninger.`
+          : `«${dokument.navn}» er flyttet til boligbilder.`,
+      );
+    } catch {
+      setFeil("Kunne ikke flytte bildet. Prøv igjen.");
+    } finally {
+      setJobber(false);
+    }
+  }
+
   return (
     <main className="privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
       <Navigasjon />
@@ -444,6 +466,7 @@ export default function AltOmBoligen() {
             filLenker={filLenker}
             lastOpp={lastOpp}
             slettFil={slettFil}
+            flyttFil={flyttFil}
             jobber={jobber}
           />
         ) : (
@@ -663,6 +686,7 @@ function Redigeringsvisning({
   filLenker,
   lastOpp,
   slettFil,
+  flyttFil,
   jobber,
 }: {
   data: AltOmBoligenData;
@@ -676,6 +700,7 @@ function Redigeringsvisning({
   filLenker: Record<string, string>;
   lastOpp: (fil: File | null, kategori: string) => void;
   slettFil: (dokument: Dokument) => void;
+  flyttFil: (dokument: Dokument, kategori: string) => void;
   jobber: boolean;
 }) {
   return (
@@ -715,8 +740,8 @@ function Redigeringsvisning({
 
       <Redigeringsseksjon tittel="Bilder og plantegninger" forklaring="Filene blir også tilgjengelige i dokumentarkivet.">
         <div className="grid gap-5 md:grid-cols-2">
-          <Filredigering tittel="Boligbilder" dokumenter={bilder} filLenker={filLenker} accept="image/*" kategori={BILDEKATEGORI} lastOpp={lastOpp} slettFil={slettFil} jobber={jobber} />
-          <Filredigering tittel="Plantegninger" dokumenter={plantegninger} filLenker={filLenker} accept="image/*,.pdf" kategori={PLANTEGNINGKATEGORI} lastOpp={lastOpp} slettFil={slettFil} jobber={jobber} />
+          <Filredigering tittel="Boligbilder" dokumenter={bilder} filLenker={filLenker} accept="image/*" kategori={BILDEKATEGORI} lastOpp={lastOpp} slettFil={slettFil} flyttFil={flyttFil} jobber={jobber} />
+          <Filredigering tittel="Plantegninger" dokumenter={plantegninger} filLenker={filLenker} accept="image/*,.pdf" kategori={PLANTEGNINGKATEGORI} lastOpp={lastOpp} slettFil={slettFil} flyttFil={flyttFil} jobber={jobber} />
         </div>
       </Redigeringsseksjon>
 
@@ -855,8 +880,10 @@ function Filoversikt({ bilder, plantegninger, filLenker, innlogget }: { bilder: 
   );
 }
 
-function Filredigering({ tittel, dokumenter, filLenker, accept, kategori, lastOpp, slettFil, jobber }: { tittel: string; dokumenter: Dokument[]; filLenker: Record<string, string>; accept: string; kategori: string; lastOpp: (fil: File | null, kategori: string) => void; slettFil: (dokument: Dokument) => void; jobber: boolean }) {
-  return <div className="rounded-2xl border border-slate-200 p-4"><h3 className="font-bold">{tittel}</h3><div className="mt-3 space-y-2">{dokumenter.map((dokument) => <div key={dokument.id} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 p-3"><a href={filLenker[dokument.id] || "#"} target="_blank" rel="noreferrer" className="truncate text-sm font-semibold text-emerald-700">{dokument.navn}</a><button type="button" onClick={() => slettFil(dokument)} className="text-sm font-semibold text-red-600">Slett</button></div>)}</div><label className="mt-4 block cursor-pointer rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-800"><input type="file" accept={accept} disabled={jobber} onChange={(event) => { const fil = event.target.files?.[0] || null; lastOpp(fil, kategori); event.currentTarget.value = ""; }} className="sr-only" />+ Last opp</label></div>;
+function Filredigering({ tittel, dokumenter, filLenker, accept, kategori, lastOpp, slettFil, flyttFil, jobber }: { tittel: string; dokumenter: Dokument[]; filLenker: Record<string, string>; accept: string; kategori: string; lastOpp: (fil: File | null, kategori: string) => void; slettFil: (dokument: Dokument) => void; flyttFil: (dokument: Dokument, kategori: string) => void; jobber: boolean }) {
+  const maalKategori = kategori === BILDEKATEGORI ? PLANTEGNINGKATEGORI : BILDEKATEGORI;
+  const flyttetekst = kategori === BILDEKATEGORI ? "Flytt til plantegninger" : "Flytt til boligbilder";
+  return <div className="min-w-0 rounded-2xl border border-slate-200 p-4"><h3 className="font-bold">{tittel}</h3><div className="mt-3 space-y-2">{dokumenter.map((dokument) => <div key={dokument.id} className="min-w-0 rounded-lg bg-slate-50 p-3"><a href={filLenker[dokument.id] || "#"} target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold text-emerald-700">{dokument.navn}</a><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2"><button type="button" disabled={jobber} onClick={() => flyttFil(dokument, maalKategori)} className="text-xs font-bold text-sky-700 disabled:opacity-50">{flyttetekst}</button><button type="button" disabled={jobber} onClick={() => slettFil(dokument)} className="text-xs font-bold text-red-600 disabled:opacity-50">Slett</button></div></div>)}</div><label className="mt-4 block cursor-pointer rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-800"><input type="file" accept={accept} disabled={jobber} onChange={(event) => { const fil = event.target.files?.[0] || null; lastOpp(fil, kategori); event.currentTarget.value = ""; }} className="sr-only" />+ Last opp</label></div>;
 }
 
 function Filkort({ dokument, url }: { dokument: Dokument; url?: string }) {

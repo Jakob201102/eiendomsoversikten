@@ -122,6 +122,7 @@ export default function MittHjemDashboard({
   onSlettBolig,
   onOppdatert,
   demo = false,
+  startVisning = null,
 }: {
   bolig: BoligData;
   boliger: BoligData[];
@@ -132,11 +133,12 @@ export default function MittHjemDashboard({
   onSlettBolig: () => Promise<void>;
   onOppdatert: () => Promise<void>;
   demo?: boolean;
+  startVisning?: "valg" | null;
 }) {
   const data = lesAltOmBoligen(bolig);
   const kanRedigere = !demo && String(bolig.tilgang || "eier") !== "leser";
   const erEier = !demo && String(bolig.tilgang || "eier") === "eier";
-  const [visning, setVisning] = useState<Visning>(null);
+  const [visning, setVisning] = useState<Visning>(startVisning);
   const [menyApen, setMenyApen] = useState(false);
   const [historikkSkjema, setHistorikkSkjema] =
     useState<HistorikkSkjema>(tomHistorikk);
@@ -885,6 +887,12 @@ export default function MittHjemDashboard({
                 tittel="Bilder"
                 tekst="Ta eller last opp bilder"
                 onClick={() => setVisning("bilder")}
+              />
+              <Valg
+                ikon="👷"
+                tittel="Håndverker"
+                tekst="Lagre en håndverker eller annen kontakt"
+                onClick={() => window.location.assign(`/kontakter?bolig=${bolig.id}`)}
               />
             </div>
           )}

@@ -89,6 +89,25 @@ const deler = [
   ["💧", "Rør", "ror", "Når ble de sist oppgradert?"],
 ] as const;
 
+async function kjorBegrenset<T>(
+  verdier: T[],
+  antallSamtidig: number,
+  arbeid: (verdi: T, indeks: number) => Promise<void>,
+) {
+  let neste = 0;
+  const arbeidere = Array.from(
+    { length: Math.min(antallSamtidig, verdier.length) },
+    async () => {
+      while (neste < verdier.length) {
+        const indeks = neste;
+        neste += 1;
+        await arbeid(verdier[indeks], indeks);
+      }
+    },
+  );
+  await Promise.all(arbeidere);
+}
+
 const hurtigvalg = [
   "Nytt bad",
   "Nytt kjøkken",
@@ -116,7 +135,9 @@ async function finnPlantegninger(filer: File[]) {
     for (const fil of filer) {
       try {
         const lest = await worker.recognize(fil);
-        if (erPlantegningstekst(String(lest.data.text || ""))) resultat.add(fil);
+        const tekst = String(lest.data.text || "");
+        const filnavnTyderPaaPlantegning = /(?:plantegning|planløsning|floor[-_ ]?plan)/i.test(fil.name);
+        if (filnavnTyderPaaPlantegning || erPlantegningstekst(tekst) || await serUtSomPlantegningVisuelt(fil)) resultat.add(fil);
       } catch {
         // Bildet beholdes som vanlig boligbilde dersom klassifiseringen feiler.
       }
@@ -126,6 +147,55 @@ async function finnPlantegninger(filer: File[]) {
     // Opplasting skal fortsatt fungere dersom OCR ikke er tilgjengelig.
   }
   return resultat;
+}
+
+async function serUtSomPlantegningVisuelt(fil: File) {
+  if (!fil.type.startsWith("image/") || typeof createImageBitmap !== "function") return false;
+  let bilde: ImageBitmap | null = null;
+  try {
+    bilde = await createImageBitmap(fil);
+    const skala = Math.min(1, 260 / Math.max(bilde.width, bilde.height));
+    const bredde = Math.max(1, Math.round(bilde.width * skala));
+    const hoyde = Math.max(1, Math.round(bilde.height * skala));
+    const canvas = document.createElement("canvas");
+    canvas.width = bredde;
+    canvas.height = hoyde;
+    const kontekst = canvas.getContext("2d", { willReadFrequently: true });
+    if (!kontekst) return false;
+    kontekst.drawImage(bilde, 0, 0, bredde, hoyde);
+    const piksler = kontekst.getImageData(0, 0, bredde, hoyde).data;
+    let lyse = 0;
+    let liteFarge = 0;
+    let morke = 0;
+    let kanter = 0;
+    let antall = 0;
+    for (let y = 2; y < hoyde; y += 2) {
+      for (let x = 2; x < bredde; x += 2) {
+        const indeks = (y * bredde + x) * 4;
+        const venstre = (y * bredde + x - 2) * 4;
+        const r = piksler[indeks];
+        const g = piksler[indeks + 1];
+        const b = piksler[indeks + 2];
+        const lys = (r + g + b) / 3;
+        const venstreLys = (piksler[venstre] + piksler[venstre + 1] + piksler[venstre + 2]) / 3;
+        if (lys > 220) lyse += 1;
+        if (Math.max(r, g, b) - Math.min(r, g, b) < 28) liteFarge += 1;
+        if (lys < 85) morke += 1;
+        if (Math.abs(lys - venstreLys) > 48) kanter += 1;
+        antall += 1;
+      }
+    }
+    if (!antall) return false;
+    const lysandel = lyse / antall;
+    const graaandel = liteFarge / antall;
+    const morkandel = morke / antall;
+    const kantandel = kanter / antall;
+    return lysandel > 0.5 && graaandel > 0.6 && morkandel > 0.012 && morkandel < 0.32 && kantandel > 0.035;
+  } catch {
+    return false;
+  } finally {
+    bilde?.close();
+  }
 }
 
 function lagUteomraderFraImport(verdier: Record<string, string>) {
@@ -329,7 +399,8 @@ export default function MittHjemOppsett({
   async function lastOppImportbilder(boligId: string) {
     let feilAntall = 0;
     const filer: { fil: File; indeks: number }[] = [];
-    for (const [indeks, url] of valgteImportbilder.slice(0, 40).entries()) {
+    const bilder = valgteImportbilder.slice(0, 40);
+    await kjorBegrenset(bilder, 4, async (url, indeks) => {
       try {
         const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
         if (!svar.ok) throw new Error("Kunne ikke hente bildet");
@@ -341,9 +412,10 @@ export default function MittHjemOppsett({
       } catch {
         feilAntall += 1;
       }
-    }
+    });
+    filer.sort((a, b) => a.indeks - b.indeks);
     const plantegninger = await finnPlantegninger(filer.map(({ fil }) => fil));
-    for (const { fil, indeks } of filer) {
+    await kjorBegrenset(filer, 3, async ({ fil, indeks }) => {
       try {
         const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
@@ -357,14 +429,14 @@ export default function MittHjemOppsett({
       } catch {
         feilAntall += 1;
       }
-    }
+    });
     return feilAntall;
   }
 
   async function lastOppKildebilder(boligId: string) {
     let feilAntall = 0;
     const plantegninger = await finnPlantegninger(importKildebilder);
-    for (const [indeks, fil] of importKildebilder.entries()) {
+    await kjorBegrenset(importKildebilder, 3, async (fil, indeks) => {
       try {
         const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
@@ -378,30 +450,25 @@ export default function MittHjemOppsett({
       } catch {
         feilAntall += 1;
       }
-    }
+    });
     return feilAntall;
   }
 
   async function lagreImportkilder(boligId: string) {
     let feilAntall = 0;
     const dato = new Date().toISOString().slice(0, 10);
-    for (const fil of importKildepdfer) {
-      try {
-        await lastOppDokument(fil, {
-          boligId,
-          navn: fil.name.replace(/\.[^.]+$/, "") || "Salgsoppgave",
-          kategori: "salgsoppgave",
-          ar: new Date().getFullYear(),
-          dokumentdato: dato,
-          notat: "Brukt som kilde da boligen ble opprettet",
-        });
-      } catch {
-        feilAntall += 1;
-      }
-    }
-    if (finnKilde) {
-      try {
-        await lagreDokumentlenke({
+    const oppgaver: (() => Promise<unknown>)[] = importKildepdfer.map((fil) => async () =>
+      lastOppDokument(fil, {
+        boligId,
+        navn: fil.name.replace(/\.[^.]+$/, "") || "Salgsoppgave",
+        kategori: "salgsoppgave",
+        ar: new Date().getFullYear(),
+        dokumentdato: dato,
+        notat: "Brukt som kilde da boligen ble opprettet",
+      }),
+    );
+    if (finnKilde) oppgaver.push(async () =>
+      lagreDokumentlenke({
           boligId,
           navn: "FINN-annonse for boligen",
           kategori: "finnlenke",
@@ -409,11 +476,15 @@ export default function MittHjemOppsett({
           dokumentdato: dato,
           url: finnKilde,
           notat: "Brukt som kilde da boligen ble opprettet",
-        });
+      }),
+    );
+    await kjorBegrenset(oppgaver, 3, async (oppgave) => {
+      try {
+        await oppgave();
       } catch {
         feilAntall += 1;
       }
-    }
+    });
     return feilAntall;
   }
 
@@ -486,7 +557,7 @@ export default function MittHjemOppsett({
         }),
       );
       grunnlag.onboarding = { status: "pagar", steg: 2 };
-      await opprettBolig({
+      const nyBoligId = await opprettBolig({
         brukstype: "privat",
         adresse: grunninfo.adresse.trim(),
         bolignavn: grunninfo.bolignavn.trim(),
@@ -506,27 +577,16 @@ export default function MittHjemOppsett({
         manedsleie: 0,
         altOmBoligen: grunnlag,
       });
-      const alle = await hentBoliger();
-      const nyBolig = [...alle]
-        .reverse()
-        .find(
-          (verdi) =>
-            String(verdi.brukstype || "") === "privat" &&
-            String(verdi.adresse || "") === grunninfo.adresse.trim(),
-        );
-      const bildeFeil = nyBolig && finnKilde && valgteImportbilder.length
-        ? await lastOppImportbilder(String(nyBolig.id))
-        : 0;
-      const kildebildeFeil = nyBolig && importKildebilder.length
-        ? await lastOppKildebilder(String(nyBolig.id))
-        : 0;
-      const kildeFeil = nyBolig
-        ? await lagreImportkilder(String(nyBolig.id))
-        : 0;
+      const [alle, bildeFeil, kildebildeFeil, kildeFeil] = await Promise.all([
+        hentBoliger(),
+        valgteImportbilder.length ? lastOppImportbilder(nyBoligId) : Promise.resolve(0),
+        importKildebilder.length ? lastOppKildebilder(nyBoligId) : Promise.resolve(0),
+        lagreImportkilder(nyBoligId),
+      ]);
       if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(`${bildeFeil + kildebildeFeil + kildeFeil} vedlegg kunne ikke lagres. Resten av boligen ble lagret.`);
       onOppdatert(
         alle.filter((verdi) => String(verdi.brukstype || "") === "privat"),
-        String(nyBolig?.id || ""),
+        nyBoligId,
       );
     } catch {
       setFeil("Kunne ikke opprette boligen. Prøv igjen.");

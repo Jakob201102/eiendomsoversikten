@@ -143,12 +143,17 @@ export async function opprettBolig(
     throw new Error("IKKE_INNLOGGET");
   }
 
-  const { error } = await supabase.from("boliger").insert({
-    user_id: brukerdata.user.id,
-    data: utenLokalId(bolig),
-  });
+  const { data, error } = await supabase
+    .from("boliger")
+    .insert({
+      user_id: brukerdata.user.id,
+      data: utenLokalId(bolig),
+    })
+    .select("id")
+    .single();
 
   if (error) throw error;
+  return String(data.id);
 }
 
 export async function oppdaterBolig(
@@ -185,10 +190,48 @@ export async function slettBoligFraDatabase(id: string) {
     throw new Error("IKKE_INNLOGGET");
   }
 
+  const { data: eidBolig, error: boligfeil } = await supabase
+    .from("boliger")
+    .select("id")
+    .eq("id", id)
+    .eq("user_id", brukerdata.user.id)
+    .maybeSingle();
+
+  if (boligfeil) throw boligfeil;
+  if (!eidBolig) throw new Error("Du kan bare slette boliger du eier.");
+
+  const { data: dokumenter, error: dokumentfeil } = await supabase
+    .from("dokumenter")
+    .select("filsti")
+    .eq("bolig_id", id);
+
+  if (dokumentfeil) throw dokumentfeil;
+
+  const filstier = [...new Set(
+    (dokumenter || [])
+      .map((dokument) => String(dokument.filsti || "").trim())
+      .filter(Boolean),
+  )];
+
+  for (let start = 0; start < filstier.length; start += 100) {
+    const { error: filfeil } = await supabase.storage
+      .from("dokumentarkiv")
+      .remove(filstier.slice(start, start + 100));
+    if (filfeil) throw filfeil;
+  }
+
+  const { error: slettDokumentfeil } = await supabase
+    .from("dokumenter")
+    .delete()
+    .eq("bolig_id", id);
+
+  if (slettDokumentfeil) throw slettDokumentfeil;
+
   const { error } = await supabase
     .from("boliger")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", brukerdata.user.id);
 
   if (error) throw error;
 }

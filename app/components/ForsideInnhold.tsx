@@ -4,6 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade, type Bruksomrade } from "../lib/bruksomrade";
+import { hentBoliger, type BoligData } from "../lib/boliger";
+import { hentDokumenter, type Dokument } from "../lib/dokumenter";
+import { hentVedlikeholdsoppgaver, type Vedlikeholdsdata } from "../lib/vedlikehold";
+import { lesAltOmBoligen } from "../lib/alt-om-boligen";
 import ForsidePortefolje from "./ForsidePortefolje";
 import Boligveileder from "./Boligveileder";
 
@@ -99,64 +103,135 @@ function PrivatForside() {
           </div>
         </div>
       </section>
-      <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-bold text-emerald-700">
-            EN HISTORIKK SOM VOKSER MED BOLIGEN
-          </p>
-          <h2 className="mt-2 max-w-3xl text-3xl font-bold sm:text-4xl">
-            Boligen forandrer seg. Historikken bør følge med.
-          </h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            <Flytpunkt
-              ikon="⚠️"
-              tittel="Noe går i stykker"
-              tekst="Registrer skaden og ta bilder med mobilen."
-            />
-            <Flytpunkt
-              ikon="👷"
-              tittel="Du får en håndverker"
-              tekst="Lagre kontakten og koble håndverkeren til jobben."
-            />
-            <Flytpunkt
-              ikon="✓"
-              tittel="Arbeidet blir ferdig"
-              tekst="Kostnad, bilder og dokumentasjon lagres i historikken."
-            />
-            <Flytpunkt
-              ikon="🔔"
-              tittel="Neste kontroll nærmer seg"
-              tekst="Kalenderen viser påminnelsen i god tid."
-            />
-          </div>
-        </div>
-      </section>
-      <section className="bg-stone-50 px-4 py-12 sm:px-6 sm:py-16">
-        <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-2 lg:grid-cols-4">
-          <Kort
-            tittel="Boligmappen"
-            tekst="Teknisk informasjon, installasjoner og uteområder."
-            lenke="/alt-om-boligen"
-          />
-          <Kort
-            tittel="Rom"
-            tekst="Farger, materialer og notater for hvert rom."
-            lenke="/rom"
-          />
-          <Kort
-            tittel="Vedlikehold"
-            tekst="Planlagte oppgaver, kontroller og skader."
-            lenke="/vedlikehold"
-          />
-          <Kort
-            tittel="Dokumenter"
-            tekst="Kvitteringer, garantier, forsikringer og kontakter."
-            lenke="/dokumentarkiv"
-          />
-        </div>
-      </section>
+      <PrivatStartpanel />
     </>
   );
+}
+
+type Oppmerksomhet = {
+  id: string;
+  ikon: string;
+  tittel: string;
+  detalj: string;
+  lenke: string;
+  sortering: number;
+};
+
+function PrivatStartpanel() {
+  const [boliger, setBoliger] = useState<BoligData[]>([]);
+  const [oppgaver, setOppgaver] = useState<Vedlikeholdsdata[]>([]);
+  const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
+  const [laster, setLaster] = useState(true);
+
+  useEffect(() => {
+    let aktiv = true;
+    Promise.all([hentBoliger(), hentVedlikeholdsoppgaver(), hentDokumenter()])
+      .then(([boligdata, oppgavedata, dokumentdata]) => {
+        if (!aktiv) return;
+        setBoliger(boligdata.filter((bolig) => String(bolig.brukstype || "") === "privat"));
+        setOppgaver(oppgavedata);
+        setDokumenter(dokumentdata);
+      })
+      .catch((feil) => console.error("Kunne ikke laste privatforsiden:", feil))
+      .finally(() => aktiv && setLaster(false));
+    return () => { aktiv = false; };
+  }, []);
+
+  const boligIder = new Set(boliger.map((bolig) => String(bolig.id)));
+  const hovedbolig = boliger[0];
+  const iDag = new Date();
+  iDag.setHours(0, 0, 0, 0);
+  const oppmerksomhet: Oppmerksomhet[] = [];
+
+  for (const oppgave of oppgaver) {
+    if (!boligIder.has(String(oppgave.boligId)) || String(oppgave.status || "") === "ferdig" || !oppgave.frist) continue;
+    const dato = new Date(`${String(oppgave.frist)}T12:00:00`);
+    if (Number.isNaN(dato.getTime())) continue;
+    const dager = Math.ceil((dato.getTime() - iDag.getTime()) / 86_400_000);
+    oppmerksomhet.push({
+      id: `oppgave-${oppgave.id}`,
+      ikon: String(oppgave.gjentakelse || "aldri") !== "aldri" ? "🔁" : "🔧",
+      tittel: String(oppgave.tittel || "Vedlikeholdsoppgave"),
+      detalj: dager < 0 ? `Forfalt for ${Math.abs(dager)} dager siden` : dager === 0 ? "Forfaller i dag" : `Forfaller ${formaterKortDato(String(oppgave.frist))}`,
+      lenke: `/vedlikehold?fane=kommende&bolig=${encodeURIComponent(String(oppgave.boligId))}`,
+      sortering: dager,
+    });
+  }
+
+  for (const bolig of boliger) {
+    const data = lesAltOmBoligen(bolig);
+    for (const skade of data.skader.filter((verdi) => verdi.status !== "lost")) {
+      oppmerksomhet.push({
+        id: `skade-${bolig.id}-${skade.id}`,
+        ikon: "⚠️",
+        tittel: skade.tittel || "Åpen skade eller avvik",
+        detalj: skade.status === "under-arbeid" ? "Under arbeid" : skade.status === "kontaktet" ? "Håndverker kontaktet" : "Åpen skade",
+        lenke: `/vedlikehold?fane=skader&bolig=${encodeURIComponent(String(bolig.id))}`,
+        sortering: -10_000,
+      });
+    }
+    for (const garanti of data.garantier) {
+      if (!garanti.utlopsdato) continue;
+      const dato = new Date(`${garanti.utlopsdato}T12:00:00`);
+      const dager = Math.ceil((dato.getTime() - iDag.getTime()) / 86_400_000);
+      if (Number.isNaN(dager) || dager < 0 || dager > 60) continue;
+      oppmerksomhet.push({
+        id: `garanti-${bolig.id}-${garanti.id}`,
+        ikon: "🛡️",
+        tittel: garanti.navn || "Garanti utløper snart",
+        detalj: `Garantien utløper ${formaterKortDato(garanti.utlopsdato)}`,
+        lenke: `/garantier?bolig=${encodeURIComponent(String(bolig.id))}`,
+        sortering: dager,
+      });
+    }
+  }
+  oppmerksomhet.sort((a, b) => a.sortering - b.sortering);
+
+  const fullforing = beregnFullforing(hovedbolig, dokumenter);
+  const snarveier = [
+    ["🏠", "Mitt hjem", "Se hele boligen og historikken", "/mitt-hjem"],
+    ["🔧", "Vedlikehold", "Planlegg og følg opp arbeid", "/vedlikehold?fane=kommende"],
+    ["⚠️", "Skader & avvik", "Registrer og følg opp problemer", "/vedlikehold?fane=skader"],
+    ["📅", "Kalender", "Se kontroller og kommende oppgaver", "/kalender?modus=privat"],
+    ["📁", "Dokumenter", "Finn dokumentasjon og kvitteringer", "/dokumentarkiv"],
+    ["👷", "Håndverkere", "Finn tidligere brukte håndverkere", "/kontakter"],
+  ];
+
+  return <div className="bg-stone-50 px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-6xl space-y-6">
+      <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7">
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Neste handling</p><h2 className="mt-1 text-2xl font-bold">Dette bør du se på</h2></div>{oppmerksomhet.length > 3 && <Link href="/kalender?modus=privat" className="text-sm font-bold text-emerald-700">Se alle →</Link>}</div>
+        {laster ? <p className="mt-5 text-sm text-slate-500">Henter kommende oppgaver…</p> : oppmerksomhet.length ? <div className="mt-5 grid gap-3 md:grid-cols-3">{oppmerksomhet.slice(0, 3).map((punkt) => <Link key={punkt.id} href={punkt.lenke} className="min-w-0 rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-emerald-300"><span className="text-xl">{punkt.ikon}</span><h3 className="mt-2 break-words font-bold">{punkt.tittel}</h3><p className="mt-1 break-words text-sm text-slate-500">{punkt.detalj}</p></Link>)}</div> : <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="font-bold text-emerald-900">✓ Alt ser bra ut</p><p className="mt-1 text-sm text-emerald-800">Ingen kommende oppgaver eller åpne avvik akkurat nå.</p></div>}
+      </section>
+
+      {!laster && (!hovedbolig ? <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:p-7"><h2 className="text-xl font-bold">Opprett ditt første hjem</h2><p className="mt-2 text-sm text-slate-600">Legg inn adressen først. Resten kan du fylle ut senere.</p><Link href="/mitt-hjem" className="mt-4 inline-block rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Opprett bolig</Link></section> : fullforing.prosent < 80 ? <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7"><div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Fortsett med boligen</p><h2 className="mt-1 text-xl font-bold">Gjør boligen mer komplett</h2><p className="mt-2 text-sm text-slate-600">{String(hovedbolig.adresse || "Boligen")} er omtrent {fullforing.prosent} % utfylt.</p><div className="mt-3 h-2 max-w-md overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${fullforing.prosent}%` }} /></div>{fullforing.mangler.length > 0 && <p className="mt-3 text-sm text-slate-500">Mangler blant annet: {fullforing.mangler.slice(0, 3).join(", ")}.</p>}</div><Boligveileder kompakt knappTekst="Fortsett gjennomgangen" /></div></section> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900">✓ Boligen din er godt dokumentert</div>)}
+
+      <section><h2 className="text-2xl font-bold">Hva vil du gjøre?</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{snarveier.map(([ikon, navn, tekst, lenke]) => <Link key={navn} href={lenke} className="group min-w-0 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300"><div className="flex items-start gap-3"><span className="text-xl">{ikon}</span><div className="min-w-0"><h3 className="font-bold">{navn} <span aria-hidden="true" className="text-emerald-600">→</span></h3><p className="mt-1 break-words text-sm text-slate-500">{tekst}</p></div></div></Link>)}</div></section>
+
+      <section className="flex flex-col gap-4 rounded-3xl bg-slate-950 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-7"><div><p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Rask registrering</p><h2 className="mt-1 text-xl font-bold">Legg til noe</h2><p className="mt-1 text-sm text-slate-300">Skade, utført arbeid, vedlikehold, dokument, bilde eller håndverker.</p></div><Link href="/mitt-hjem?leggtil=1" className="shrink-0 rounded-xl bg-emerald-500 px-6 py-3 text-center font-bold text-white hover:bg-emerald-400">+ Legg til</Link></section>
+
+      <section className="rounded-2xl border border-stone-200 bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5"><div><h2 className="font-bold">Driver du også med utleie?</h2><p className="mt-1 max-w-2xl text-sm text-slate-500">Få egne verktøy for utleieboliger, leietakere, kontrakter, økonomi og skatterapport.</p></div><Link href="/velg-bruksomrade" className="mt-4 inline-block text-sm font-bold text-emerald-700 sm:mt-0">Åpne utleieoversikten →</Link></section>
+    </div>
+  </div>;
+}
+
+function formaterKortDato(dato: string) {
+  return new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "long" }).format(new Date(`${dato}T12:00:00`));
+}
+
+function beregnFullforing(bolig: BoligData | undefined, dokumenter: Dokument[]) {
+  if (!bolig) return { prosent: 0, mangler: [] as string[] };
+  const data = lesAltOmBoligen(bolig);
+  const boligDokumenter = dokumenter.filter((dokument) => dokument.boligId === String(bolig.id));
+  const felt: [string, unknown][] = [
+    ["adresse", bolig.adresse], ["boligtype", data.generell.boligtype || bolig.boligtype], ["byggeår", data.generell.byggeaar],
+    ["areal", data.generell.totalareal], ["tak", data.viktigeDeler.tak], ["elektrisk anlegg", data.viktigeDeler.elektrisk],
+    ["rør", data.viktigeDeler.ror], ["oppvarming", data.viktigeDeler.oppvarming || data.teknisk.oppvarming],
+    ["stoppekran", data.teknisk.hovedstoppekran], ["sikringsskap", data.teknisk.sikringsskap],
+    ["rom", data.rom.length], ["dokumentasjon", boligDokumenter.length],
+  ];
+  const ferdige = felt.filter(([, verdi]) => typeof verdi === "number" ? verdi > 0 : Boolean(String(verdi || "").trim())).length;
+  return { prosent: Math.round((ferdige / felt.length) * 100), mangler: felt.filter(([, verdi]) => typeof verdi === "number" ? verdi <= 0 : !String(verdi || "").trim()).map(([navn]) => navn) };
 }
 
 function UtleieForside() {

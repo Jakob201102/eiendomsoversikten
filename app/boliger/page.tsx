@@ -191,7 +191,7 @@ export default function Boliger() {
 
     if (
       !window.confirm(
-        `Vil du slette ${bolig?.adresse || "denne boligen"}?`,
+        `Vil du slette ${bolig?.adresse || "denne boligen"}?\n\nAlle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.`,
       )
     ) {
       return;
