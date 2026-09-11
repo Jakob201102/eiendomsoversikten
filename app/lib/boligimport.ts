@@ -53,7 +53,7 @@ export function slaSammenBoligimport(kilder: BoligimportKilde[]) {
 
   resultat.romForslag = unikeTekster(kilder.flatMap(({ data }) => data.romForslag || []));
   resultat.romDetaljer = slaSammenRom(kilder.flatMap(({ data }) => data.romDetaljer || []));
-  resultat.romForslag = unikeTekster([
+  resultat.romForslag = ryddRomforslag([
     ...resultat.romDetaljer.map((rom) => rom.navn),
     ...resultat.romForslag,
   ]);
@@ -122,6 +122,32 @@ function unikeTekster(verdier: string[]) {
     );
 }
 
+function romSammenligning(verdi: string) {
+  return verdi
+    .split("/")
+    .map((del) => normaliserSammenligning(del))
+    .filter(Boolean)
+    .sort()
+    .join("/");
+}
+
+export function ryddRomforslag(verdier: string[]) {
+  const unike = verdier
+    .map((verdi) => verdi.trim())
+    .filter(Boolean)
+    .filter((verdi, indeks, alle) =>
+      alle.findIndex((annen) => romSammenligning(annen) === romSammenligning(verdi)) === indeks,
+    );
+  const sammensatte = unike.filter((verdi) => verdi.includes("/"));
+  return unike.filter((verdi) => {
+    if (verdi.includes("/")) return true;
+    const nokkel = normaliserSammenligning(verdi);
+    return !sammensatte.some((sammensatt) =>
+      sammensatt.split("/").some((del) => normaliserSammenligning(del) === nokkel),
+    );
+  });
+}
+
 function normaliserSammenligning(verdi: string) {
   return verdi.toLocaleLowerCase("nb-NO").replace(/\s+/g, " ").replace(/[^a-zæøå0-9]/g, "");
 }
@@ -170,7 +196,7 @@ export function analyserBoligtekst(innhold: string): ImportertBolig {
       rom.navn.split("/").some((del) => romBasis(del) === romBasis(navn)),
     ),
   );
-  data.romForslag = unikeTekster([
+  data.romForslag = ryddRomforslag([
     ...data.romDetaljer.map((rom) => rom.navn),
     ...generelleRom,
   ]);
@@ -298,11 +324,21 @@ function finnRomforslag(tekst: string, soverom: number) {
     const erRomoversikt = /\b(?:innhold|planløsning|romfordeling|romoversikt|består\s+av|inneholder|følgende\s+rom)\b/i.test(linje);
     const romtreff = faste.filter(([monster]) => monster.test(linje)).length + (/\bsoverom\b/i.test(linje) ? 1 : 0);
     if (erRomoversikt) seksjoner.push([linje, linjer[indeks + 1], linjer[indeks + 2]].filter(Boolean).join(" "));
-    else if (romtreff >= 2 && /[,;/]|\bog\b/i.test(linje)) seksjoner.push(linje);
+    else if (romtreff >= 3 || (romtreff >= 2 && /[,;/]|\bog\b/i.test(linje))) seksjoner.push(linje);
     else if (romord.test(linje) && /\d+(?:[.,]\d+)?\s*m(?:²|2|\^2)/i.test(linje)) seksjoner.push(linje);
   }
-  const romtekst = seksjoner.join("\n");
-  faste.forEach(([monster, navn]) => { if (monster.test(romtekst)) leggTil(navn); });
+  const romtekst = seksjoner
+    .map((seksjon) => seksjon.replace(/\b(?:kan\s+(?:også\s+)?brukes\s+som|kan\s+innredes\s+som|kan\s+gjøres\s+om\s+til|mulighet\s+for|potensial\s+for)\b[^.!;]*/gi, ""))
+    .join("\n");
+  const harKjokkenStue = /\b(?:kjøkken\s*\/\s*stue|stue\s*\/\s*kjøkken)\b/i.test(romtekst);
+  const harBadVaskerom = /\b(?:bad(?:erom)?\s*\/\s*vaskerom|vaskerom\s*\/\s*bad(?:erom)?)\b/i.test(romtekst);
+  if (harKjokkenStue) leggTil("Kjøkken/stue");
+  if (harBadVaskerom) leggTil("Bad/vaskerom");
+  faste.forEach(([monster, navn]) => {
+    if (harKjokkenStue && (navn === "Kjøkken" || navn === "Stue")) return;
+    if (harBadVaskerom && (navn === "Bad" || navn === "Vaskerom")) return;
+    if (monster.test(romtekst)) leggTil(navn);
+  });
   const antall = Math.min(Math.max(soverom, Number(treff(romtekst, /\b(\d{1,2})\s+soverom\b/i) || 0)), 12);
   for (let indeks = 1; indeks <= antall; indeks += 1) leggTil(antall === 1 ? "Soverom" : `Soverom ${indeks}`);
   return rom;
@@ -330,9 +366,13 @@ function finnRomdetaljer(tekst: string, soverom: number): ImportertRom[] {
   for (const [indeks, linje] of linjer.entries()) {
     for (const nummerert of linje.matchAll(new RegExp(`\\b(soverom|sov\\.?|bad|baderom)\\s*(?:nr\\.?\\s*)?([1-9]|1[0-2])\\s*(?:[:–—-]\\s*|\\s+)\\s*(?:areal\\s*[:–—-]?\\s*)?(?:ca\\.?\\s*)?${arealMønster}`, "gi")))
       leggTil(normaliserRomnavn(`${nummerert[1]} ${nummerert[2]}`), nummerert[3]);
-    for (const forst of linje.matchAll(new RegExp(`\\b(${romnavnMønster})\\b\\s*(?:[:–—-]|\\(|\\bis\\b|\\bareal\\b)?\\s*(?:ca\\.?\\s*)?${arealMønster}`, "gi")))
+    for (const nummerertMedMellomtekst of linje.matchAll(new RegExp(`\\b(soverom|sov\\.?)\\s*(?:nr\\.?\\s*)?([1-9]|1[0-2])\\b[^;,.]{0,30}?${arealMønster}`, "gi")))
+      leggTil(normaliserRomnavn(`${nummerertMedMellomtekst[1]} ${nummerertMedMellomtekst[2]}`), nummerertMedMellomtekst[3]);
+    for (const nummerertMedOppgittAreal of linje.matchAll(new RegExp(`\\b(soverom|sov\\.?)\\s*(?:nr\\.?\\s*)?([1-9]|1[0-2])\\b[^;\\n]{0,100}?\\b(?:areal(?:et)?(?:\\s+på)?|ca\\.?)\\s*[:–—-]?\\s*${arealMønster}`, "gi")))
+      leggTil(normaliserRomnavn(`${nummerertMedOppgittAreal[1]} ${nummerertMedOppgittAreal[2]}`), nummerertMedOppgittAreal[3]);
+    for (const forst of linje.matchAll(new RegExp(`\\b(${romnavnMønster})\\b\\s*(?:[:–—-]|\\(|\\bis\\b|\\bareal\\b|\\bpå\\b|\\bmåler\\b)?\\s*(?:ca\\.?\\s*)?${arealMønster}`, "gi")))
       leggTil(normaliserRomnavn(forst[1]), forst[2]);
-    for (const sist of linje.matchAll(new RegExp(`${arealMønster}\\s*(?:[-–—:]|\\))?\\s*\\b(${romnavnMønster})(?:\\s*(?:nr\\.?\\s*)?([1-9]|1[0-2]))?\\b`, "gi")))
+    for (const sist of linje.matchAll(new RegExp(`^\\s*(?:[-•]\\s*)?${arealMønster}\\s*(?:[-–—:]|\\))?\\s*\\b(${romnavnMønster})(?:\\s*(?:nr\\.?\\s*)?([1-9]|1[0-2]))?\\b`, "gi")))
       leggTil(normaliserRomnavn(`${sist[2]}${sist[3] ? ` ${sist[3]}` : ""}`), sist[1]);
 
     // Noen romtabeller har «m²» bare i kolonneoverskriften.
@@ -343,9 +383,12 @@ function finnRomdetaljer(tekst: string, soverom: number): ImportertRom[] {
 
     // Salgsoppgaver og OCR legger ofte romnavnet og arealet på hver sin linje.
     const bareRom = linje.match(new RegExp(`^(${romnavnMønster})\\s*[:–—-]?$`, "i"));
+    const bareNummerert = linje.match(/^\s*(soverom|sov\.?)\s*(?:nr\.?\s*)?([1-9]|1[0-2])\s*[:–—-]?\s*$/i);
     const neste = linjer[indeks + 1] || "";
     const nesteAreal = neste.match(new RegExp(`^(?:areal\\s*[:–—-]?\\s*)?(?:ca\\.?\\s*)?${arealMønster}`, "i"));
     if (bareRom && nesteAreal) leggTil(normaliserRomnavn(bareRom[1]), nesteAreal[1]);
+    const nesteDesimal = neste.match(/^(?:areal\s*[:–—-]?\s*)?(?:ca\.?\s*)?([4-9]|[1-3][0-9])[.,]([0-9]{1,2})\s*(?:m(?:²|2|\^2))?$/i);
+    if (bareNummerert && nesteDesimal) leggTil(normaliserRomnavn(`${bareNummerert[1]} ${bareNummerert[2]}`), `${nesteDesimal[1]},${nesteDesimal[2]}`);
   }
   const antall = Math.min(Math.max(soverom, 0), 12);
   const harNummerertSoverom = resultat.some((rom) => /^soverom\s+\d+$/i.test(rom.navn));
@@ -445,6 +488,48 @@ export function erPlantegningstekst(tekst: string) {
   const maal = (normalisert.match(/\b\d{1,3}(?:[,.]\d+)?\s*m(?:²|2)\b/g) || []).length;
   const dimensjoner = (normalisert.match(/\b\d{1,2}(?:[,.]\d+)?\s*[x×]\s*\d{1,2}(?:[,.]\d+)?\b/g) || []).length;
   return romord >= 3 || (romord >= 2 && (maal >= 1 || dimensjoner >= 1)) || (romord >= 1 && dimensjoner >= 2) || /\bplantegning\b|\bplanløsning\b|\bfloor\s*plan\b|\b1\.?\s*etasje\b[\s\S]*\b2\.?\s*etasje\b/.test(normalisert);
+}
+
+/** Forsiktig visuell sjekk som finner typiske lyse plantegninger uten å gjette rominnhold. */
+export async function serUtSomPlantegningVisuelt(fil: File) {
+  if (!fil.type.startsWith("image/") || typeof createImageBitmap !== "function") return false;
+  let bilde: ImageBitmap | null = null;
+  try {
+    bilde = await createImageBitmap(fil);
+    const skala = Math.min(1, 260 / Math.max(bilde.width, bilde.height));
+    const bredde = Math.max(1, Math.round(bilde.width * skala));
+    const hoyde = Math.max(1, Math.round(bilde.height * skala));
+    const canvas = document.createElement("canvas");
+    canvas.width = bredde;
+    canvas.height = hoyde;
+    const kontekst = canvas.getContext("2d", { willReadFrequently: true });
+    if (!kontekst) return false;
+    kontekst.drawImage(bilde, 0, 0, bredde, hoyde);
+    const piksler = kontekst.getImageData(0, 0, bredde, hoyde).data;
+    let lyse = 0; let liteFarge = 0; let morke = 0; let kanter = 0; let antall = 0;
+    for (let y = 2; y < hoyde; y += 2) {
+      for (let x = 2; x < bredde; x += 2) {
+        const indeks = (y * bredde + x) * 4;
+        const venstre = (y * bredde + x - 2) * 4;
+        const r = piksler[indeks]; const g = piksler[indeks + 1]; const b = piksler[indeks + 2];
+        const lys = (r + g + b) / 3;
+        const venstreLys = (piksler[venstre] + piksler[venstre + 1] + piksler[venstre + 2]) / 3;
+        if (lys > 220) lyse += 1;
+        if (Math.max(r, g, b) - Math.min(r, g, b) < 28) liteFarge += 1;
+        if (lys < 85) morke += 1;
+        if (Math.abs(lys - venstreLys) > 48) kanter += 1;
+        antall += 1;
+      }
+    }
+    if (!antall) return false;
+    const lysandel = lyse / antall; const graaandel = liteFarge / antall;
+    const morkandel = morke / antall; const kantandel = kanter / antall;
+    return lysandel > 0.5 && graaandel > 0.6 && morkandel > 0.012 && morkandel < 0.32 && kantandel > 0.035;
+  } catch {
+    return false;
+  } finally {
+    bilde?.close();
+  }
 }
 
 function hentLesbarJsonTekst(html:string){const verdier:string[]=[];const nokler="description|adDescription|propertyDescription|body|content|heading|title|address|locationDescription|facilities|areaDescription";const u=new RegExp(`"(?:${nokler})"\\s*:\\s*"((?:\\\\.|[^"\\\\]){8,20000})"`,"gi");for(const m of html.matchAll(u)){const v=dekodJson(m[1]);if(!/https?:\/\//i.test(v)&&/[A-Za-zÆØÅæøå]{3}/.test(v))verdier.push(v);}return verdier.slice(0,80).join("\n");}

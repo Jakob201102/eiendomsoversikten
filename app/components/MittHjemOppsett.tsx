@@ -15,7 +15,7 @@ import {
 } from "../lib/boliger";
 import { lagreDokumentlenke, lastOppDokument } from "../lib/dokumenter";
 import { opprettVedlikeholdsoppgave } from "../lib/vedlikehold";
-import { analyserBoligtekst, erPlantegningstekst, type ImportertRom } from "../lib/boligimport";
+import { analyserBoligtekst, erPlantegningstekst, serUtSomPlantegningVisuelt, type ImportertRom } from "../lib/boligimport";
 import BoligimportKilder from "./BoligimportKilder";
 
 type Adresseforslag = {
@@ -147,55 +147,6 @@ async function finnPlantegninger(filer: File[]) {
     // Opplasting skal fortsatt fungere dersom OCR ikke er tilgjengelig.
   }
   return resultat;
-}
-
-async function serUtSomPlantegningVisuelt(fil: File) {
-  if (!fil.type.startsWith("image/") || typeof createImageBitmap !== "function") return false;
-  let bilde: ImageBitmap | null = null;
-  try {
-    bilde = await createImageBitmap(fil);
-    const skala = Math.min(1, 260 / Math.max(bilde.width, bilde.height));
-    const bredde = Math.max(1, Math.round(bilde.width * skala));
-    const hoyde = Math.max(1, Math.round(bilde.height * skala));
-    const canvas = document.createElement("canvas");
-    canvas.width = bredde;
-    canvas.height = hoyde;
-    const kontekst = canvas.getContext("2d", { willReadFrequently: true });
-    if (!kontekst) return false;
-    kontekst.drawImage(bilde, 0, 0, bredde, hoyde);
-    const piksler = kontekst.getImageData(0, 0, bredde, hoyde).data;
-    let lyse = 0;
-    let liteFarge = 0;
-    let morke = 0;
-    let kanter = 0;
-    let antall = 0;
-    for (let y = 2; y < hoyde; y += 2) {
-      for (let x = 2; x < bredde; x += 2) {
-        const indeks = (y * bredde + x) * 4;
-        const venstre = (y * bredde + x - 2) * 4;
-        const r = piksler[indeks];
-        const g = piksler[indeks + 1];
-        const b = piksler[indeks + 2];
-        const lys = (r + g + b) / 3;
-        const venstreLys = (piksler[venstre] + piksler[venstre + 1] + piksler[venstre + 2]) / 3;
-        if (lys > 220) lyse += 1;
-        if (Math.max(r, g, b) - Math.min(r, g, b) < 28) liteFarge += 1;
-        if (lys < 85) morke += 1;
-        if (Math.abs(lys - venstreLys) > 48) kanter += 1;
-        antall += 1;
-      }
-    }
-    if (!antall) return false;
-    const lysandel = lyse / antall;
-    const graaandel = liteFarge / antall;
-    const morkandel = morke / antall;
-    const kantandel = kanter / antall;
-    return lysandel > 0.5 && graaandel > 0.6 && morkandel > 0.012 && morkandel < 0.32 && kantandel > 0.035;
-  } catch {
-    return false;
-  } finally {
-    bilde?.close();
-  }
 }
 
 function lagUteomraderFraImport(verdier: Record<string, string>) {

@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import {
   analyserBoligtekst,
   erPlantegningstekst,
+  ryddRomforslag,
+  serUtSomPlantegningVisuelt,
   slaSammenBoligimport,
   type BoligimportKilde,
   type BoligimportKonflikt,
@@ -122,6 +124,7 @@ export default function BoligimportKilder({
     const kilder: BoligimportKilde[] = [];
     const problemer: string[] = [];
     let hentedeFinnBilder: string[] = [];
+    let finnPlantegningBilder: string[] = [];
     try {
       if (adresseValgt) {
         const fullAdresse = `${adresseValgt.adressetekst}, ${adresseValgt.postnummer} ${adresseValgt.poststed}`;
@@ -145,6 +148,20 @@ export default function BoligimportKilder({
           if (!svar.ok || !innhold.data) throw new Error(innhold.feil || "Kunne ikke lese annonsen");
           kilder.push({ kilde: "FINN", data: innhold.data });
           hentedeFinnBilder = Array.isArray(innhold.data.bildeForslag) ? innhold.data.bildeForslag : [];
+          if (hentedeFinnBilder.length) {
+            try {
+              const plantegninger = await lesFinnPlantegninger(
+                hentedeFinnBilder,
+                (melding) => setFremdrift(melding),
+              );
+              finnPlantegningBilder = plantegninger.adresser;
+              plantegninger.tekster.forEach((verdi, indeks) =>
+                kilder.push({ kilde: `FINN-plantegning ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
+              );
+            } catch {
+              problemer.push("FINN-annonsen ble lest, men plantegningene kunne ikke tekstleses denne gangen.");
+            }
+          }
         } catch {
           problemer.push("Vi klarte ikke å hente informasjon fra FINN-lenken, men analyserte de andre kildene.");
         }
@@ -201,7 +218,10 @@ export default function BoligimportKilder({
       setResultat(neste);
       setKonflikter(sammenslatt.konflikter);
       setFinnBilder(hentedeFinnBilder.length ? hentedeFinnBilder : finnBilder);
-      setValgteFinnBilder((forrige) => forrige.length ? forrige : hentedeFinnBilder.slice(0, 24));
+      setValgteFinnBilder((forrige) => {
+        const grunnlag = forrige.length ? forrige : hentedeFinnBilder.slice(0, 24);
+        return unike([...grunnlag, ...finnPlantegningBilder]).slice(0, 40);
+      });
       setMeldinger(problemer.length ? problemer : ["Alle kildene er analysert. Dobbelsjekk forslagene før de brukes."]);
     } finally {
       setFremdrift("");
@@ -329,7 +349,7 @@ function GuideSporsmal({ sporsmal, onSvar }: { sporsmal: string; onSvar: (verdi?
 
 function beholdKontrollerteVerdier(gammelt: ImportertBolig, nytt: ImportertBolig): ImportertBolig {
   const resultat = { ...nytt, ...gammelt };
-  resultat.romForslag = unike([...gammelt.romForslag, ...nytt.romForslag]);
+  resultat.romForslag = ryddRomforslag([...gammelt.romForslag, ...nytt.romForslag]);
   resultat.romDetaljer = [...gammelt.romDetaljer, ...nytt.romDetaljer].reduce<ImportertBolig["romDetaljer"]>((alle, rom) => {
     const eksisterende = alle.find((verdi) => verdi.navn.toLocaleLowerCase("nb-NO") === rom.navn.toLocaleLowerCase("nb-NO"));
     if (eksisterende) {
@@ -347,6 +367,60 @@ function beholdKontrollerteVerdier(gammelt: ImportertBolig, nytt: ImportertBolig
 
 function unike(verdier: string[]) { return [...new Set(verdier.map((v) => v.trim()).filter(Boolean))]; }
 function indexKey(verdi: string, indeks: number) { return `${verdi}-${indeks}`; }
+
+async function lesFinnPlantegninger(
+  adresser: string[],
+  onFremdrift: (melding: string) => void,
+) {
+  const kandidater: { fil: File; indeks: number; adresse: string }[] = [];
+  const nedlastede: { fil: File; indeks: number; adresse: string }[] = [];
+  const begrenset = adresser.slice(0, 40);
+  let neste = 0;
+  await Promise.all(Array.from({ length: Math.min(5, begrenset.length) }, async () => {
+    while (neste < begrenset.length) {
+      const indeks = neste;
+      neste += 1;
+      try {
+        onFremdrift(`Ser etter plantegninger i FINN-bildene · ${indeks + 1} av ${begrenset.length}`);
+        const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(begrenset[indeks])}`);
+        if (!svar.ok) continue;
+        const blob = await svar.blob();
+        const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+        const fil = new File([blob], `finn-${indeks + 1}.${type.includes("png") ? "png" : "jpg"}`, { type });
+        nedlastede.push({ fil, indeks, adresse: begrenset[indeks] });
+        if (await serUtSomPlantegningVisuelt(fil)) kandidater.push({ fil, indeks, adresse: begrenset[indeks] });
+      } catch {
+        // Én bildefeil skal ikke stoppe resten av boligimporten.
+      }
+    }
+  }));
+
+  // Plantegninger ligger ofte sist i annonsen. Bruk noen få som reserve dersom
+  // den forsiktige visuelle sjekken ikke finner en kandidat.
+  const valgte = (kandidater.length ? kandidater : nedlastede.sort((a, b) => b.indeks - a.indeks).slice(0, 3))
+    .sort((a, b) => a.indeks - b.indeks)
+    .slice(0, 5);
+  if (!valgte.length) return { tekster: [] as string[], adresser: [] as string[] };
+
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("nor+eng");
+  const tekster: string[] = [];
+  const plantegningAdresser: string[] = [];
+  try {
+    for (const [indeks, kandidat] of valgte.entries()) {
+      onFremdrift(`Leser mulig plantegning ${indeks + 1} av ${valgte.length}`);
+      const lest = await worker.recognize(kandidat.fil);
+      const tekst = String(lest.data.text || "").trim();
+      if (tekst.length >= 5 && erPlantegningstekst(tekst)) {
+        tekster.push(tekst);
+        plantegningAdresser.push(kandidat.adresse);
+      }
+    }
+  } finally {
+    await worker.terminate();
+  }
+  return { tekster, adresser: plantegningAdresser };
+}
 
 async function lesPdfFil(
   fil: File,
