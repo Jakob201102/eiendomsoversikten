@@ -13,6 +13,13 @@ export type Rominfo = {
   lister: string;
   sistPusset: string;
   notat: string;
+  bildeIder?: string[];
+};
+
+export type Handlelisteinfo = {
+  id: string;
+  tekst: string;
+  ferdig: boolean;
 };
 
 export type Nokkelinfo = {
@@ -204,6 +211,8 @@ export type AltOmBoligenData = {
   forsikringer: Forsikringinfo[];
   kontakter: Kontaktinfo[];
   skader: Skadeinfo[];
+  handleliste: Handlelisteinfo[];
+  avvisteAnbefalinger: string[];
   onboarding: Onboardinginfo;
   notater: string;
   oppdatert: string;
@@ -307,6 +316,8 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
     forsikringer: [],
     kontakter: [],
     skader: [],
+    handleliste: [],
+    avvisteAnbefalinger: [],
     onboarding: { status: "ikke-startet", steg: 1 },
     notater: "",
     oppdatert: "",
@@ -335,7 +346,10 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       ...grunnlag.tilleggsarealer,
       ...(lagret.tilleggsarealer || {}),
     },
-    rom: liste<Rominfo>(lagret.rom),
+    rom: liste<Rominfo>(lagret.rom).map((rom) => ({
+      ...rom,
+      bildeIder: liste<string>(rom.bildeIder),
+    })),
     nokler: liste<Nokkelinfo>(lagret.nokler),
     utstyr: liste<Utstyrinfo>(lagret.utstyr),
     oppussing: liste<Oppussinginfo>(lagret.oppussing),
@@ -361,6 +375,11 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       dokumentIder: liste<string>(skade.dokumentIder),
       bildeIder: liste<string>(skade.bildeIder),
     })),
+    handleliste: liste<Handlelisteinfo>(lagret.handleliste).map((punkt) => ({
+      ...punkt,
+      ferdig: Boolean(punkt.ferdig),
+    })),
+    avvisteAnbefalinger: liste<string>(lagret.avvisteAnbefalinger).map(String),
     onboarding: {
       ...grunnlag.onboarding,
       ...(lagret.onboarding || {}),

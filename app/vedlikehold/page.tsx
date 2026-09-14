@@ -95,12 +95,16 @@ export default function Vedlikehold() {
         );
 
         if (brukerboliger.length > 0) {
-          setBoligId(
-            String(
-              brukerboliger.find((bolig) => bolig.tilgang !== "leser")
-                ?.id || brukerboliger[0].id,
-            ),
-          );
+          const onsketBolig = search.get("bolig");
+          const valgtBolig = brukerboliger.find((bolig) => String(bolig.id) === onsketBolig && bolig.tilgang !== "leser") || brukerboliger.find((bolig) => bolig.tilgang !== "leser") || brukerboliger[0];
+          setBoligId(String(valgtBolig.id));
+          if (search.get("ny") === "1" && valgtBolig.brukstype === "privat") {
+            setPrivatFane("kommende");
+            setTittel(search.get("tittel") || "");
+            const foreslaatt = search.get("gjentakelse");
+            if (["aldri", "maanedlig", "kvartalsvis", "halvaarlig", "aarlig", "toaarlig", "egendefinert"].includes(foreslaatt || "")) setGjentakelse(foreslaatt as Gjentakelse);
+            setVisSkjema(true);
+          }
         }
       } catch (feil) {
         if (
@@ -122,7 +126,7 @@ export default function Vedlikehold() {
     return () => {
       aktiv = false;
     };
-  }, [router]);
+  }, [router, search]);
 
   const sorterteOppgaver = useMemo(() => {
     const filtrert = oppgaver.filter((oppgave) => {

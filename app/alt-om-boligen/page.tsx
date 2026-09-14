@@ -904,9 +904,9 @@ function Seksjonsmeny() {
     ["Nøkler og utstyr", "nokler-utstyr"],
     ["Tilleggsarealer", "tilleggsarealer"],
     ["Historikk", "historikk"],
-    ["Bilder og dokumenter", "bilder-dokumenter"],
+    ["Bilder og plantegninger", "bilder-dokumenter"],
   ];
-  return <nav aria-label="Seksjoner i Alt om boligen" className="sticky top-0 z-20 -mx-1 mt-4 overflow-x-auto rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"><div className="flex min-w-max gap-1">{valg.map(([navn, id]) => <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-emerald-50 hover:text-emerald-800">{navn}</a>)}</div></nav>;
+  return <nav aria-label="Seksjoner i Alt om boligen" className="sticky top-0 z-20 mt-4 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"><div className="grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-8">{valg.map(([navn, id]) => <a key={id} href={`#${id}`} className="flex min-h-10 items-center justify-center rounded-lg px-2 py-2 text-center text-xs font-semibold leading-tight text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm">{navn}</a>)}</div></nav>;
 }
 function Detaljliste({ rader, kompakt = false }: { rader: [string, string][]; kompakt?: boolean }) { const synlige = rader.filter(([, verdi]) => verdi.trim()); if (!synlige.length) return <TomInnhold tekst="Ingen opplysninger er registrert." />; return <dl className={kompakt ? "mt-4 space-y-2 text-sm" : "divide-y divide-slate-100"}>{synlige.map(([label, verdi]) => <div key={label} className={kompakt ? "grid grid-cols-[95px_1fr] gap-3" : "grid gap-1 py-3 first:pt-0 sm:grid-cols-[150px_1fr] sm:gap-4"}><dt className="text-slate-500">{label}</dt><dd className="font-medium text-slate-800">{verdi}</dd></div>)}</dl>; }
 function TomInnhold({ tekst }: { tekst: string }) { return <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500">{tekst}</p>; }

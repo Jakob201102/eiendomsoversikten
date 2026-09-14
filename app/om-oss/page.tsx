@@ -61,6 +61,22 @@ export default function OmOss() {
             </article>
           </div>
 
+          <section className="mt-8 rounded-3xl bg-white p-7 shadow-sm sm:p-9">
+            <p className="text-sm font-bold uppercase tracking-wider text-emerald-700">Dette hjelper vi med</p>
+            <h2 className="mt-3 text-3xl font-bold">Bedre kontroll gjennom hele eiertiden</h2>
+            <p className="mt-4 max-w-3xl leading-7 text-slate-600">Eiendomsoversikten er laget for at viktig kunnskap om en bolig ikke skal forsvinne i e-poster, skuffer og tilfeldige mapper. Du kan bygge opp en digital servicebok som blir mer nyttig hver gang noe vedlikeholdes, repareres eller dokumenteres.</p>
+            <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                ["🏠", "Boliginformasjon", "Samle rom, materialer, fargekoder og viktige plasseringer."],
+                ["🔧", "Vedlikehold", "Planlegg oppgaver, gjentakende kontroller og registrer det som er utført."],
+                ["🕐", "Bolighistorikk", "Behold en ryddig tidslinje over arbeid, kostnader og håndverkere."],
+                ["📁", "Dokumentasjon", "Finn igjen kvitteringer, garantier, bilder og viktige dokumenter."],
+                ["👨‍👩‍👧", "Delt hjem", "Gi familien tilgang til den samme oppdaterte boligoversikten."],
+                ["🏘️", "Utleie", "Få egne verktøy for boliger, leietakere, økonomi og årsrapport."],
+              ].map(([ikon, tittel, tekst]) => <article key={tittel} className="rounded-2xl bg-stone-50 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold">{tittel}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{tekst}</p></article>)}
+            </div>
+          </section>
+
           <section className="mt-8 rounded-3xl bg-emerald-500 px-6 py-10 text-center text-slate-950 sm:px-10 sm:py-12">
             <p className="font-semibold">KONTAKT OSS</p>
             <h2 className="mt-3 text-3xl font-bold">

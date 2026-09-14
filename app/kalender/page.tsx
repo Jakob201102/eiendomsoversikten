@@ -99,6 +99,9 @@ export default function Kalender() {
 
   const dager = useMemo(() => kalenderdager(maaned), [maaned]);
   const valgteHendelser = hendelser.filter((hendelse) => hendelse.dato === valgtDato);
+  const nesteHendelser = hendelser
+    .filter((hendelse) => hendelse.dato >= lokalDato(new Date()))
+    .slice(0, 5);
   const filtrerteLeietakere = leietakere.filter(
     (leietaker) => !skjema.boligId || leietaker.boligId === skjema.boligId,
   );
@@ -200,6 +203,21 @@ export default function Kalender() {
         {feil && !skjemaAapent && (
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>
         )}
+
+        <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Fremover</p><h2 className="mt-1 text-xl font-bold">Neste hendelser</h2></div>
+            <span className="text-sm text-slate-400">{nesteHendelser.length} vist</span>
+          </div>
+          {nesteHendelser.length ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {nesteHendelser.map((hendelse) => {
+                const kort = <div className="h-full min-w-0 rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300"><div className="flex items-center gap-2"><span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPEINFO[hendelse.type].prikk}`} /><span className="text-xs font-bold uppercase text-slate-500">{fullDato(hendelse.dato)}</span></div><h3 className="mt-2 break-words font-bold">{hendelse.tittel}</h3>{hendelse.boligAdresse && <p className="mt-1 break-words text-sm text-slate-500">{hendelse.boligAdresse}</p>}</div>;
+                return hendelse.kildeUrl ? <Link key={hendelse.id} href={hendelse.kildeUrl}>{kort}</Link> : <button key={hendelse.id} type="button" onClick={() => { setValgtDato(hendelse.dato); setMaaned(startMaaned(new Date(`${hendelse.dato}T12:00:00`))); }} className="min-w-0 text-left">{kort}</button>;
+              })}
+            </div>
+          ) : <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Ingen kommende hendelser er registrert.</p>}
+        </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="overflow-hidden rounded-3xl bg-white shadow-sm">

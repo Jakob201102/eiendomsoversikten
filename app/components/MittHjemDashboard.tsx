@@ -170,6 +170,7 @@ export default function MittHjemDashboard({
   }));
   const [jobber, setJobber] = useState(false);
   const [feil, setFeil] = useState("");
+  const [nyttHandlepunkt, setNyttHandlepunkt] = useState("");
 
   const boligDokumenter = dokumenter.filter(
     (dokument) => dokument.boligId === String(bolig.id),
@@ -218,6 +219,35 @@ export default function MittHjemDashboard({
       (b.dato || "").localeCompare(a.dato || ""),
     );
   }, [data.historikk, data.oppussing]);
+
+  async function lagreHandleliste(handleliste: typeof data.handleliste) {
+    if (!kanRedigere) return;
+    setJobber(true);
+    try {
+      await oppdaterBolig(String(bolig.id), {
+        ...bolig,
+        altOmBoligen: { ...data, handleliste, oppdatert: new Date().toISOString() },
+      });
+      setNyttHandlepunkt("");
+      await onOppdatert();
+    } catch {
+      setFeil("Kunne ikke oppdatere handlelisten.");
+    } finally {
+      setJobber(false);
+    }
+  }
+  async function skjulAnbefaling(tittel: string) {
+    if (!kanRedigere) return;
+    try {
+      await oppdaterBolig(String(bolig.id), {
+        ...bolig,
+        altOmBoligen: { ...data, avvisteAnbefalinger: [...new Set([...data.avvisteAnbefalinger, tittel])], oppdatert: new Date().toISOString() },
+      });
+      await onOppdatert();
+    } catch {
+      setFeil("Kunne ikke skjule anbefalingen.");
+    }
+  }
 
   function kreverInnlogging() {
     if (!demo) return false;
@@ -831,6 +861,39 @@ export default function MittHjemDashboard({
           )}
         </Dashboardkort>
       </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex items-start justify-between gap-3">
+            <div><p className="text-2xl">💡</p><h2 className="mt-2 text-xl font-bold">Anbefalinger til boligen</h2></div>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Forslag</span>
+          </div>
+          <p className="mt-2 text-sm text-slate-500">Vanlige intervaller – vurder alltid tilstand, produkt og lokale forhold.</p>
+          <div className="mt-4 space-y-3">
+            {anbefalinger(data).filter((anbefaling) => !data.avvisteAnbefalinger.includes(anbefaling.tittel)).slice(0, 3).map((anbefaling) => (
+              <article key={anbefaling.tittel} className="rounded-xl border border-stone-200 p-4">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-bold">{anbefaling.ikon} {anbefaling.tittel}</h3><p className="mt-1 text-sm text-slate-500">{anbefaling.intervall} · ca. {anbefaling.pris}</p></div></div>
+                {kanRedigere && <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold"><Link href={`/vedlikehold?modus=privat&ny=1&bolig=${bolig.id}&tittel=${encodeURIComponent(anbefaling.tittel)}&gjentakelse=${anbefaling.gjentakelse}`} className="text-emerald-700">Legg til i vedlikeholdsplan →</Link><button type="button" onClick={() => void skjulAnbefaling(anbefaling.tittel)} className="text-slate-500">Ikke relevant</button></div>}
+              </article>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-5 text-slate-400">Prisene er grove eksempler og kan variere mye med størrelse, tilstand, sted og hvem som utfører arbeidet.</p>
+        </section>
+
+        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+          <p className="text-2xl">🛒</p><h2 className="mt-2 text-xl font-bold">Handleliste</h2>
+          <p className="mt-2 text-sm text-slate-500">En enkel liste for ting boligen trenger.</p>
+          {canRenderList(data.handleliste) ? <div className="mt-4 divide-y divide-stone-100">{data.handleliste.map((punkt) => <div key={punkt.id} className="flex min-w-0 items-center gap-3 py-3"><input type="checkbox" checked={punkt.ferdig} disabled={!kanRedigere || jobber} onChange={() => void lagreHandleliste(data.handleliste.map((verdi) => verdi.id === punkt.id ? { ...verdi, ferdig: !verdi.ferdig } : verdi))} className="h-5 w-5 shrink-0 accent-emerald-500" /><span className={`min-w-0 flex-1 break-words text-sm ${punkt.ferdig ? "text-slate-400 line-through" : ""}`}>{punkt.tekst}</span>{kanRedigere && <button type="button" onClick={() => void lagreHandleliste(data.handleliste.filter((verdi) => verdi.id !== punkt.id))} className="shrink-0 text-xs font-bold text-red-600">Fjern</button>}</div>)}</div> : <p className="mt-4 rounded-xl bg-stone-50 p-4 text-sm text-slate-500">Listen er tom.</p>}
+          {kanRedigere && <form onSubmit={(event) => { event.preventDefault(); const tekst = nyttHandlepunkt.trim(); if (tekst) void lagreHandleliste([...data.handleliste, { id: crypto.randomUUID(), tekst, ferdig: false }]); }} className="mt-4 flex gap-2"><input value={nyttHandlepunkt} onChange={(event) => setNyttHandlepunkt(event.target.value)} placeholder="For eksempel røykvarslerbatteri" className="felt min-w-0 flex-1" /><button disabled={jobber} className="shrink-0 rounded-xl bg-emerald-500 px-4 font-bold text-white">Legg til</button></form>}
+        </section>
+      </div>
+
+      <section className="mt-5 rounded-3xl bg-slate-950 p-5 text-white shadow-sm sm:p-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-wider text-emerald-400">Boligverdi</p><h2 className="mt-2 text-2xl font-bold">{boligverdi(bolig) ? kroner(boligverdi(bolig)) : "Verdiestimat ikke beregnet"}</h2><p className="mt-2 max-w-2xl text-sm text-slate-400">Et verdiestimat er bare en veiledende beregning og kan avvike betydelig fra faktisk markedsverdi. En megler eller takstmann må vurdere boligen for en sikrere verdi.</p></div>
+          <Link href={`/kalkulator?rediger=${bolig.id}`} className="shrink-0 rounded-xl bg-white px-5 py-3 text-center text-sm font-bold text-slate-950">{boligverdi(bolig) ? "Oppdater estimat" : "Beregn estimat"}</Link>
+        </div>
+      </section>
 
       {visning && (
         <Modal
@@ -1838,6 +1901,31 @@ function kroner(verdi: number) {
     currency: "NOK",
     maximumFractionDigits: 0,
   }).format(verdi);
+}
+function canRenderList<T>(liste: T[]) {
+  return liste.length > 0;
+}
+function boligverdi(bolig: BoligData) {
+  for (const felt of ["estimertVerdi", "markedsverdi", "dagensVerdi", "boligverdi"]) {
+    const verdi = Number(bolig[felt] || 0);
+    if (Number.isFinite(verdi) && verdi > 0) return verdi;
+  }
+  return 0;
+}
+function anbefalinger(data: ReturnType<typeof lesAltOmBoligen>) {
+  const maaned = new Date().getMonth() + 1;
+  const sesong = maaned >= 3 && maaned <= 5
+    ? { ikon: "🌱", tittel: "Vårsjekk av tak og uteområder", intervall: "Hver vår", pris: "0–5 000 kr", gjentakelse: "aarlig" }
+    : { ikon: "🍂", tittel: "Rens takrenner og gjør klart for vinter", intervall: "Hver høst", pris: "0–4 000 kr", gjentakelse: "aarlig" };
+  const forslag = [
+    sesong,
+    { ikon: "🔥", tittel: "Test røykvarslere", intervall: "Minst én gang i året", pris: "0–300 kr", gjentakelse: "aarlig" },
+    { ikon: "🧯", tittel: "Kontroller brannslukningsapparat", intervall: "Én gang i året", pris: "0–500 kr", gjentakelse: "aarlig" },
+  ];
+  if (`${data.viktigeDeler.oppvarming} ${data.teknisk.oppvarming}`.toLowerCase().includes("varmepumpe")) {
+    forslag.splice(1, 0, { ikon: "🔧", tittel: "Service på varmepumpe", intervall: "Vanligvis hvert 1.–2. år", pris: "2 000–4 000 kr", gjentakelse: "toaarlig" });
+  }
+  return forslag;
 }
 function modaltittel(visning: Visning, fullforer: boolean, redigerer: boolean) {
   if (visning === "valg") return "Hva vil du legge til?";

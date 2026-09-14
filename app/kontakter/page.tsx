@@ -87,7 +87,7 @@ export default function KontakterSide() {
                 ))}
               </select>
             </label>
-            <Boligadministrasjon bolig={bolig} innlogget={innlogget} onOppdatert={lastInn} visning="kontakter" />
+            <Boligadministrasjon bolig={bolig} boliger={boliger} innlogget={innlogget} onOppdatert={lastInn} visning="kontakter" />
           </>
         )}
       </div>
