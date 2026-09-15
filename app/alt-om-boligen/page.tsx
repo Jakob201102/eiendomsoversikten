@@ -129,6 +129,10 @@ export default function AltOmBoligen() {
   // ikke forsvinne fra det visuelle arkivet på «Alt om boligen».
   const bilder = dokumenter.filter((dokument) => dokument.kategori === BILDEKATEGORI);
   const plantegninger = dokumenter.filter((dokument) => dokument.kategori === PLANTEGNINGKATEGORI);
+  const valgtToppbilde = data
+    ? bilder.find((dokument) => dokument.id === data.forsidebildeId) || bilder.find((dokument) => dokument.boligId === valgtBoligId) || bilder[0]
+    : null;
+  const toppbildeUrl = valgtToppbilde ? filLenker[valgtToppbilde.id] || "" : "";
 
   useEffect(() => {
     let aktiv = true;
@@ -363,12 +367,13 @@ export default function AltOmBoligen() {
   return (
     <main className="privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
       <Navigasjon />
-      <header className="bg-slate-950 px-4 py-10 text-white sm:px-6 sm:py-14">
-        <div className="mx-auto max-w-7xl">
+      <header className="relative min-h-[260px] overflow-hidden bg-slate-950 px-4 py-10 text-white sm:min-h-[360px] sm:px-6 sm:py-14">
+        {toppbildeUrl && <><img src={toppbildeUrl} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/25" /></>}
+        <div className="relative mx-auto flex min-h-[180px] max-w-7xl flex-col justify-end sm:min-h-[248px]">
           <p className="font-semibold text-emerald-400">PRAKTISK BOLIGINFO</p>
           <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Alt om boligen</h1>
           <p className="mt-3 max-w-3xl text-slate-300">
-            Samle bilder, plantegninger, uteområder, nøkler, installasjoner og viktig teknisk informasjon.
+            {valgtBolig?.adresse ? String(valgtBolig.adresse) : "Samle bilder, plantegninger, uteområder, nøkler, installasjoner og viktig teknisk informasjon."}
           </p>
         </div>
       </header>
