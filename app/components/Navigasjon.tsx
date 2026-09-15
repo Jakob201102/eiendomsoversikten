@@ -69,12 +69,14 @@ export default function Navigasjon() {
     if (!epost) {
       if (demoModus === "privat") return [...privat, om];
       if (demoModus === "utleie") return [...utleie, om];
+      if (pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer") return [...privat, om];
+      if (pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator") return [...utleie, om];
       return [om];
     }
     if (modus === "privat") return [...privat, om];
     if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Privat bolig", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
     return [...utleie, om];
-  }, [epost, modus, demoModus]);
+  }, [epost, modus, demoModus, pathname]);
 
   const erAktiv = (adresse: string) => {
     const sti = adresse.split("?")[0];
