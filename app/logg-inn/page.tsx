@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade, startsideFor } from "../lib/bruksomrade";
@@ -19,7 +19,6 @@ function medTidsgrense<Resultat>(jobb: Promise<Resultat>, millisekunder = 15000)
 }
 
 export default function LoggInn() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nesteParameter = searchParams.get("neste") || "";
   const neste = nesteParameter.startsWith("/") && !nesteParameter.startsWith("//") ? nesteParameter : "";
@@ -92,8 +91,7 @@ export default function LoggInn() {
       if (error) {
         setFeilmelding(oversettFeilmelding(error.message));
       } else if (data.session) {
-        router.push(neste || "/velg-bruksomrade");
-        router.refresh();
+        window.location.replace(neste || "/velg-bruksomrade");
         return;
       } else {
         setMelding(
@@ -118,8 +116,12 @@ export default function LoggInn() {
       return;
     }
 
-    router.push(neste || startsideFor(lesBruksomrade(data.user)));
-    router.refresh();
+    if (!data.session) {
+      setFeilmelding("Innloggingen ble godkjent, men økten kunne ikke lagres. Prøv igjen.");
+      setLaster(false);
+      return;
+    }
+    window.location.replace(neste || startsideFor(lesBruksomrade(data.user)));
     } catch {
       setFeilmelding("Innloggingen svarte ikke. Kontroller nettet, lukk fanen helt og prøv igjen.");
       setLaster(false);

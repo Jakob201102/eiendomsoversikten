@@ -1,11 +1,14 @@
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 function opprettNettleserKlient(supabaseUrl: string, supabasePublishableKey: string) {
-  return createBrowserClient(
+  return createSupabaseClient(
     supabaseUrl,
     supabasePublishableKey,
     {
       auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
         // WebKit kan la navigator.locks bli hengende. Supabase-kallene våre
         // kjøres sekvensielt, så en enkel lokal lås er tryggere på iPad.
         lock: async <Resultat>(
