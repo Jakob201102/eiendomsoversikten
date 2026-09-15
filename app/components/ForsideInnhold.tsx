@@ -105,7 +105,7 @@ function PrivatForside() {
             boligen – gjennom hele eiertiden.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/mitt-hjem" className="knapp-lys">
+            <Link href="/mitt-hjem?eksempel=1" className="knapp-lys">
               Åpne Mitt hjem
             </Link>
             <Boligveileder />

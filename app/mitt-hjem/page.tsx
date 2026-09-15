@@ -32,18 +32,28 @@ const demoOppgaver: Vedlikeholdsdata[] = [
 export default function MittHjem() {
   const router = useRouter();
   const search = useSearchParams();
-  const [boliger, setBoliger] = useState<BoligData[]>([]);
-  const [valgtId, setValgtId] = useState("");
-  const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
-  const [oppgaver, setOppgaver] = useState<Vedlikeholdsdata[]>([]);
+  const viserEksempel = search.get("eksempel") === "1";
+  const [boliger, setBoliger] = useState<BoligData[]>(viserEksempel ? [demoBolig] : []);
+  const [valgtId, setValgtId] = useState(viserEksempel ? demoBolig.id : "");
+  const [dokumenter, setDokumenter] = useState<Dokument[]>(viserEksempel ? demoDokumenter : []);
+  const [oppgaver, setOppgaver] = useState<Vedlikeholdsdata[]>(viserEksempel ? demoOppgaver : []);
   const [innlogget, setInnlogget] = useState(false);
-  const [laster, setLaster] = useState(true);
+  const [laster, setLaster] = useState(!viserEksempel);
   const [feil, setFeil] = useState("");
   const [nyBolig, setNyBolig] = useState(false);
   const forespurtBoligId = search.get("bolig") || "";
 
   const lastInn = useCallback(async (foretrukketId?: string) => {
     setFeil("");
+    if (viserEksempel) {
+      setInnlogget(false);
+      setBoliger([demoBolig]);
+      setValgtId(demoBolig.id);
+      setDokumenter(demoDokumenter);
+      setOppgaver(demoOppgaver);
+      setLaster(false);
+      return;
+    }
     try {
       const supabase = createClient();
       const { data } = await Promise.race([
@@ -65,7 +75,7 @@ export default function MittHjem() {
       setValgtId((gammel) => [foretrukketId, gammel, String(privateBoliger[0]?.id || "")].find((id) => privateBoliger.some((bolig) => String(bolig.id) === id)) || "");
       if (!privateBoliger.length) setNyBolig(true);
     } catch (error) { console.error(error); setFeil("Kunne ikke hente hjemmet ditt."); } finally { setLaster(false); }
-  }, [router]);
+  }, [router, viserEksempel]);
 
   useEffect(() => { lastInn(forespurtBoligId || undefined); }, [lastInn, forespurtBoligId]);
 
