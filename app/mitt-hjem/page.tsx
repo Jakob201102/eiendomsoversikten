@@ -8,7 +8,7 @@ import Navigasjon from "../components/Navigasjon";
 import { demoAltOmBoligen, lesAltOmBoligen } from "../lib/alt-om-boligen";
 import { hentBoliger, slettBoligFraDatabase, type BoligData } from "../lib/boliger";
 import { harPrivat, lesBruksomrade } from "../lib/bruksomrade";
-import { hentDokumenter, type Dokument } from "../lib/dokumenter";
+import { dokumentLenker, hentDokumenter, type Dokument } from "../lib/dokumenter";
 import { createClient } from "../lib/supabase/client";
 import { hentVedlikeholdsoppgaver, type Vedlikeholdsdata } from "../lib/vedlikehold";
 
@@ -166,6 +166,21 @@ function MittHjemIPad({
   const data = lesAltOmBoligen(bolig);
   const boligId = String(bolig.id);
   const boligDokumenter = dokumenter.filter((dokument) => dokument.boligId === boligId);
+  const boligbilder = boligDokumenter.filter(
+    (dokument) => dokument.filsti && (dokument.filtype.startsWith("image/") || dokument.kategori === "boligbilde"),
+  );
+  const valgtBakgrunn = boligbilder.find((dokument) => dokument.id === data.forsidebildeId) || boligbilder[0];
+  const [bakgrunnsbilde, setBakgrunnsbilde] = useState("");
+
+  useEffect(() => {
+    let aktiv = true;
+    setBakgrunnsbilde("");
+    if (!valgtBakgrunn?.filsti) return () => { aktiv = false; };
+    dokumentLenker([valgtBakgrunn.filsti]).then((lenker) => {
+      if (aktiv) setBakgrunnsbilde(lenker[valgtBakgrunn.filsti] || "");
+    }).catch(() => undefined);
+    return () => { aktiv = false; };
+  }, [boligId, valgtBakgrunn?.id, valgtBakgrunn?.filsti]);
   const kommende = oppgaver
     .filter((oppgave) => oppgave.boligId === boligId && String(oppgave.status || "") !== "ferdig")
     .sort((a, b) => String(a.frist || "9999").localeCompare(String(b.frist || "9999")))
@@ -182,7 +197,9 @@ function MittHjemIPad({
   ];
 
   return <div className="space-y-5">
-    <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
+    <section className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
+      {bakgrunnsbilde && <><img src={bakgrunnsbilde} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/30" /></>}
+      <div className="relative">
       <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Mitt hjem</p>
       <h1 className="mt-2 break-words text-3xl font-bold">{String(bolig.adresse || "Privat bolig")}</h1>
       <p className="mt-2 text-sm text-slate-300">{[
@@ -191,6 +208,7 @@ function MittHjemIPad({
         data.generell.byggeaar && `Byggeår ${data.generell.byggeaar}`,
       ].filter(Boolean).join(" · ")}</p>
       {boliger.length > 1 && <select value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white">{boliger.map((verdi) => <option key={String(verdi.id)} value={String(verdi.id)}>{String(verdi.adresse || "Privat bolig")}</option>)}</select>}
+      </div>
     </section>
 
     <section className="grid grid-cols-2 gap-3">
