@@ -18,8 +18,12 @@ export default function ForsideInnhold() {
   useEffect(() => {
     const supabase = createClient();
     let aktiv = true;
+    const tidsavbrudd = window.setTimeout(() => {
+      if (aktiv) setLaster(false);
+    }, 4000);
     const oppdater = (bruker: Parameters<typeof lesBruksomrade>[0]) => {
       if (aktiv) {
+        window.clearTimeout(tidsavbrudd);
         setInnlogget(Boolean(bruker));
         setModus(lesBruksomrade(bruker));
         setLaster(false);
@@ -33,6 +37,7 @@ export default function ForsideInnhold() {
     );
     return () => {
       aktiv = false;
+      window.clearTimeout(tidsavbrudd);
       subscription.unsubscribe();
     };
   }, []);

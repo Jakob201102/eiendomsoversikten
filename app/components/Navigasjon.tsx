@@ -31,32 +31,33 @@ export default function Navigasjon() {
   const [epost, setEpost] = useState<string | null>(null);
   const [modus, setModus] = useState<Bruksomrade | null>(null);
   const [demoModus, setDemoModus] = useState<DemoModus>(null);
-  const [hydrert, setHydrert] = useState(false);
   const [sjekker, setSjekker] = useState(true);
   const [loggerUt, setLoggerUt] = useState(false);
 
   useEffect(() => {
-    const lagret = localStorage.getItem("demo_bruksomrade");
+    const lagret = lesLagretDemoModus();
     if (lagret === "privat" || lagret === "utleie") setDemoModus(lagret);
     let aktiv = true;
+    const tidsavbrudd = window.setTimeout(() => {
+      if (aktiv) setSjekker(false);
+    }, 4000);
     const sett = (bruker: Parameters<typeof lesBruksomrade>[0]) => {
       if (!aktiv) return;
+      window.clearTimeout(tidsavbrudd);
       setEpost(bruker?.email ?? null); setModus(lesBruksomrade(bruker)); setSjekker(false);
     };
     supabase.auth.getUser().then(({ data }) => sett(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_hendelse, sesjon) => sett(sesjon?.user ?? null));
-    return () => { aktiv = false; subscription.unsubscribe(); };
+    return () => { aktiv = false; window.clearTimeout(tidsavbrudd); subscription.unsubscribe(); };
   }, [supabase]);
-
-  useEffect(() => { setHydrert(true); }, []);
 
   useEffect(() => { setMenyApen(false); setApenGruppe(""); }, [pathname]);
 
   useEffect(() => {
     const privatSide = pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
     const utleieSide = pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator";
-    if (privatSide) { localStorage.setItem("demo_bruksomrade", "privat"); setDemoModus("privat"); }
-    if (utleieSide) { localStorage.setItem("demo_bruksomrade", "utleie"); setDemoModus("utleie"); }
+    if (privatSide) { lagreDemoModus("privat"); setDemoModus("privat"); }
+    if (utleieSide) { lagreDemoModus("utleie"); setDemoModus("utleie"); }
   }, [pathname]);
 
   const grupper = useMemo(() => {
@@ -78,7 +79,7 @@ export default function Navigasjon() {
   const kompaktPrivatMobil = epost ? modus === "privat" : demoModus === "privat";
 
   function velgEksempel(nyModus: Exclude<DemoModus, null>) {
-    localStorage.setItem("demo_bruksomrade", nyModus);
+    lagreDemoModus(nyModus);
     setDemoModus(nyModus);
     router.push(nyModus === "privat" ? "/mitt-hjem" : "/oversikt");
   }
@@ -91,10 +92,6 @@ export default function Navigasjon() {
   }
 
   const logoLenke = "/";
-
-  if (!hydrert) {
-    return <nav className="relative z-40 bg-slate-950 text-white"><div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between px-4 sm:px-6"><Link href="/" className="flex items-center gap-2 text-lg font-bold xl:text-xl"><span>Eiendomsoversikten</span><span className="rounded-md bg-emerald-400/15 px-2 py-1 text-[10px] font-bold tracking-wider text-emerald-400">BETA</span></Link><span className="text-sm text-slate-500">Laster meny…</span></div></nav>;
-  }
 
   return <>
     <nav className="relative z-40 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-3 sm:px-6"><div className={`flex items-center justify-between gap-3 ${kompaktPrivatMobil ? "min-h-14 lg:min-h-16" : "min-h-16"}`}>
@@ -130,3 +127,20 @@ const mobilVanlig = "block rounded-xl px-4 py-3 text-slate-200 hover:bg-slate-90
 const mobilAktiv = "block rounded-xl bg-emerald-400 px-4 py-3 font-semibold text-slate-950";
 const mobilVanligKompakt = "block rounded-lg px-4 py-2 text-sm text-slate-200 hover:bg-slate-900";
 const mobilAktivKompakt = "block rounded-lg bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950";
+
+function lesLagretDemoModus(): DemoModus {
+  try {
+    const verdi = window.localStorage.getItem("demo_bruksomrade");
+    return verdi === "privat" || verdi === "utleie" ? verdi : null;
+  } catch {
+    return null;
+  }
+}
+
+function lagreDemoModus(verdi: Exclude<DemoModus, null>) {
+  try {
+    window.localStorage.setItem("demo_bruksomrade", verdi);
+  } catch {
+    // Safari kan blokkere lokal lagring. Menyen skal fortsatt fungere.
+  }
+}
