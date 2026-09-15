@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   lesAltOmBoligen,
   type Historikkinfo,
@@ -11,6 +11,7 @@ import {
 import { oppdaterBolig, type BoligData } from "../lib/boliger";
 import {
   dokumentLenke,
+  dokumentLenker,
   lastOppDokument,
   type Dokument,
 } from "../lib/dokumenter";
@@ -172,6 +173,8 @@ export default function MittHjemDashboard({
   const [feil, setFeil] = useState("");
   const [nyttHandlepunkt, setNyttHandlepunkt] = useState("");
   const [visAlleAnbefalinger, setVisAlleAnbefalinger] = useState(false);
+  const [visBildevalg, setVisBildevalg] = useState(false);
+  const [bildeLenker, setBildeLenker] = useState<Record<string, string>>({});
 
   const boligDokumenter = dokumenter.filter(
     (dokument) => dokument.boligId === String(bolig.id),
@@ -189,6 +192,32 @@ export default function MittHjemDashboard({
       dokument.filtype.startsWith("image/") ||
       dokument.kategori === "boligbilde",
   );
+  const valgtForsidebilde = bilderIAarkiv.find((dokument) => dokument.id === data.forsidebildeId) || bilderIAarkiv[0];
+  const forsidebildeUrl = valgtForsidebilde ? bildeLenker[valgtForsidebilde.id] : "";
+  useEffect(() => {
+    let aktiv = true;
+    const medFil = bilderIAarkiv.filter((dokument) => dokument.filsti);
+    if (!medFil.length) return () => { aktiv = false; };
+    dokumentLenker(medFil.map((dokument) => dokument.filsti)).then((lenker) => {
+      if (!aktiv) return;
+      setBildeLenker(Object.fromEntries(medFil.flatMap((dokument) => lenker[dokument.filsti] ? [[dokument.id, lenker[dokument.filsti]]] : [])));
+    }).catch(() => undefined);
+    return () => { aktiv = false; };
+  }, [bolig.id, dokumenter]);
+
+  async function velgForsidebilde(id: string) {
+    if (!kanRedigere) return;
+    setJobber(true);
+    try {
+      await oppdaterBolig(String(bolig.id), { ...bolig, altOmBoligen: { ...data, forsidebildeId: id, oppdatert: new Date().toISOString() } });
+      setVisBildevalg(false);
+      await onOppdatert();
+    } catch {
+      setFeil("Kunne ikke endre toppbildet.");
+    } finally {
+      setJobber(false);
+    }
+  }
   const dokumenterIAarkiv = boligDokumenter.filter(
     (dokument) => !bilderIAarkiv.includes(dokument),
   );
@@ -630,10 +659,12 @@ export default function MittHjemDashboard({
 
   return (
     <>
-      <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+      <section className={`relative overflow-hidden rounded-3xl p-5 shadow-sm sm:p-7 ${forsidebildeUrl ? "text-white" : "bg-white"}`}>
+        {forsidebildeUrl && <><img src={forsidebildeUrl} alt="" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/25" /></>}
+        <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+            <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-300" : "text-emerald-700"}`}>
               Privat bolig
             </p>
             {boliger.length > 1 ? (
@@ -653,7 +684,7 @@ export default function MittHjemDashboard({
                 {String(bolig.adresse || "Mitt hjem")}
               </h1>
             )}
-            <p className="mt-2 text-sm text-slate-500">
+            <p className={`mt-2 text-sm ${forsidebildeUrl ? "text-slate-200" : "text-slate-500"}`}>
               {[
                 String(
                   bolig.boligtype || data.generell.boligtype || "Privat bolig",
@@ -675,7 +706,7 @@ export default function MittHjemDashboard({
               •••
             </button>
             {menyApen && (
-              <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-white p-2 shadow-xl">
+              <div className="absolute right-0 top-12 z-20 w-64 rounded-xl border bg-white p-2 text-slate-900 shadow-xl">
                 {kanRedigere && (
                   <button
                     type="button"
@@ -686,6 +717,11 @@ export default function MittHjemDashboard({
                     className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50"
                   >
                     Rediger boliginformasjon
+                  </button>
+                )}
+                {kanRedigere && bilderIAarkiv.length > 0 && (
+                  <button type="button" onClick={() => { setMenyApen(false); setVisBildevalg(true); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">
+                    Endre toppbilde
                   </button>
                 )}
                 <button
@@ -735,7 +771,10 @@ export default function MittHjemDashboard({
             + Legg til
           </button>
         )}
+        </div>
       </section>
+
+      {visBildevalg && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4"><div className="mx-auto mt-10 max-w-2xl rounded-3xl bg-white p-6 text-slate-900 shadow-2xl"><div className="flex items-center justify-between gap-4"><div><h2 className="text-2xl font-bold">Velg toppbilde</h2><p className="mt-1 text-sm text-slate-500">Velg et bilde fra boligarkivet.</p></div><button type="button" onClick={() => setVisBildevalg(false)} className="text-sm font-bold text-slate-500">Lukk</button></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{bilderIAarkiv.map((dokument) => <button key={dokument.id} type="button" disabled={jobber || !bildeLenker[dokument.id]} onClick={() => void velgForsidebilde(dokument.id)} className={`overflow-hidden rounded-xl border-2 text-left ${data.forsidebildeId === dokument.id || (!data.forsidebildeId && valgtForsidebilde?.id === dokument.id) ? "border-emerald-500" : "border-stone-200"}`}>{bildeLenker[dokument.id] ? <img src={bildeLenker[dokument.id]} alt={dokument.navn} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-xs text-slate-500">Laster…</div>}<span className="block truncate p-2 text-xs font-bold">{dokument.navn}</span></button>)}</div></div></div>}
 
       {feil && (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
@@ -778,7 +817,7 @@ export default function MittHjemDashboard({
         <Dashboardkort
           ikon="📅"
           tittel="Kommende vedlikehold"
-          lenke="/vedlikehold"
+          lenke={`/vedlikehold?bolig=${bolig.id}`}
           lenketekst="Se hele planen"
         >
           {kommende.length ? (
@@ -843,7 +882,7 @@ export default function MittHjemDashboard({
         <Dashboardkort
           ikon="📁"
           tittel="Dokumenter"
-          lenke="/dokumentarkiv"
+          lenke={`/dokumentarkiv?bolig=${bolig.id}`}
           lenketekst="Åpne dokumentarkivet"
         >
           <Filrader

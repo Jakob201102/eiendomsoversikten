@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade, type Bruksomrade } from "../lib/bruksomrade";
 import { hentBoliger, type BoligData } from "../lib/boliger";
-import { hentDokumenter, type Dokument } from "../lib/dokumenter";
+import { dokumentLenke, hentDokumenter, type Dokument } from "../lib/dokumenter";
 import { hentVedlikeholdsoppgaver, type Vedlikeholdsdata } from "../lib/vedlikehold";
 import { lesAltOmBoligen } from "../lib/alt-om-boligen";
 import ForsidePortefolje from "./ForsidePortefolje";
@@ -45,6 +45,21 @@ export default function ForsideInnhold() {
 }
 
 function PrivatForside() {
+  const [bakgrunnUrl, setBakgrunnUrl] = useState("");
+  useEffect(() => {
+    let aktiv = true;
+    Promise.all([hentBoliger(), hentDokumenter()]).then(async ([alleBoliger, alleDokumenter]) => {
+      const hovedbolig = alleBoliger.find((bolig) => String(bolig.brukstype || "") === "privat");
+      if (!hovedbolig) return;
+      const hjemdata = lesAltOmBoligen(hovedbolig);
+      const boligbilder = alleDokumenter.filter((dokument) => dokument.boligId === String(hovedbolig.id) && dokument.kategori === "boligbilde" && dokument.filsti);
+      const valgt = boligbilder.find((dokument) => dokument.id === hjemdata.forsidebildeId) || boligbilder[0];
+      if (!valgt) return;
+      const url = await dokumentLenke(valgt.filsti);
+      if (aktiv) setBakgrunnUrl(url);
+    }).catch(() => undefined);
+    return () => { aktiv = false; };
+  }, []);
   const funksjoner = [
     {
       ikon: "🔧",
@@ -65,8 +80,9 @@ function PrivatForside() {
   ];
   return (
     <>
-      <section className="bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-900 px-4 py-16 text-white sm:px-6 sm:py-24">
-        <div className="mx-auto max-w-6xl">
+      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-900 px-4 py-16 text-white sm:px-6 sm:py-24">
+        {bakgrunnUrl && <><img src={bakgrunnUrl} alt="" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-emerald-950/95 via-slate-950/80 to-slate-950/45" /></>}
+        <div className="relative mx-auto max-w-6xl">
           <p className="font-semibold text-emerald-300">MITT HJEM</p>
           <h1 className="mt-4 whitespace-nowrap text-[clamp(1.1rem,5.2vw,3.5rem)] font-bold leading-tight tracking-tight">
             Alt om boligen din. Ett sted.

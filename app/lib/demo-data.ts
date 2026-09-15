@@ -248,6 +248,21 @@ export const DEMO_LEIETAKERE: Leietaker[] = [
 
 export const DEMO_VEDLIKEHOLD: Vedlikeholdsdata[] = [
   {
+    id: "demo-hjem-ved-1", boligId: "demo-privat-hjem", boligAdresse: "Eksempelveien 12, Bergen",
+    tittel: "Kontroller røykvarslere", prioritet: "hoy", startdato: "", frist: `${ar}-09-25`,
+    kostnad: 0, status: "planlagt", notat: "", opprettet: `${ar}-08-20T09:00:00.000Z`,
+  },
+  {
+    id: "demo-hjem-ved-2", boligId: "demo-privat-hjem", boligAdresse: "Eksempelveien 12, Bergen",
+    tittel: "Rense takrenner", prioritet: "normal", startdato: "", frist: `${ar}-10-15`,
+    kostnad: 0, status: "planlagt", notat: "", opprettet: `${ar}-08-20T09:00:00.000Z`,
+  },
+  {
+    id: "demo-hjem-ved-3", boligId: "demo-privat-hjem", boligAdresse: "Eksempelveien 12, Bergen",
+    tittel: "Beise terrassen", prioritet: "lav", startdato: "", frist: `${ar + 1}-05-15`,
+    kostnad: 3500, status: "planlagt", notat: "", opprettet: `${ar}-08-20T09:00:00.000Z`,
+  },
+  {
     id: "demo-vedlikehold-1",
     boligId: "demo-bolig-1",
     boligAdresse: "Eksempelveien 12, Bergen",

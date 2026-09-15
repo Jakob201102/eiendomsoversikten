@@ -213,6 +213,7 @@ export type AltOmBoligenData = {
   skader: Skadeinfo[];
   handleliste: Handlelisteinfo[];
   avvisteAnbefalinger: string[];
+  forsidebildeId: string;
   onboarding: Onboardinginfo;
   notater: string;
   oppdatert: string;
@@ -318,6 +319,7 @@ export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
     skader: [],
     handleliste: [],
     avvisteAnbefalinger: [],
+    forsidebildeId: "",
     onboarding: { status: "ikke-startet", steg: 1 },
     notater: "",
     oppdatert: "",
@@ -380,6 +382,7 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
       ferdig: Boolean(punkt.ferdig),
     })),
     avvisteAnbefalinger: liste<string>(lagret.avvisteAnbefalinger).map(String),
+    forsidebildeId: tekst(lagret.forsidebildeId),
     onboarding: {
       ...grunnlag.onboarding,
       ...(lagret.onboarding || {}),

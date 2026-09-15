@@ -91,7 +91,9 @@ export default function Vedlikehold() {
         const oppgavedata = await hentVedlikeholdsoppgaver();
 
         if (!aktiv) return;
-        const brukerboliger = boligdata as unknown as Bolig[];
+        const brukerboliger = (search.get("bolig") === "demo-privat-hjem"
+          ? [{ id: "demo-privat-hjem", adresse: "Eksempelveien 12, Bergen", brukstype: "privat", tilgang: "leser" as const }]
+          : boligdata) as unknown as Bolig[];
         setBoliger(brukerboliger);
         setOppgaver(
           oppgavedata as unknown as Vedlikeholdsoppgave[],
@@ -131,8 +133,12 @@ export default function Vedlikehold() {
     };
   }, [router, search]);
 
+  const onsketBoligId = search.get("bolig") || "";
+  const oppgaverForValgtBolig = onsketBoligId
+    ? oppgaver.filter((oppgave) => oppgave.boligId === onsketBoligId)
+    : oppgaver;
   const sorterteOppgaver = useMemo(() => {
-    const filtrert = oppgaver.filter((oppgave) => {
+    const filtrert = oppgaverForValgtBolig.filter((oppgave) => {
       if (filter === "aktive") {
         return oppgave.status !== "ferdig";
       }
@@ -189,17 +195,17 @@ export default function Vedlikehold() {
 
       return a.frist.localeCompare(b.frist);
     });
-  }, [oppgaver, filter]);
+  }, [oppgaverForValgtBolig, filter]);
 
-  const kritiskeOppgaver = oppgaver.filter(
+  const kritiskeOppgaver = oppgaverForValgtBolig.filter(
     (oppgave) =>
       oppgave.prioritet === "kritisk" &&
       oppgave.status !== "ferdig",
   ).length;
 
-  const utlopteOppgaver = oppgaver.filter(erUtlopt).length;
+  const utlopteOppgaver = oppgaverForValgtBolig.filter(erUtlopt).length;
 
-  const aktiveOppgaver = oppgaver.filter(
+  const aktiveOppgaver = oppgaverForValgtBolig.filter(
     (oppgave) => oppgave.status !== "ferdig",
   );
 
@@ -209,7 +215,7 @@ export default function Vedlikehold() {
     0,
   );
 
-  const ferdigeOppgaver = oppgaver.filter(
+  const ferdigeOppgaver = oppgaverForValgtBolig.filter(
     (oppgave) => oppgave.status === "ferdig",
   ).length;
   const valgtErPrivat = boliger.find((bolig) => String(bolig.id) === boligId)?.brukstype === "privat";
