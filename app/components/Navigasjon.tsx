@@ -82,6 +82,11 @@ export default function Navigasjon() {
     const sti = adresse.split("?")[0];
     return sti === "/" ? pathname === "/" : pathname.startsWith(sti);
   };
+  const lenkeAdresse = (adresse: string) => {
+    const privatEksempel = !epost && (demoModus === "privat" || pathname === "/mitt-hjem");
+    if (privatEksempel && adresse === "/mitt-hjem") return "/mitt-hjem?eksempel=1";
+    return adresse;
+  };
   const gruppeAktiv = (lenker: Lenke[]) => lenker.some((lenke) => erAktiv(lenke.adresse));
   const kompaktPrivatMobil = epost ? modus === "privat" : demoModus === "privat";
 
@@ -102,7 +107,7 @@ export default function Navigasjon() {
         <Link href="/" className={erAktiv("/") ? aktivKlasse : vanligKlasse}>Forside</Link>
         {!epost && <div className="mx-2 flex items-center gap-2"><Link href="/mitt-hjem?eksempel=1" className={demoModus === "privat" ? eksempelAktiv : eksempelVanlig}><span>Mitt hjem</span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></Link><Link href="/oversikt" className={demoModus === "utleie" ? eksempelAktiv : eksempelVanlig}><span>Utleieoversikten</span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></Link></div>}
         {epost && modus !== "privat" && <Link href="/oversikt" className={erAktiv("/oversikt") ? aktivKlasse : vanligKlasse}>Oversikt</Link>}
-        {grupper.map((gruppe) => <div key={gruppe.navn} className="relative" onMouseEnter={() => setApenGruppe(gruppe.navn)} onMouseLeave={() => setApenGruppe("")}><button type="button" onClick={() => setApenGruppe(apenGruppe === gruppe.navn ? "" : gruppe.navn)} className={gruppeAktiv(gruppe.lenker) ? aktivKlasse : vanligKlasse}>{gruppe.navn} <span className="ml-1 text-xs">⌄</span></button>{apenGruppe === gruppe.navn && <div className="absolute left-0 top-full min-w-56 pt-2"><div className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenke.adresse} className={erAktiv(lenke.adresse) ? "block rounded-lg bg-emerald-400 px-4 py-3 font-semibold text-slate-950" : "block rounded-lg px-4 py-3 text-sm text-slate-200 hover:bg-slate-800"}>{lenke.navn}</Link>)}</div></div>}</div>)}
+        {grupper.map((gruppe) => <div key={gruppe.navn} className="relative" onMouseEnter={() => setApenGruppe(gruppe.navn)} onMouseLeave={() => setApenGruppe("")}><button type="button" onClick={() => setApenGruppe(apenGruppe === gruppe.navn ? "" : gruppe.navn)} className={gruppeAktiv(gruppe.lenker) ? aktivKlasse : vanligKlasse}>{gruppe.navn} <span className="ml-1 text-xs">⌄</span></button>{apenGruppe === gruppe.navn && <div className="absolute left-0 top-full min-w-56 pt-2"><div className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? "block rounded-lg bg-emerald-400 px-4 py-3 font-semibold text-slate-950" : "block rounded-lg px-4 py-3 text-sm text-slate-200 hover:bg-slate-800"}>{lenke.navn}</Link>)}</div></div>}</div>)}
         {epost ? <div className="ml-2 flex items-center gap-2"><Link href="/konto" className={erAktiv("/konto") ? aktivKlasse : vanligKlasse}>Min konto</Link><button onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold">{loggerUt ? "Logger ut…" : "Logg ut"}</button></div> : <Link href="/logg-inn" className="ml-2 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950">Logg inn</Link>}
       </div>
       <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
@@ -112,7 +117,7 @@ export default function Navigasjon() {
           <div className="absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-2xl">
             <Link href="/" className={mobilVanlig}>Forside</Link>
             {!epost && <><Link href="/mitt-hjem?eksempel=1" className={mobilVanlig}>Mitt hjem <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link><Link href="/oversikt" className={mobilVanlig}>Utleieoversikten <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link></>}
-            {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">{gruppe.navn}</p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenke.adresse} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}>{lenke.navn}</Link>)}</div></section>)}
+            {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">{gruppe.navn}</p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}>{lenke.navn}</Link>)}</div></section>)}
             <div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}>Min konto</Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950">Logg inn / opprett konto</Link>}</div>
           </div>
         </details>
