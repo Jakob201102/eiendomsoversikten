@@ -289,6 +289,21 @@ function liste<T>(verdi: unknown): T[] {
   return Array.isArray(verdi) ? (verdi as T[]) : [];
 }
 
+function tekstObjekt<T extends Record<string, string>>(
+  standard: T,
+  lagret: unknown,
+): T {
+  const kilde = lagret && typeof lagret === "object"
+    ? lagret as Record<string, unknown>
+    : {};
+  return Object.fromEntries(
+    Object.keys(standard).map((nokkel) => [
+      nokkel,
+      tekst(kilde[nokkel] ?? standard[nokkel]),
+    ]),
+  ) as T;
+}
+
 export function tomAltOmBoligen(bolig?: BoligData): AltOmBoligenData {
   return {
     versjon: 1,
@@ -337,17 +352,11 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     ...grunnlag,
     ...lagret,
     versjon: 1,
-    generell: { ...grunnlag.generell, ...(lagret.generell || {}) },
-    teknisk: { ...grunnlag.teknisk, ...(lagret.teknisk || {}) },
-    viktigeDeler: {
-      ...grunnlag.viktigeDeler,
-      ...(lagret.viktigeDeler || {}),
-    },
-    sikkerhet: { ...grunnlag.sikkerhet, ...(lagret.sikkerhet || {}) },
-    tilleggsarealer: {
-      ...grunnlag.tilleggsarealer,
-      ...(lagret.tilleggsarealer || {}),
-    },
+    generell: tekstObjekt(grunnlag.generell, lagret.generell),
+    teknisk: tekstObjekt(grunnlag.teknisk, lagret.teknisk),
+    viktigeDeler: tekstObjekt(grunnlag.viktigeDeler, lagret.viktigeDeler),
+    sikkerhet: tekstObjekt(grunnlag.sikkerhet, lagret.sikkerhet),
+    tilleggsarealer: tekstObjekt(grunnlag.tilleggsarealer, lagret.tilleggsarealer),
     rom: liste<Rominfo>(lagret.rom).map((rom) => ({
       ...rom,
       bildeIder: liste<string>(rom.bildeIder),
@@ -384,8 +393,10 @@ export function lesAltOmBoligen(bolig: BoligData): AltOmBoligenData {
     avvisteAnbefalinger: liste<string>(lagret.avvisteAnbefalinger).map(String),
     forsidebildeId: tekst(lagret.forsidebildeId),
     onboarding: {
-      ...grunnlag.onboarding,
-      ...(lagret.onboarding || {}),
+      status: lagret.onboarding?.status === "pagar" || lagret.onboarding?.status === "ferdig"
+        ? lagret.onboarding.status
+        : "ikke-startet",
+      steg: Math.max(1, Number(lagret.onboarding?.steg || 1)),
     },
     notater: tekst(lagret.notater),
     oppdatert: tekst(lagret.oppdatert),
