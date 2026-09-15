@@ -14,7 +14,9 @@ import Boligveileder from "./Boligveileder";
 export default function ForsideInnhold() {
   const [modus, setModus] = useState<Bruksomrade | null>(null);
   const [innlogget, setInnlogget] = useState(false);
-  const [laster, setLaster] = useState(true);
+  // Vis den offentlige forsiden allerede i HTML-en. Innlogging kan oppdatere
+  // innholdet etterpå, men siden skal aldri være tom hvis JavaScript feiler.
+  const [laster, setLaster] = useState(false);
   useEffect(() => {
     const supabase = createClient();
     let aktiv = true;

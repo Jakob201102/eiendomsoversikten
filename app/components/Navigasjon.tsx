@@ -26,7 +26,6 @@ export default function Navigasjon() {
   const pathname = usePathname() || "";
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const [menyApen, setMenyApen] = useState(false);
   const [apenGruppe, setApenGruppe] = useState("");
   const [epost, setEpost] = useState<string | null>(null);
   const [modus, setModus] = useState<Bruksomrade | null>(null);
@@ -51,7 +50,7 @@ export default function Navigasjon() {
     return () => { aktiv = false; window.clearTimeout(tidsavbrudd); subscription.unsubscribe(); };
   }, [supabase]);
 
-  useEffect(() => { setMenyApen(false); setApenGruppe(""); }, [pathname]);
+  useEffect(() => { setApenGruppe(""); }, [pathname]);
 
   useEffect(() => {
     const privatSide = pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
@@ -105,15 +104,17 @@ export default function Navigasjon() {
       </div>
       <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
         {!sjekker && (epost ? <button type="button" onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-slate-200 disabled:opacity-50">{loggerUt ? "Venter…" : "Logg ut"}</button> : <Link href="/logg-inn" className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-bold text-slate-950">Logg inn</Link>)}
-        <button type="button" onClick={() => setMenyApen(!menyApen)} className={`rounded-lg border border-slate-700 font-semibold ${kompaktPrivatMobil ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm"}`}>{menyApen ? "Lukk" : "Meny"}</button>
+        <details className="group relative">
+          <summary className={`cursor-pointer list-none rounded-lg border border-slate-700 font-semibold ${kompaktPrivatMobil ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm"}`}>Meny</summary>
+          <div className="absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-2xl">
+            <Link href="/" className={mobilVanlig}>Forside</Link>
+            {!epost && <><Link href="/mitt-hjem" className={mobilVanlig}>Mitt hjem <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link><Link href="/oversikt" className={mobilVanlig}>Utleieoversikten <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link></>}
+            {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">{gruppe.navn}</p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenke.adresse} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}>{lenke.navn}</Link>)}</div></section>)}
+            <div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}>Min konto</Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950">Logg inn / opprett konto</Link>}</div>
+          </div>
+        </details>
       </div>
     </div>
-    {menyApen && <div className={`overflow-y-auto border-t border-slate-800 lg:hidden ${kompaktPrivatMobil ? "max-h-[calc(100vh-3.5rem)] py-2" : "max-h-[calc(100vh-4rem)] py-4"}`}>
-      <Link href="/" className={erAktiv("/") ? (kompaktPrivatMobil ? mobilAktivKompakt : mobilAktiv) : (kompaktPrivatMobil ? mobilVanligKompakt : mobilVanlig)}>Forside</Link>
-      {!sjekker && !epost && <div className="mt-3 grid gap-2 px-4 sm:grid-cols-2"><button type="button" onClick={() => velgEksempel("privat")} className={demoModus === "privat" ? eksempelAktiv : eksempelVanlig}>Mitt hjem <span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></button><button type="button" onClick={() => velgEksempel("utleie")} className={demoModus === "utleie" ? eksempelAktiv : eksempelVanlig}>Utleieoversikten <span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></button></div>}
-      {grupper.map((gruppe) => <section key={gruppe.navn} className={`border-t border-slate-800 ${kompaktPrivatMobil ? "mt-2 pt-2" : "mt-4 pt-4"}`}><p className={`px-4 font-bold uppercase tracking-wider text-slate-500 ${kompaktPrivatMobil ? "text-[10px]" : "text-xs"}`}>{gruppe.navn}</p><div className={`grid sm:grid-cols-2 ${kompaktPrivatMobil ? "mt-1 gap-0.5" : "mt-2 gap-1"}`}>{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenke.adresse} className={erAktiv(lenke.adresse) ? (kompaktPrivatMobil ? mobilAktivKompakt : mobilAktiv) : (kompaktPrivatMobil ? mobilVanligKompakt : mobilVanlig)}>{lenke.navn}</Link>)}</div></section>)}
-      {!sjekker && <div className={`border-t border-slate-800 px-4 ${kompaktPrivatMobil ? "mt-2 pt-2" : "mt-4 pt-4"}`}>{epost ? <div className="grid gap-1 sm:grid-cols-2"><Link href="/konto" className={kompaktPrivatMobil ? mobilVanligKompakt : mobilVanlig}>Min konto</Link><button onClick={loggUt} className={`rounded-xl border border-red-400 font-semibold text-red-300 ${kompaktPrivatMobil ? "px-3 py-2 text-sm" : "px-4 py-3"}`}>Logg ut</button></div> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950">Logg inn / opprett konto</Link>}</div>}
-    </div>}
     </div></nav>
     {!sjekker && !epost && pathname !== "/" && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5 text-slate-900"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 text-sm"><p className="min-w-0"><strong>Du ser eksempeldata.</strong> Egne opplysninger lagres når du har konto.</p><Link href="/logg-inn" className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 font-bold text-white">Opprett konto</Link></div></div>}
   </>;
