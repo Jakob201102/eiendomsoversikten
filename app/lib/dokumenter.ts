@@ -12,10 +12,12 @@ type Rad = { id: string; bolig_id: string | null; navn: string; kategori: string
 async function bruker() { const supabase = createClient(); const { data, error } = await supabase.auth.getUser(); if (error || !data.user) { sendTilInnlogging(); throw new Error("IKKE_INNLOGGET"); } return { supabase, user: data.user }; }
 function fraRad(r: Rad): Dokument { return { id: r.id, boligId: r.bolig_id || "", navn: r.navn, kategori: r.kategori, ar: Number(r.ar), dokumentdato: r.dokumentdato || "", notat: r.notat || "", filsti: r.filsti, filnavn: r.filnavn, filtype: r.filtype || "", filstorrelse: Number(r.filstorrelse || 0), createdAt: r.created_at, kilde: "arkiv" }; }
 
-export async function hentDokumenter(): Promise<Dokument[]> {
+export async function hentDokumenter(boligIder?: string[]): Promise<Dokument[]> {
   const supabase = createClient(); const { data: auth, error: authFeil } = await supabase.auth.getUser();
   if (!auth.user) return demoDokumenter(); if (authFeil) throw authFeil;
-  const { data, error } = await supabase.from("dokumenter").select("*").order("dokumentdato", { ascending: false }).order("created_at", { ascending: false });
+  let sporring = supabase.from("dokumenter").select("*").order("dokumentdato", { ascending: false }).order("created_at", { ascending: false });
+  if (boligIder?.length) sporring = sporring.in("bolig_id", boligIder);
+  const { data, error } = await sporring;
   if (error) throw error; return ((data || []) as Rad[]).map(fraRad);
 }
 

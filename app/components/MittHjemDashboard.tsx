@@ -196,14 +196,34 @@ export default function MittHjemDashboard({
   const forsidebildeUrl = valgtForsidebilde ? bildeLenker[valgtForsidebilde.id] : "";
   useEffect(() => {
     let aktiv = true;
-    const medFil = bilderIAarkiv.filter((dokument) => dokument.filsti);
+    const erIPad = /iPad/i.test(navigator.userAgent) || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+    if (erIPad) {
+      setBildeLenker({});
+      return () => { aktiv = false; };
+    }
+    const medFil = valgtForsidebilde?.filsti ? [valgtForsidebilde] : [];
     if (!medFil.length) return () => { aktiv = false; };
     dokumentLenker(medFil.map((dokument) => dokument.filsti)).then((lenker) => {
       if (!aktiv) return;
       setBildeLenker(Object.fromEntries(medFil.flatMap((dokument) => lenker[dokument.filsti] ? [[dokument.id, lenker[dokument.filsti]]] : [])));
     }).catch(() => undefined);
     return () => { aktiv = false; };
-  }, [bolig.id, dokumenter]);
+  }, [bolig.id, dokumenter, valgtForsidebilde?.id, valgtForsidebilde?.filsti]);
+
+  useEffect(() => {
+    if (!visBildevalg) return;
+    let aktiv = true;
+    const mangler = bilderIAarkiv.filter((dokument) => dokument.filsti && !bildeLenker[dokument.id]);
+    if (!mangler.length) return () => { aktiv = false; };
+    dokumentLenker(mangler.map((dokument) => dokument.filsti)).then((lenker) => {
+      if (!aktiv) return;
+      setBildeLenker((gamle) => ({
+        ...gamle,
+        ...Object.fromEntries(mangler.flatMap((dokument) => lenker[dokument.filsti] ? [[dokument.id, lenker[dokument.filsti]]] : [])),
+      }));
+    }).catch(() => undefined);
+    return () => { aktiv = false; };
+  }, [visBildevalg, bilderIAarkiv, bildeLenker]);
 
   async function velgForsidebilde(id: string) {
     if (!kanRedigere) return;

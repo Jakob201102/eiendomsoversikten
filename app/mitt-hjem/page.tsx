@@ -69,11 +69,19 @@ export default function MittHjem() {
       const modus = lesBruksomrade(data.user);
       if (!modus) { router.replace("/velg-bruksomrade"); return; }
       if (!harPrivat(modus)) { setFeil("Privat bolig er ikke aktivert. Du kan endre bruksområde under Min konto."); return; }
-      const [alle, dokumentdata, vedlikeholdsdata] = await Promise.all([hentBoliger(), hentDokumenter(), hentVedlikeholdsoppgaver()]);
+      const alle = await hentBoliger();
       const privateBoliger = alle.filter((bolig) => String(bolig.brukstype || "") === "privat");
-      setBoliger(privateBoliger); setDokumenter(dokumentdata); setOppgaver(vedlikeholdsdata);
+      setBoliger(privateBoliger);
       setValgtId((gammel) => [foretrukketId, gammel, String(privateBoliger[0]?.id || "")].find((id) => privateBoliger.some((bolig) => String(bolig.id) === id)) || "");
       if (!privateBoliger.length) setNyBolig(true);
+      setLaster(false);
+      const privateIder = privateBoliger.map((bolig) => String(bolig.id));
+      const [dokumentdata, vedlikeholdsdata] = await Promise.all([
+        privateIder.length ? hentDokumenter(privateIder) : Promise.resolve([]),
+        hentVedlikeholdsoppgaver(),
+      ]);
+      setDokumenter(dokumentdata);
+      setOppgaver(vedlikeholdsdata.filter((oppgave) => privateIder.includes(String(oppgave.boligId))));
     } catch (error) { console.error(error); setFeil("Kunne ikke hente hjemmet ditt."); } finally { setLaster(false); }
   }, [router, viserEksempel]);
 
