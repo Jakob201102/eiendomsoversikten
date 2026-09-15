@@ -810,7 +810,7 @@ function beregnKontantstrom(
       renter;
 
   const skatt = bolig.skattepliktig
-    ? skattbart * 0.22
+    ? Math.max(0, skattbart) * 0.22
     : 0;
 
   const netto =

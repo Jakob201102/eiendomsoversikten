@@ -12,6 +12,7 @@ import {
   type ImportertBolig,
   type ImportertHistorikk,
 } from "../lib/boligimport";
+import { autentisertFetch } from "../lib/autentisert-fetch";
 
 type Adresseforslag = {
   adressetekst: string;
@@ -143,7 +144,7 @@ export default function BoligimportKilder({
       if (finnLenke.trim()) {
         setFremdrift("Henter FINN-annonsen …");
         try {
-          const svar = await fetch("/api/importer-bolig", {
+          const svar = await autentisertFetch("/api/importer-bolig", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: finnLenke.trim() }),
@@ -388,7 +389,7 @@ async function lesFinnPlantegninger(
       neste += 1;
       try {
         onFremdrift(`Ser etter plantegninger i FINN-bildene · ${indeks + 1} av ${begrenset.length}`);
-        const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(begrenset[indeks])}`);
+        const svar = await autentisertFetch(`/api/importer-bilde?url=${encodeURIComponent(begrenset[indeks])}`);
         if (!svar.ok) continue;
         const blob = await svar.blob();
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
@@ -404,22 +405,30 @@ async function lesFinnPlantegninger(
   const valgte = nedlastede.sort((a, b) => a.indeks - b.indeks);
   if (!valgte.length) return { tekster: [] as string[], adresser: [] as string[], filer: [] as { url: string; fil: File }[] };
 
-  const { createWorker } = await import("tesseract.js");
-  const worker = await createWorker("nor+eng");
   const tekster: string[] = [];
   const plantegningAdresser: string[] = [];
+  const kandidater = valgte
+    .filter((kandidat) => visueltPlantegning.has(kandidat.fil))
+    .slice(0, 8);
+  if (!kandidater.length) {
+    return {
+      tekster,
+      adresser: plantegningAdresser,
+      filer: valgte.map(({ adresse: url, fil }) => ({ url, fil })),
+    };
+  }
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("nor+eng");
   try {
-    for (const [indeks, kandidat] of valgte.entries()) {
-      onFremdrift(`Kontrollerer FINN-bilde ${indeks + 1} av ${valgte.length}`);
+    for (const [indeks, kandidat] of kandidater.entries()) {
+      onFremdrift(`Tekstleser mulig plantegning ${indeks + 1} av ${kandidater.length}`);
       try {
         const lest = await worker.recognize(kandidat.fil);
         const tekst = String(lest.data.text || "").trim();
-        if (visueltPlantegning.has(kandidat.fil) || erPlantegningstekst(tekst)) {
-          if (tekst.length >= 5) tekster.push(tekst);
-          plantegningAdresser.push(kandidat.adresse);
-        }
+        if (tekst.length >= 5 && erPlantegningstekst(tekst)) tekster.push(tekst);
+        plantegningAdresser.push(kandidat.adresse);
       } catch {
-        if (visueltPlantegning.has(kandidat.fil)) plantegningAdresser.push(kandidat.adresse);
+        plantegningAdresser.push(kandidat.adresse);
       }
     }
   } finally {

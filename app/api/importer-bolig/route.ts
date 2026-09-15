@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyserBoligHtml, analyserBoligtekst } from "../../lib/boligimport";
+import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 const MAKS_HTML = 5_000_000;
 const MAKS_TEKST = 1_000_000;
 
 export async function POST(request: NextRequest) {
+  const avvist = await krevInnloggetApi(request, 10);
+  if (avvist) return avvist;
   try {
     const body = (await request.json()) as { url?: unknown; tekst?: unknown };
     const tekst = String(body.tekst || "").trim();

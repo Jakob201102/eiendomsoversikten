@@ -17,6 +17,7 @@ import { lagreDokumentlenke, lastOppDokument } from "../lib/dokumenter";
 import { opprettVedlikeholdsoppgave } from "../lib/vedlikehold";
 import { analyserBoligtekst, erPlantegningstekst, serUtSomPlantegningVisuelt, type ImportertRom } from "../lib/boligimport";
 import BoligimportKilder from "./BoligimportKilder";
+import { autentisertFetch } from "../lib/autentisert-fetch";
 
 type Adresseforslag = {
   adressetekst: string;
@@ -281,7 +282,7 @@ export default function MittHjemOppsett({
         setImportMelding(`Salgsoppgaven er lest (${lest.totalPages} sider). Kontroller forslagene før de brukes.`);
         return;
       } else {
-        const svar = await fetch("/api/importer-bolig", {
+        const svar = await autentisertFetch("/api/importer-bolig", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
@@ -373,7 +374,7 @@ export default function MittHjemOppsett({
           filer.push({ fil: analysertFil, indeks, url });
           return;
         }
-        const svar = await fetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
+        const svar = await autentisertFetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
         if (!svar.ok) throw new Error("Kunne ikke hente bildet");
         const blob = await svar.blob();
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
@@ -551,12 +552,12 @@ export default function MittHjemOppsett({
         manedsleie: 0,
         altOmBoligen: grunnlag,
       });
-      const [alle, bildeFeil, kildebildeFeil, kildeFeil] = await Promise.all([
-        hentBoliger(),
+      const [bildeFeil, kildebildeFeil, kildeFeil] = await Promise.all([
         valgteImportbilder.length ? lastOppImportbilder(nyBoligId) : Promise.resolve(0),
         importKildebilder.length ? lastOppKildebilder(nyBoligId) : Promise.resolve(0),
         lagreImportkilder(nyBoligId),
       ]);
+      const alle = await hentBoliger();
       if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(`${bildeFeil + kildebildeFeil + kildeFeil} vedlegg kunne ikke lagres. Resten av boligen ble lagret.`);
       onOppdatert(
         alle.filter((verdi) => String(verdi.brukstype || "") === "privat"),

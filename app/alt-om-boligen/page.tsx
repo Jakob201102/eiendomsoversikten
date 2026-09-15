@@ -71,6 +71,7 @@ export default function AltOmBoligen() {
         d = await hentDokumenter();
       } catch (dokumentfeil) {
         console.error("Kunne ikke hente boligfiler", dokumentfeil);
+        setFeil("Boligopplysningene ble hentet, men bilder og dokumenter kunne ikke lastes. Kontroller Supabase-oppsettet.");
       }
       setInnlogget(erInnlogget);
       setBoliger(b);
@@ -123,12 +124,11 @@ export default function AltOmBoligen() {
     requestAnimationFrame(() => document.getElementById("del-tilgang")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [laster, data, redigerer]);
 
-  const boligfiler = useMemo(
-    () => dokumenter.filter((dokument) => dokument.boligId === valgtBoligId),
-    [dokumenter, valgtBoligId],
-  );
-  const bilder = boligfiler.filter((dokument) => dokument.kategori === BILDEKATEGORI);
-  const plantegninger = boligfiler.filter((dokument) => dokument.kategori === PLANTEGNINGKATEGORI);
+  // Bruk nøyaktig samme bildekilde som Bilder-fanen i dokumentarkivet.
+  // Eldre FINN-importer kan ha feil eller manglende boligId, og skal derfor
+  // ikke forsvinne fra det visuelle arkivet på «Alt om boligen».
+  const bilder = dokumenter.filter((dokument) => dokument.kategori === BILDEKATEGORI);
+  const plantegninger = dokumenter.filter((dokument) => dokument.kategori === PLANTEGNINGKATEGORI);
 
   useEffect(() => {
     let aktiv = true;
@@ -659,6 +659,7 @@ function Oversiktsvisning({
       {data.notater && <InfoKort tittel="Egne notater" merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
 
       <Filoversikt
+        boligId={String(bolig.id)}
         bilder={bilder}
         plantegninger={plantegninger}
         filLenker={filLenker}
@@ -867,14 +868,14 @@ function Redigeringsvisning({
   );
 }
 
-function Filoversikt({ bilder, plantegninger, filLenker, innlogget }: { bilder: Dokument[]; plantegninger: Dokument[]; filLenker: Record<string, string>; innlogget: boolean }) {
+function Filoversikt({ boligId, bilder, plantegninger, filLenker, innlogget }: { boligId: string; bilder: Dokument[]; plantegninger: Dokument[]; filLenker: Record<string, string>; innlogget: boolean }) {
   const [visAlle, setVisAlle] = useState(false);
   const harFiler = bilder.length > 0 || plantegninger.length > 0;
   const alleFiler = [...bilder, ...plantegninger];
   const visteFiler = visAlle ? alleFiler : alleFiler.slice(0, 8);
   return (
     <section id="bilder-dokumenter" className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700">BILDER OG TEGNINGER</p><h2 className="mt-2 text-xl font-bold">Visuelt arkiv</h2></div>{innlogget && <Link href="/dokumentarkiv" className="text-sm font-semibold text-emerald-700">Åpne dokumentarkivet →</Link>}</div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700">BILDER OG TEGNINGER</p><h2 className="mt-2 text-xl font-bold">Visuelt arkiv</h2></div>{innlogget && <Link href={`/dokumentarkiv?type=bilder&bolig=${encodeURIComponent(boligId)}`} className="text-sm font-semibold text-emerald-700">Åpne dokumentarkivet →</Link>}</div>
       {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel="Stue" farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel="Kjøkken" farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel="Plantegning" farge="from-blue-100 to-slate-200" /></div> : <><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{visteFiler.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>{alleFiler.length > 8 && <button type="button" onClick={() => setVisAlle((verdi) => !verdi)} className="mt-5 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{visAlle ? "Vis færre" : `Se resten (${alleFiler.length - 8})`}</button>}</>}
     </section>
   );

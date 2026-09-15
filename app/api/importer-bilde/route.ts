@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { erTillattBildeUrl } from "../../lib/boligimport";
+import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 export const runtime = "nodejs";
 const MAKS_BILDE = 15 * 1024 * 1024;
 
 export async function GET(request: NextRequest) {
+  const avvist = await krevInnloggetApi(request, 80, 5 * 60_000);
+  if (avvist) return avvist;
   const verdi = request.nextUrl.searchParams.get("url") || "";
   if (!erTillattBildeUrl(verdi)) return NextResponse.json({ feil: "Ugyldig bildeadresse." }, { status: 400 });
   try {

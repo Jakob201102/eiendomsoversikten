@@ -6,12 +6,19 @@ async function finnFiler(
   bucket: string,
   mappe: string,
 ): Promise<string[]> {
-  const { data } = await admin.storage.from(bucket).list(mappe, { limit: 1000 });
   const resultat: string[] = [];
-  for (const fil of data || []) {
-    const sti = `${mappe}/${fil.name}`;
-    if (fil.id) resultat.push(sti);
-    else resultat.push(...(await finnFiler(admin, bucket, sti)));
+  let offset = 0;
+  while (true) {
+    const { data, error } = await admin.storage.from(bucket).list(mappe, { limit: 1000, offset });
+    if (error) throw error;
+    const side = data || [];
+    for (const fil of side) {
+      const sti = `${mappe}/${fil.name}`;
+      if (fil.id) resultat.push(sti);
+      else resultat.push(...(await finnFiler(admin, bucket, sti)));
+    }
+    if (side.length < 1000) break;
+    offset += side.length;
   }
   return resultat;
 }

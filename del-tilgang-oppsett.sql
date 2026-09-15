@@ -148,3 +148,42 @@ grant execute on function public.hent_hjeminvitasjon(text) to authenticated;
 grant execute on function public.aksepter_hjeminvitasjon(text) to authenticated;
 grant execute on function public.endre_boligmedlem(uuid,uuid,text) to authenticated;
 grant execute on function public.fjern_boligmedlem(uuid,uuid) to authenticated;
+
+-- Delte brukere må også kunne åpne selve filen, ikke bare dokumentraden.
+-- Eksisterende regler for brukerens egen mappe beholdes uendret.
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Brukere kan laste opp boligfiler') then
+    create policy "Brukere kan laste opp boligfiler" on storage.objects
+      for insert to authenticated
+      with check (
+        bucket_id='dokumentarkiv'
+        and (storage.foldername(name))[1]=auth.uid()::text
+      );
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Delte boligfiler kan leses') then
+    create policy "Delte boligfiler kan leses" on storage.objects
+      for select to authenticated
+      using (
+        bucket_id='dokumentarkiv'
+        and exists (
+          select 1 from public.dokumenter d
+          where d.filsti=storage.objects.name
+            and d.bolig_id is not null
+            and public.har_boligtilgang(d.bolig_id)
+        )
+      );
+  end if;
+  if not exists (select 1 from pg_policies where schemaname='storage' and tablename='objects' and policyname='Delte boligfiler kan slettes') then
+    create policy "Delte boligfiler kan slettes" on storage.objects
+      for delete to authenticated
+      using (
+        bucket_id='dokumentarkiv'
+        and exists (
+          select 1 from public.dokumenter d
+          where d.filsti=storage.objects.name
+            and d.bolig_id is not null
+            and public.kan_redigere_bolig(d.bolig_id)
+        )
+      );
+  end if;
+end $$;

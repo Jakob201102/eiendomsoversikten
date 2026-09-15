@@ -337,7 +337,7 @@ export default function Kalkulator() {
     renterForsteAr;
 
   const beregnetSkatt = skattepliktig
-    ? skattepliktigResultat * 0.22
+    ? Math.max(0, skattepliktigResultat) * 0.22
     : 0;
 
   const arligKontantstrom =

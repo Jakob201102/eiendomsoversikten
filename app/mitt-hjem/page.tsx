@@ -67,10 +67,11 @@ export default function MittHjem() {
   const valgt = boliger.find((bolig) => String(bolig.id) === valgtId) || null;
   const aktivOnboarding = Boolean(innlogget && valgt && ((valgt.altOmBoligen as { onboarding?: { status?: string } } | undefined)?.onboarding?.status === "pagar"));
 
-  function oppsettOppdatert(nyeBoliger: BoligData[], id?: string) {
+  async function oppsettOppdatert(nyeBoliger: BoligData[], id?: string) {
     setBoliger(nyeBoliger);
     if (id) setValgtId(id);
     setNyBolig(false);
+    await lastInn(id);
   }
 
   async function slettPrivatBolig(bolig: BoligData) {

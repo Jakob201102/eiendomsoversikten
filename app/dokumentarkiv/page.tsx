@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { hentBoliger, type BoligData } from "../lib/boliger";
 import { dokumentLenke, hentDokumenter, lastOppDokument, slettDokument, type Dokument } from "../lib/dokumenter";
@@ -11,15 +12,16 @@ const kategorier = [["kvittering","Kvittering"],["faktura","Faktura"],["bankarso
 const aarNaa = new Date().getFullYear();
 
 export default function Dokumentarkiv() {
+  const search = useSearchParams();
   const [dokumenter, setDokumenter] = useState<Dokument[]>([]); const [boliger, setBoliger] = useState<BoligData[]>([]); const [innlogget, setInnlogget] = useState(false); const [laster, setLaster] = useState(true); const [jobber, setJobber] = useState(false); const [feil, setFeil] = useState("");
   const [sok, setSok] = useState(""); const [boligfilter, setBoligfilter] = useState("alle"); const [kategorifilter, setKategorifilter] = useState("alle"); const [aarfilter, setAarfilter] = useState("alle"); const [visSkjema, setVisSkjema] = useState(false);
   const [arkivtype, setArkivtype] = useState<"dokumenter" | "bilder">("dokumenter");
   const [fil, setFil] = useState<File | null>(null); const [navn, setNavn] = useState(""); const [boligId, setBoligId] = useState(""); const [kategori, setKategori] = useState("kvittering"); const [aar, setAar] = useState(aarNaa); const [dato, setDato] = useState(() => new Date().toISOString().slice(0,10)); const [notat, setNotat] = useState("");
 
   async function lastData() { setLaster(true); setFeil(""); try { const supabase = createClient(); const { data } = await supabase.auth.getUser(); const erInnlogget = Boolean(data.user); setInnlogget(erInnlogget); const [b, d] = await Promise.all([hentBoliger(), hentDokumenter()]); const bilagsaar = Array.from({ length: 7 }, (_, i) => aarNaa + 1 - i); const poster = erInnlogget ? (await Promise.all(bilagsaar.map(hentOkonomiposter))).flat() : [];
-      const bilag: Dokument[] = poster.filter((p) => p.bilagSti).map((p) => ({ id: `okonomi-${p.id}`, boligId: p.boligId, navn: p.beskrivelse || kategorinavn(p.kategori), kategori: p.kategori === "vedlikehold" ? "vedlikehold" : p.bilagFilnavn.toLowerCase().includes("faktura") ? "faktura" : "kvittering", ar: Number(p.dato.slice(0,4)), dokumentdato: p.dato, notat: "Bilag fra Økonomi", filsti: p.bilagSti, filnavn: p.bilagFilnavn, filtype: "", filstorrelse: 0, createdAt: p.dato, kilde: "okonomi" })); setBoliger(b); setDokumenter([...d, ...bilag]); setBoligId((g) => g || b[0]?.id || "");
+      const bilag: Dokument[] = poster.filter((p) => p.bilagSti).map((p) => ({ id: `okonomi-${p.id}`, boligId: p.boligId, navn: p.beskrivelse || kategorinavn(p.kategori), kategori: p.kategori === "vedlikehold" ? "vedlikehold" : p.bilagFilnavn.toLowerCase().includes("faktura") ? "faktura" : "kvittering", ar: Number(p.dato.slice(0,4)), dokumentdato: p.dato, notat: "Bilag fra Økonomi", filsti: p.bilagSti, filnavn: p.bilagFilnavn, filtype: "", filstorrelse: 0, createdAt: p.dato, kilde: "okonomi" })); const onsketBolig = search.get("bolig") || ""; setBoliger(b); setDokumenter([...d, ...bilag]); setBoligId((g) => b.some((bolig) => String(bolig.id) === onsketBolig) ? onsketBolig : g || String(b[0]?.id || "")); setBoligfilter("alle"); if (search.get("type") === "bilder") { setArkivtype("bilder"); setKategori("boligbilde"); }
     } catch (e) { console.error(e); setFeil("Kunne ikke hente dokumentene. Kontroller at SQL-oppsettet er kjørt."); } finally { setLaster(false); } }
-  useEffect(() => { lastData(); }, []);
+  useEffect(() => { lastData(); }, [search]);
   const aarvalg = useMemo(() => [...new Set([aarNaa, ...dokumenter.map((d) => d.ar)])].sort((a,b) => b-a), [dokumenter]);
   const viste = useMemo(() => { const t = sok.trim().toLowerCase(); return dokumenter.filter((d) => d.kategori !== "garanti" && (arkivtype === "bilder" ? d.kategori === "boligbilde" : d.kategori !== "boligbilde") && (!t || `${d.navn} ${d.filnavn} ${d.notat}`.toLowerCase().includes(t)) && (boligfilter === "alle" || d.boligId === boligfilter) && (kategorifilter === "alle" || d.kategori === kategorifilter) && (aarfilter === "alle" || d.ar === Number(aarfilter))).sort((a,b) => (b.dokumentdato || b.createdAt).localeCompare(a.dokumentdato || a.createdAt)); }, [dokumenter,sok,boligfilter,kategorifilter,aarfilter,arkivtype]);
   async function lagre(e: FormEvent) { e.preventDefault(); if (!innlogget) { window.location.assign("/logg-inn"); return; } if (!fil) { setFeil("Velg en fil."); return; } setJobber(true); setFeil(""); try { await lastOppDokument(fil,{ boligId, navn: navn || fil.name, kategori, ar: aar, dokumentdato: dato, notat }); setVisSkjema(false); setFil(null); setNavn(""); setNotat(""); await lastData(); } catch (e) { const kode=e instanceof Error?e.message:""; setFeil(kode==="FIL_FOR_STOR"?"Filen kan ikke være større enn 80 MB.":kode==="UGYLDIG_FILTYPE"?"Bruk PDF, bilde, Word eller Excel.":"Kunne ikke laste opp dokumentet."); } finally { setJobber(false); } }

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyserBoligtekst } from "../../lib/boligimport";
 import { extractText, getDocumentProxy } from "unpdf";
+import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 export const runtime = "nodejs";
 const MAKS_FIL = 75 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
+  const avvist = await krevInnloggetApi(request, 4, 5 * 60_000);
+  if (avvist) return avvist;
   try {
     const skjema = await request.formData(); const fil = skjema.get("fil");
     if (!(fil instanceof File)) return NextResponse.json({ feil: "Velg en PDF-fil." }, { status: 400 });

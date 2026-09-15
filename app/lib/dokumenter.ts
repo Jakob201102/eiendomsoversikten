@@ -3,6 +3,8 @@ import { sendTilInnlogging } from "./demo-data";
 
 const BUCKET = "dokumentarkiv";
 const MAKS = 80 * 1024 * 1024;
+const LENKEVARIGHET_SEKUNDER = 60 * 60;
+const lenkeCache = new Map<string, { url: string; utloper: number }>();
 
 export type Dokument = { id: string; boligId: string; navn: string; kategori: string; ar: number; dokumentdato: string; notat: string; filsti: string; filnavn: string; filtype: string; filstorrelse: number; createdAt: string; kilde: "arkiv" | "okonomi" };
 type Rad = { id: string; bolig_id: string | null; navn: string; kategori: string; ar: number; dokumentdato: string | null; notat: string | null; filsti: string; filnavn: string; filtype: string | null; filstorrelse: number | null; created_at: string };
@@ -49,7 +51,36 @@ export async function lagreDokumentlenke(felt: { boligId: string; navn: string; 
   if (error) throw error;
   return id;
 }
-export async function dokumentLenke(sti: string) { const { supabase } = await bruker(); const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(sti, 60); if (error || !data?.signedUrl) throw error || new Error("MANGLER_LENKE"); return data.signedUrl; }
+export async function dokumentLenker(stier: string[]) {
+  const na = Date.now();
+  const unike = [...new Set(stier.filter(Boolean))];
+  const resultat: Record<string, string> = {};
+  const mangler = unike.filter((sti) => {
+    const lagret = lenkeCache.get(sti);
+    if (lagret && lagret.utloper > na) {
+      resultat[sti] = lagret.url;
+      return false;
+    }
+    return true;
+  });
+  if (mangler.length) {
+    const { supabase } = await bruker();
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(mangler, LENKEVARIGHET_SEKUNDER);
+    if (error) throw error;
+    mangler.forEach((sti, indeks) => {
+      const url = data?.[indeks]?.signedUrl || "";
+      if (!url) return;
+      resultat[sti] = url;
+      lenkeCache.set(sti, { url, utloper: na + (LENKEVARIGHET_SEKUNDER - 60) * 1000 });
+    });
+  }
+  return resultat;
+}
+export async function dokumentLenke(sti: string) {
+  const lenker = await dokumentLenker([sti]);
+  if (!lenker[sti]) throw new Error("MANGLER_LENKE");
+  return lenker[sti];
+}
 export async function oppdaterDokumentkategori(id: string, kategori: string) {
   const { supabase } = await bruker();
   const { error } = await supabase.from("dokumenter").update({ kategori }).eq("id", id);

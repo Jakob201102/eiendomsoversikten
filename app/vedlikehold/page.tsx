@@ -45,6 +45,7 @@ type Vedlikeholdsoppgave = {
   gjentakelse?: Gjentakelse;
   egendefinertDager?: number;
   paaminnelseDager?: number;
+  anbefalingId?: string;
 };
 
 export default function Vedlikehold() {
@@ -56,6 +57,7 @@ export default function Vedlikehold() {
   >([]);
 
   const [visSkjema, setVisSkjema] = useState(false);
+  const [redigererId, setRedigererId] = useState("");
   const [filter, setFilter] = useState("aktive");
   const [privatFane, setPrivatFane] = useState<
     "kommende" | "skader" | "utfort"
@@ -69,6 +71,7 @@ export default function Vedlikehold() {
     useState<Prioritet>("normal");
   const [startdato, setStartdato] = useState("");
   const [frist, setFrist] = useState("");
+  const [datotype, setDatotype] = useState<"enkelt" | "periode">("enkelt");
   const [kostnad, setKostnad] = useState(0);
   const [notat, setNotat] = useState("");
   const [gjentakelse, setGjentakelse] = useState<Gjentakelse>("aldri");
@@ -214,6 +217,42 @@ export default function Vedlikehold() {
     (bolig) => bolig.tilgang !== "leser",
   );
 
+  function nullstillSkjema() {
+    setRedigererId("");
+    setTittel("");
+    setPrioritet("normal");
+    setStartdato("");
+    setFrist("");
+    setDatotype("enkelt");
+    setKostnad(0);
+    setNotat("");
+    setGjentakelse("aldri");
+    setEgendefinertDager(30);
+    setPaaminnelseDager(7);
+    setEgenPaaminnelseDager(14);
+  }
+
+  function redigerOppgave(oppgave: Vedlikeholdsoppgave) {
+    const erPeriode = Boolean(oppgave.startdato && oppgave.frist && oppgave.startdato !== oppgave.frist);
+    setRedigererId(oppgave.id);
+    setBoligId(oppgave.boligId);
+    setTittel(oppgave.tittel);
+    setPrioritet(oppgave.prioritet);
+    setDatotype(erPeriode ? "periode" : "enkelt");
+    setStartdato(erPeriode ? oppgave.startdato || "" : "");
+    setFrist(oppgave.frist || oppgave.startdato || "");
+    setKostnad(Number(oppgave.kostnad || 0));
+    setNotat(oppgave.notat || "");
+    setGjentakelse(oppgave.gjentakelse || "aldri");
+    setEgendefinertDager(Number(oppgave.egendefinertDager || 30));
+    const paaminnelse = Number(oppgave.paaminnelseDager ?? 7);
+    setPaaminnelseDager([0, 1, 7, 30].includes(paaminnelse) ? paaminnelse : -1);
+    setEgenPaaminnelseDager(paaminnelse);
+    setVisSkjema(true);
+    setFeilmelding("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function leggTilOppgave(event: FormEvent) {
     event.preventDefault();
     setFeilmelding("");
@@ -239,22 +278,23 @@ export default function Vedlikehold() {
       return;
     }
 
-    if (startdato && frist && startdato > frist) {
+    if (datotype === "periode" && startdato && frist && startdato > frist) {
       setFeilmelding(
         "Startdatoen kan ikke være etter fristen.",
       );
       return;
     }
 
+    const eksisterendeOppgave = redigererId ? oppgaver.find((oppgave) => oppgave.id === redigererId) : undefined;
     const nyOppgave = {
       boligId,
       boligAdresse: bolig.adresse,
       tittel: tittel.trim(),
       prioritet,
-      startdato,
+      startdato: datotype === "enkelt" ? frist : startdato,
       frist,
       kostnad,
-      status: "planlagt",
+      status: eksisterendeOppgave?.status || "planlagt",
       notat: notat.trim(),
       gjentakelse: valgtErPrivat ? gjentakelse : "aldri",
       egendefinertDager: valgtErPrivat && gjentakelse === "egendefinert" ? egendefinertDager : 0,
@@ -263,27 +303,23 @@ export default function Vedlikehold() {
           ? Math.max(0, egenPaaminnelseDager)
           : paaminnelseDager
         : 0,
-      opprettet: new Date().toISOString(),
+      anbefalingId: eksisterendeOppgave?.anbefalingId || search.get("anbefaling") || "",
+      opprettet: eksisterendeOppgave?.opprettet || new Date().toISOString(),
     };
 
     setLagrer(true);
 
     try {
-      await opprettVedlikeholdsoppgave(nyOppgave);
+      if (redigererId) {
+        await oppdaterVedlikeholdsoppgave(redigererId, nyOppgave);
+      } else {
+        await opprettVedlikeholdsoppgave(nyOppgave);
+      }
       const oppdaterte = await hentVedlikeholdsoppgaver();
       setOppgaver(
         oppdaterte as unknown as Vedlikeholdsoppgave[],
       );
-      setTittel("");
-      setPrioritet("normal");
-      setStartdato("");
-      setFrist("");
-      setKostnad(0);
-      setNotat("");
-      setGjentakelse("aldri");
-      setEgendefinertDager(30);
-      setPaaminnelseDager(7);
-      setEgenPaaminnelseDager(14);
+      nullstillSkjema();
       setVisSkjema(false);
     } catch {
       setFeilmelding("Kunne ikke lagre oppgaven. Prøv igjen.");
@@ -360,7 +396,15 @@ export default function Vedlikehold() {
 
           {privatFane !== "skader" && harBoligSomKanRedigeres && <button
             type="button"
-            onClick={() => setVisSkjema(!visSkjema)}
+            onClick={() => {
+              if (visSkjema) {
+                setVisSkjema(false);
+                nullstillSkjema();
+              } else {
+                nullstillSkjema();
+                setVisSkjema(true);
+              }
+            }}
             className="rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950"
           >
             {visSkjema ? "Lukk skjema" : "+ Ny oppgave"}
@@ -458,7 +502,7 @@ export default function Vedlikehold() {
             className="mt-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6"
           >
             <h2 className="text-xl font-bold">
-              Ny vedlikeholdsoppgave
+              {redigererId ? "Rediger vedlikeholdsoppgave" : "Ny vedlikeholdsoppgave"}
             </h2>
 
             {boliger.length === 0 ? (
@@ -545,32 +589,31 @@ export default function Vedlikehold() {
                     />
                   </label>
 
-                  <label>
-                    <Felttekst>Startdato</Felttekst>
+                  <div className="md:col-span-2">
+                    <Felttekst>Når skal arbeidet gjøres?</Felttekst>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" onClick={() => { setDatotype("enkelt"); setStartdato(""); }} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "enkelt" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>Én bestemt dag</button>
+                      <button type="button" onClick={() => setDatotype("periode")} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "periode" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>Start- og sluttdato</button>
+                    </div>
+                  </div>
 
-                    <input
-                      type="date"
-                      value={startdato}
-                      onChange={(event) =>
-                        setStartdato(event.target.value)
-                      }
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3"
-                    />
-                  </label>
-
-                  <label>
-                    <Felttekst>Frist</Felttekst>
-
-                    <input
-                      type="date"
-                      value={frist}
-                      min={startdato || undefined}
-                      onChange={(event) =>
-                        setFrist(event.target.value)
-                      }
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3"
-                    />
-                  </label>
+                  {datotype === "enkelt" ? (
+                    <label className="md:col-span-2">
+                      <Felttekst>Dato</Felttekst>
+                      <input type="date" value={frist} onChange={(event) => setFrist(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
+                    </label>
+                  ) : (
+                    <>
+                      <label>
+                        <Felttekst>Startdato</Felttekst>
+                        <input type="date" value={startdato} onChange={(event) => setStartdato(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
+                      </label>
+                      <label>
+                        <Felttekst>Sluttdato</Felttekst>
+                        <input type="date" value={frist} min={startdato || undefined} onChange={(event) => setFrist(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
+                      </label>
+                    </>
+                  )}
 
                   {valgtErPrivat && <>
                     <label><Felttekst>Gjentas</Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri">Aldri</option><option value="maanedlig">Hver måned</option><option value="kvartalsvis">Hver 3. måned</option><option value="halvaarlig">Hver 6. måned</option><option value="aarlig">Årlig</option><option value="toaarlig">Hvert 2. år</option><option value="egendefinert">Egendefinert</option></select></label>
@@ -605,7 +648,7 @@ export default function Vedlikehold() {
                   disabled={lagrer}
                   className="mt-5 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white disabled:opacity-60"
                 >
-                  {lagrer ? "Lagrer…" : "Lagre oppgave"}
+                  {lagrer ? "Lagrer…" : redigererId ? "Lagre endringer" : "Lagre oppgave"}
                 </button>
               </>
             )}
@@ -665,6 +708,7 @@ export default function Vedlikehold() {
                   key={oppgave.id}
                   oppgave={oppgave}
                   endreStatus={endreStatus}
+                  rediger={redigerOppgave}
                   slett={slettOppgave}
                   kanRedigere={
                     boliger.find(
@@ -688,11 +732,13 @@ export default function Vedlikehold() {
 function Oppgavekort({
   oppgave,
   endreStatus,
+  rediger,
   slett,
   kanRedigere,
 }: {
   oppgave: Vedlikeholdsoppgave;
   endreStatus: (id: string, status: Status) => void;
+  rediger: (oppgave: Vedlikeholdsoppgave) => void;
   slett: (id: string) => void;
   kanRedigere: boolean;
 }) {
@@ -739,15 +785,14 @@ function Oppgavekort({
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <Datokort
-            label="Startdato"
-            verdi={formaterDato(oppgave.startdato)}
-          />
-
-          <Datokort
-            label="Frist"
-            verdi={formaterDato(oppgave.frist)}
-          />
+          {oppgave.startdato && oppgave.frist && oppgave.startdato !== oppgave.frist ? (
+            <>
+              <Datokort label="Startdato" verdi={formaterDato(oppgave.startdato)} />
+              <Datokort label="Sluttdato" verdi={formaterDato(oppgave.frist)} />
+            </>
+          ) : (
+            <Datokort label="Dato" verdi={formaterDato(oppgave.frist || oppgave.startdato)} />
+          )}
 
           <Datokort
             label="Status"
@@ -762,6 +807,14 @@ function Oppgavekort({
         )}
 
         {kanRedigere && <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => rediger(oppgave)}
+            className="rounded-xl border border-slate-300 px-4 py-2.5 font-semibold"
+          >
+            Rediger
+          </button>
+
           {oppgave.status === "planlagt" && (
             <button
               type="button"
