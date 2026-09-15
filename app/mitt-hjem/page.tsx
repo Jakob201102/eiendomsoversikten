@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BoligoverforingKort from "../components/BoligoverforingKort";
 import MittHjemDashboard from "../components/MittHjemDashboard";
 import MittHjemOppsett from "../components/MittHjemOppsett";
 import Navigasjon from "../components/Navigasjon";
-import { demoAltOmBoligen } from "../lib/alt-om-boligen";
+import { demoAltOmBoligen, lesAltOmBoligen } from "../lib/alt-om-boligen";
 import { hentBoliger, slettBoligFraDatabase, type BoligData } from "../lib/boliger";
 import { harPrivat, lesBruksomrade } from "../lib/bruksomrade";
 import { hentDokumenter, type Dokument } from "../lib/dokumenter";
@@ -41,6 +42,7 @@ export default function MittHjem() {
   const [laster, setLaster] = useState(!viserEksempel);
   const [feil, setFeil] = useState("");
   const [nyBolig, setNyBolig] = useState(false);
+  const [ipadmodus, setIpadmodus] = useState(false);
   const forespurtBoligId = search.get("bolig") || "";
 
   const lastInn = useCallback(async (foretrukketId?: string) => {
@@ -85,6 +87,13 @@ export default function MittHjem() {
     } catch (error) { console.error(error); setFeil("Kunne ikke hente hjemmet ditt."); } finally { setLaster(false); }
   }, [router, viserEksempel]);
 
+  useEffect(() => {
+    setIpadmodus(
+      /iPad/i.test(navigator.userAgent) ||
+      (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1),
+    );
+  }, []);
+
   useEffect(() => { lastInn(forespurtBoligId || undefined); }, [lastInn, forespurtBoligId]);
 
   const valgt = boliger.find((bolig) => String(bolig.id) === valgtId) || null;
@@ -127,9 +136,75 @@ export default function MittHjem() {
       {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
 
       {innlogget && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : valgt ? <>
-        <MittHjemDashboard key={`dashboard-${valgt.id}-${search.get("leggtil") || "vanlig"}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} startVisning={search.get("leggtil") === "1" ? "valg" : null} />
+        {ipadmodus && innlogget ? <MittHjemIPad bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => setNyBolig(true)} /> : <MittHjemDashboard key={`dashboard-${valgt.id}-${search.get("leggtil") || "vanlig"}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} startVisning={search.get("leggtil") === "1" ? "valg" : null} />}
         {innlogget && <BoligoverforingKort bolig={valgt} dokumenter={dokumenter} />}
       </> : <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold">Mitt hjem</h1><p className="mt-2 text-slate-500">Opprett din første private bolig for å komme i gang.</p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white">+ Legg til privat bolig</button></section>}
     </div>
   </main>;
+}
+
+function MittHjemIPad({
+  bolig,
+  boliger,
+  dokumenter,
+  oppgaver,
+  onVelgBolig,
+  onLeggTilBolig,
+}: {
+  bolig: BoligData;
+  boliger: BoligData[];
+  dokumenter: Dokument[];
+  oppgaver: Vedlikeholdsdata[];
+  onVelgBolig: (id: string) => void;
+  onLeggTilBolig: () => void;
+}) {
+  const data = lesAltOmBoligen(bolig);
+  const boligId = String(bolig.id);
+  const boligDokumenter = dokumenter.filter((dokument) => dokument.boligId === boligId);
+  const kommende = oppgaver
+    .filter((oppgave) => oppgave.boligId === boligId && String(oppgave.status || "") !== "ferdig")
+    .sort((a, b) => String(a.frist || "9999").localeCompare(String(b.frist || "9999")))
+    .slice(0, 3);
+  const lenker = [
+    ["🏠", "Alt om boligen", `/alt-om-boligen?bolig=${boligId}`],
+    ["🛏️", "Rom", `/rom?bolig=${boligId}`],
+    ["🕘", "Boligens historikk", `/bolighistorikk?bolig=${boligId}`],
+    ["🔧", "Vedlikehold", `/vedlikehold?modus=privat&bolig=${boligId}`],
+    ["📁", "Dokumentarkiv", `/dokumentarkiv?bolig=${boligId}`],
+    ["🛡️", "Garantier", `/garantier?bolig=${boligId}`],
+    ["☂️", "Forsikringer", `/forsikringer?bolig=${boligId}`],
+    ["👷", "Håndverkere og kontakter", `/kontakter?bolig=${boligId}`],
+  ];
+
+  return <div className="space-y-5">
+    <section className="rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Mitt hjem</p>
+      <h1 className="mt-2 break-words text-3xl font-bold">{String(bolig.adresse || "Privat bolig")}</h1>
+      <p className="mt-2 text-sm text-slate-300">{[
+        String(bolig.boligtype || data.generell.boligtype || "Privat bolig"),
+        data.generell.totalareal && `${data.generell.totalareal} m²`,
+        data.generell.byggeaar && `Byggeår ${data.generell.byggeaar}`,
+      ].filter(Boolean).join(" · ")}</p>
+      {boliger.length > 1 && <select value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white">{boliger.map((verdi) => <option key={String(verdi.id)} value={String(verdi.id)}>{String(verdi.adresse || "Privat bolig")}</option>)}</select>}
+    </section>
+
+    <section className="grid grid-cols-2 gap-3">
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Rom</p><strong className="mt-1 block text-2xl">{data.rom.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Dokumenter og bilder</p><strong className="mt-1 block text-2xl">{boligDokumenter.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Historikk</p><strong className="mt-1 block text-2xl">{data.historikk.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Kommende oppgaver</p><strong className="mt-1 block text-2xl">{kommende.length}</strong></div>
+    </section>
+
+    <section className="rounded-3xl bg-white p-5 shadow-sm">
+      <h2 className="text-xl font-bold">Boligoversikt</h2>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{lenker.map(([ikon, navn, adresse]) => <Link key={adresse} href={adresse} className="flex min-h-14 items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 font-bold text-slate-800"><span className="text-xl">{ikon}</span><span>{navn}</span><span className="ml-auto text-slate-400">→</span></Link>)}</div>
+    </section>
+
+    <section className="rounded-3xl bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">Neste vedlikehold</h2><Link href={`/vedlikehold?modus=privat&bolig=${boligId}`} className="text-sm font-bold text-emerald-700">Se alle</Link></div>
+      {kommende.length ? <div className="mt-3 divide-y divide-stone-100">{kommende.map((oppgave) => <div key={String(oppgave.id)} className="py-3"><strong className="block">{String(oppgave.tittel || "Vedlikeholdsoppgave")}</strong><span className="text-sm text-slate-500">{String(oppgave.frist || "Ingen dato")}</span></div>)}</div> : <p className="mt-3 text-sm text-slate-500">Ingen kommende oppgaver.</p>}
+    </section>
+
+    <button type="button" onClick={onLeggTilBolig} className="w-full rounded-xl border border-stone-300 bg-white px-5 py-3 font-bold text-slate-700">+ Legg til nytt hjem</button>
+  </div>;
 }
