@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import BoligoverforingKort from "../components/BoligoverforingKort";
 import MittHjemDashboard from "../components/MittHjemDashboard";
@@ -32,7 +32,6 @@ const demoOppgaver: Vedlikeholdsdata[] = [
 export default function MittHjem() {
   const router = useRouter();
   const search = useSearchParams();
-  const supabase = useMemo(() => createClient(), []);
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [valgtId, setValgtId] = useState("");
   const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
@@ -46,7 +45,13 @@ export default function MittHjem() {
   const lastInn = useCallback(async (foretrukketId?: string) => {
     setFeil("");
     try {
-      const { data } = await supabase.auth.getUser();
+      const supabase = createClient();
+      const { data } = await Promise.race([
+        supabase.auth.getUser(),
+        new Promise<never>((_resolve, reject) =>
+          window.setTimeout(() => reject(new Error("TIDSAVBRUDD")), 12000),
+        ),
+      ]);
       if (!data.user) {
         setInnlogget(false); setBoliger([demoBolig]); setValgtId(demoBolig.id); setDokumenter(demoDokumenter); setOppgaver(demoOppgaver); return;
       }
@@ -60,7 +65,7 @@ export default function MittHjem() {
       setValgtId((gammel) => [foretrukketId, gammel, String(privateBoliger[0]?.id || "")].find((id) => privateBoliger.some((bolig) => String(bolig.id) === id)) || "");
       if (!privateBoliger.length) setNyBolig(true);
     } catch (error) { console.error(error); setFeil("Kunne ikke hente hjemmet ditt."); } finally { setLaster(false); }
-  }, [router, supabase]);
+  }, [router]);
 
   useEffect(() => { lastInn(forespurtBoligId || undefined); }, [lastInn, forespurtBoligId]);
 

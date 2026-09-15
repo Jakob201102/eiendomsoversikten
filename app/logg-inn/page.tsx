@@ -9,6 +9,15 @@ import { lesBruksomrade, startsideFor } from "../lib/bruksomrade";
 
 type Modus = "logg-inn" | "registrer" | "glemt";
 
+function medTidsgrense<Resultat>(jobb: Promise<Resultat>, millisekunder = 15000): Promise<Resultat> {
+  return Promise.race<Resultat>([
+    Promise.resolve(jobb),
+    new Promise<Resultat>((_resolve, reject) =>
+      window.setTimeout(() => reject(new Error("TIDSAVBRUDD")), millisekunder),
+    ),
+  ]);
+}
+
 export default function LoggInn() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,13 +53,14 @@ export default function LoggInn() {
       return;
     }
 
+    try {
     if (modus === "glemt") {
-      const { error } = await supabase.auth.resetPasswordForEmail(
+      const { error } = await medTidsgrense(supabase.auth.resetPasswordForEmail(
         ryddetEpost,
         {
           redirectTo: `${window.location.origin}/nytt-passord`,
         },
-      );
+      ));
 
       if (error) {
         setFeilmelding(oversettFeilmelding(error.message));
@@ -71,13 +81,13 @@ export default function LoggInn() {
     }
 
     if (modus === "registrer") {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await medTidsgrense(supabase.auth.signUp({
         email: ryddetEpost,
         password: passord,
         options: {
           emailRedirectTo: `${window.location.origin}${neste || "/velg-bruksomrade"}`,
         },
-      });
+      }));
 
       if (error) {
         setFeilmelding(oversettFeilmelding(error.message));
@@ -95,10 +105,10 @@ export default function LoggInn() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await medTidsgrense(supabase.auth.signInWithPassword({
       email: ryddetEpost,
       password: passord,
-    });
+    }));
 
     if (error) {
       setFeilmelding(
@@ -110,6 +120,10 @@ export default function LoggInn() {
 
     router.push(neste || startsideFor(lesBruksomrade(data.user)));
     router.refresh();
+    } catch {
+      setFeilmelding("Innloggingen svarte ikke. Kontroller nettet, lukk fanen helt og prøv igjen.");
+      setLaster(false);
+    }
   }
 
   function byttModus(nyModus: Modus) {
