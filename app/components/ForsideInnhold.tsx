@@ -18,7 +18,6 @@ export default function ForsideInnhold() {
   // innholdet etterpå, men siden skal aldri være tom hvis JavaScript feiler.
   const [laster, setLaster] = useState(false);
   useEffect(() => {
-    const supabase = createClient();
     let aktiv = true;
     const tidsavbrudd = window.setTimeout(() => {
       if (aktiv) setLaster(false);
@@ -31,7 +30,14 @@ export default function ForsideInnhold() {
         setLaster(false);
       }
     };
-    supabase.auth.getUser().then(({ data }) => oppdater(data.user));
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      setLaster(false);
+      return () => { aktiv = false; window.clearTimeout(tidsavbrudd); };
+    }
+    supabase.auth.getUser().then(({ data }) => oppdater(data.user)).catch(() => oppdater(null));
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_hendelse, sesjon) =>

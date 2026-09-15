@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
@@ -14,8 +14,6 @@ export default function LoggInn() {
   const searchParams = useSearchParams();
   const nesteParameter = searchParams.get("neste") || "";
   const neste = nesteParameter.startsWith("/") && !nesteParameter.startsWith("//") ? nesteParameter : "";
-  const supabase = useMemo(() => createClient(), []);
-
   const [modus, setModus] = useState<Modus>("logg-inn");
   const [epost, setEpost] = useState("");
   const [passord, setPassord] = useState("");
@@ -30,6 +28,15 @@ export default function LoggInn() {
     setFeilmelding("");
 
     const ryddetEpost = epost.trim();
+
+    let supabase: ReturnType<typeof createClient>;
+    try {
+      supabase = createClient();
+    } catch {
+      setFeilmelding("Innloggingen kunne ikke startes. Last inn siden på nytt og prøv igjen.");
+      setLaster(false);
+      return;
+    }
 
     if (!ryddetEpost) {
       setFeilmelding("Skriv inn e-postadressen din.");
