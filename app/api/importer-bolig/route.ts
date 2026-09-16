@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyserBoligHtml, analyserBoligtekst, slaSammenBoligimport } from "../../lib/boligimport";
+import { analyserBoligHtml, analyserBoligtekst, analyserHjemData } from "../../lib/boligimport";
 import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 const MAKS_HTML = 5_000_000;
@@ -18,17 +18,13 @@ export async function POST(request: NextRequest) {
     let url: URL;
     try { url = new URL(String(body.url || "").trim()); } catch { return feil("Lim inn en gyldig FINN- eller Hjem.no-lenke.", 400); }
     if (!erTillattBoligUrl(url)) return feil("Lenken må være en boligannonse på finn.no eller hjem.no.", 400);
+    if (erHjemUrl(url)) {
+      const data = await hentHjemBoligdata(url);
+      return resultat(analyserHjemData(data), url.toString());
+    }
     const { html, endeligUrl } = await hentBoligside(url);
     const nettsidedata = analyserBoligHtml(html);
-    const dokumenttekst = erHjemUrl(url) ? await hentHjemSalgsoppgaveTekst(html).catch(() => "") : "";
-    const data = dokumenttekst
-      ? slaSammenBoligimport([
-          { kilde: "Hjem.no salgsoppgave.pdf", data: analyserBoligtekst(dokumenttekst) },
-          { kilde: "Hjem.no", data: nettsidedata },
-        ]).resultat
-      : nettsidedata;
-    data.bildeForslag = nettsidedata.bildeForslag;
-    return resultat(data, endeligUrl);
+    return resultat(nettsidedata, endeligUrl);
   } catch (error) {
     console.error("Kunne ikke importere boligopplysninger:", error);
     return feil("Kunne ikke lese opplysningene. Prøv innlimt tekst eller last opp salgsoppgaven.", 502);
@@ -59,20 +55,20 @@ async function hentBoligside(startUrl: URL) {
   throw new Error("For mange videresendinger");
 }
 
-async function hentHjemSalgsoppgaveTekst(html: string) {
-  const dekodet = html.replace(/\\u002F/gi, "/").replace(/\\\//g, "/").replace(/&amp;/g, "&");
-  const lenker = dekodet.match(/https?:\/\/(?:assets\.)?hjem\.no\/[^\s"'<>\\]+?\.pdf(?:\?[^\s"'<>\\]*)?/gi) || [];
-  const kandidat = lenker.find((lenke) => {
-    try { return new URL(lenke).hostname.toLowerCase().endsWith("hjem.no"); } catch { return false; }
+async function hentHjemBoligdata(url: URL) {
+  const treff = url.pathname.match(/^\/property\/[^/]+\/([a-z0-9]+)\/?$/i);
+  if (!treff) throw new Error("Ugyldig Hjem.no-annonselenke");
+  const endepunkt = new URL("https://apigw.hjem.no/search-backend/api/v2/property");
+  endepunkt.searchParams.set("id", treff[1]);
+  const svar = await fetch(endepunkt, {
+    cache: "no-store",
+    redirect: "error",
+    signal: AbortSignal.timeout(12_000),
+    headers: { Accept: "application/json", "Accept-Language": "nb-NO,nb;q=0.9,no;q=0.8" },
   });
-  if (!kandidat) return "";
-  const svar = await fetch(kandidat, { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(15_000) });
-  if (!svar.ok || !(svar.headers.get("content-type") || "").toLowerCase().includes("pdf")) return "";
-  if (Number(svar.headers.get("content-length") || 0) > 35 * 1024 * 1024) return "";
-  const innhold = await svar.arrayBuffer();
-  if (innhold.byteLength > 35 * 1024 * 1024) return "";
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const pdf = await getDocumentProxy(new Uint8Array(innhold));
-  const lest = await extractText(pdf, { mergePages: true });
-  return String(lest.text || "").trim();
+  if (!svar.ok) throw new Error(`Hjem.no svarte med ${svar.status}`);
+  if (Number(svar.headers.get("content-length") || 0) > MAKS_HTML) throw new Error("Annonsen er for stor");
+  const tekst = await svar.text();
+  if (tekst.length > MAKS_HTML) throw new Error("Annonsen er for stor");
+  return JSON.parse(tekst) as unknown;
 }

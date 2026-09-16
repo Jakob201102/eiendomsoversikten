@@ -240,6 +240,79 @@ export function analyserBoligHtml(html: string): ImportertBolig {
   data.bildeForslag = finnBilder(html); return data;
 }
 
+type HjemVerdi = { value?: unknown; unit?: unknown };
+type HjemData = Record<string, unknown>;
+
+/** Leser den strukturerte boligresponsen som Hjem.no selv bruker på annonsesiden. */
+export function analyserHjemData(verdi: unknown): ImportertBolig {
+  const rot = somOppslag(verdi);
+  const kandidater = Array.isArray(rot.data) ? rot.data : Array.isArray(verdi) ? verdi : [verdi];
+  const bolig = somOppslag(kandidater.find((kandidat) => somOppslag(kandidat).object_type === "property") || kandidater[0]);
+  const adresse = somOppslag(bolig.address);
+  const detaljer = somOppslag(bolig.details);
+  const arealmaal = somOppslag(detaljer.area_measurement);
+  const tilleggsinfo = somOppslag(bolig.additional_info);
+  const energiprofil = somOppslag(tilleggsinfo.energy_profile);
+  const beskrivelse = lesTekstfelt(bolig.description);
+  const arealbeskrivelse = lesTekstfelt(bolig.area_description) || lesTekstfelt(somOppslag(bolig.info_section).interior_area);
+  const grunnlag = analyserBoligtekst([
+    beskrivelse,
+    arealbeskrivelse,
+    lesTekstfelt(somOppslag(bolig.contract_details).plot_description),
+  ].filter(Boolean).join("\n"));
+
+  grunnlag.adresse = ryddAdresse(adresse.display_name) || grunnlag.adresse;
+  grunnlag.boligtype = hjemBoligtype(bolig.type) || grunnlag.boligtype;
+  grunnlag.byggeaar = lesTall(bolig.construction_year) || grunnlag.byggeaar;
+  grunnlag.areal = lesHjemAreal(detaljer.usage_area) || grunnlag.areal;
+  grunnlag.braI = lesHjemAreal(arealmaal.internal) || grunnlag.braI;
+  grunnlag.braE = lesHjemAreal(arealmaal.external) || grunnlag.braE;
+  grunnlag.tomteareal = lesHjemAreal(detaljer.plot_area) || lesHjemAreal(detaljer.land_size) || grunnlag.tomteareal;
+  grunnlag.soverom = lesHjemVerdi(detaljer.bedrooms) || grunnlag.soverom;
+  grunnlag.antallRom = positivHjemVerdi(detaljer.total_rooms) || grunnlag.antallRom;
+  grunnlag.etasjer = positivHjemVerdi(detaljer.floor) || grunnlag.etasjer;
+  grunnlag.energimerking = hjemEnergimerking(energiprofil) || grunnlag.energimerking;
+  grunnlag.bildeForslag = lesHjemBilder(bolig.images);
+  leggTilHjemAreal("braB", "BRA-b", arealmaal.balcony, grunnlag.tilleggsarealer);
+  leggTilHjemAreal("terrasse", "Terrasseareal", arealmaal.terrace, grunnlag.tilleggsarealer);
+  return grunnlag;
+}
+
+function somOppslag(verdi: unknown): HjemData {
+  return verdi && typeof verdi === "object" && !Array.isArray(verdi) ? verdi as HjemData : {};
+}
+function lesTall(verdi: unknown) {
+  const tall = typeof verdi === "number" || typeof verdi === "string" ? String(verdi).trim() : "";
+  return /^\d+(?:[.,]\d+)?$/.test(tall) ? normaliserTall(tall) : undefined;
+}
+function lesHjemVerdi(verdi: unknown) { return lesTall((somOppslag(verdi) as HjemVerdi).value); }
+function positivHjemVerdi(verdi: unknown) { const tall = lesHjemVerdi(verdi); return Number(tall || 0) > 0 ? tall : undefined; }
+function lesHjemAreal(verdi: unknown) { return positivHjemVerdi(verdi); }
+function lesTekstfelt(verdi: unknown): string {
+  if (typeof verdi === "string") return decodeHtml(verdi).replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ");
+  const felt = somOppslag(verdi);
+  return lesTekstfelt(felt.plain) || lesTekstfelt(felt.html) || "";
+}
+function hjemBoligtype(verdi: unknown) {
+  const typer = Array.isArray(verdi) ? verdi.map(String).join(" ") : String(verdi || "");
+  for (const [uttrykk, navn] of BOLIGTYPER) if (uttrykk.test(typer.replace(/_/g, " "))) return navn;
+  return undefined;
+}
+function hjemEnergimerking(profil: HjemData) {
+  const bokstav = String(profil.consumption || "").match(/[A-G]/i)?.[0]?.toUpperCase();
+  const farger: Record<string, string> = { red: "RØD", orange: "ORANSJE", yellow: "GUL", green: "GRØNN", light_green: "LYSEGRØNN", dark_green: "MØRKEGRØNN" };
+  const farge = farger[String(profil.heating || "").toLowerCase()];
+  return [bokstav, farge].filter(Boolean).join(" – ") || undefined;
+}
+function lesHjemBilder(verdi: unknown) {
+  if (!Array.isArray(verdi)) return [];
+  return unikeTekster(verdi.map((bilde) => String(somOppslag(bilde).url || "")).filter((url) => erTillattBildeUrl(url))).slice(0, 60);
+}
+function leggTilHjemAreal(nokkel: string, navn: string, verdi: unknown, resultat: Record<string, string>) {
+  const areal = lesHjemAreal(verdi);
+  if (areal) resultat[nokkel] = `${navn}: ${areal} m²`;
+}
+
 function finnAdresse(tekst: string) {
   const originaleLinjer = tekst.split("\n").map((v) => v.trim());
   const linjer = originaleLinjer.map(ryddAdresse); const kandidater = new Map<string, { adresse: string; poeng: number }>();
