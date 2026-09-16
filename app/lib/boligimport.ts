@@ -19,7 +19,7 @@ export type BoligimportKonflikt = {
 };
 
 const ENKELTFELT: (keyof ImportertBolig)[] = [
-  "adresse", "boligtype", "byggeaar", "areal", "tomteareal", "bruttoareal", "energimerking", "etasjer",
+  "adresse", "boligtype", "byggeaar", "areal", "braI", "braE", "tomteareal", "bruttoareal", "energimerking", "etasjer",
   "antallRom", "soverom", "leilighetsnummer", "gnrBnr", "bod",
 ];
 
@@ -38,7 +38,8 @@ export function slaSammenBoligimport(kilder: BoligimportKilde[]) {
   for (const felt of ENKELTFELT) {
     const funn = kilder
       .map(({ kilde, data }) => ({ kilde, verdi: String(data[felt] || "").trim() }))
-      .filter(({ verdi }) => Boolean(verdi));
+      .filter(({ verdi }) => Boolean(verdi))
+      .sort((a, b) => kildePrioritet(b.kilde) - kildePrioritet(a.kilde));
     const unike = funn.filter(
       (funnverdi, indeks) =>
         funn.findIndex(
@@ -73,6 +74,15 @@ export function slaSammenBoligimport(kilder: BoligimportKilde[]) {
   return { resultat, konflikter };
 }
 
+function kildePrioritet(kilde: string) {
+  if (/\.pdf\b|salgsoppgave|tilstandsrapport/i.test(kilde)) return 100;
+  if (/\b(?:finn|hjem)\b/i.test(kilde) && !/plantegning/i.test(kilde)) return 80;
+  if (/innlimt tekst/i.test(kilde)) return 60;
+  if (/plantegning/i.test(kilde)) return 50;
+  if (/bilde/i.test(kilde)) return 40;
+  return 30;
+}
+
 function slaSammenRom(rom: ImportertRom[]) {
   const resultat: ImportertRom[] = [];
   for (const forslag of rom) {
@@ -99,7 +109,8 @@ function slaSammenOppslag(
   for (const nokkel of nokler) {
     const funn = kilder
       .map(({ kilde, data }) => ({ kilde, verdi: String(data[felt]?.[nokkel] || "").trim() }))
-      .filter(({ verdi }) => Boolean(verdi));
+      .filter(({ verdi }) => Boolean(verdi))
+      .sort((a, b) => kildePrioritet(b.kilde) - kildePrioritet(a.kilde));
     const unike = funn.filter(
       (funnverdi, indeks) =>
         funn.findIndex(
@@ -164,9 +175,9 @@ function normaliserFeltSammenligning(felt: string, verdi: string) {
 }
 
 const BOLIGTYPER: [RegExp, string][] = [
-  [/\b(?:selveier)?leilighet\b|\bboligseksjon\b/i, "Leilighet"], [/\benebolig\b/i, "Enebolig"],
-  [/\brekkehus\b|\bkjedet\s+bolig\b/i, "Rekkehus"], [/\btomannsbolig\b|\b2-mannsbolig\b/i, "Tomannsbolig"],
-  [/\bfritidsbolig\b|\bhytte\b/i, "Fritidsbolig"],
+  [/\b(?:selveier)?leilighet\b|\bboligseksjon\b|\bapartment\b/i, "Leilighet"], [/\benebolig\b|\bsingle dwelling\b|\bdetached house\b/i, "Enebolig"],
+  [/\brekkehus\b|\bkjedet\s+bolig\b|\bterraced house\b|\btownhouse\b/i, "Rekkehus"], [/\btomannsbolig\b|\b2-mannsbolig\b|\bsemi-detached\b/i, "Tomannsbolig"],
+  [/\bfritidsbolig\b|\bhytte\b|\bholiday home\b|\bcabin\b/i, "Fritidsbolig"],
 ];
 const ETIKETTSTOPP = /\b(?:prisantydning|totalpris|omkostninger|felleskostnader|fellesgjeld|finn-kode|nøkkelinfo|boligtype|eieform|soverom|bruksareal|bruttoareal|tomteareal|bta|bra(?:-?[ie])?|p-rom|primærrom|byggeår|energimerking|energikarakter|gnr\.?|bnr\.?|gårdsnummer|bruksnummer)\b/i;
 
@@ -174,15 +185,15 @@ export function analyserBoligtekst(innhold: string): ImportertBolig {
   const tekst = normaliserTekst(innhold); const samlet = tekst.replace(/\n+/g, " ");
   const data: ImportertBolig = { romForslag: [], romDetaljer: [], viktigeDeler: {}, tilleggsarealer: {}, historikkForslag: [], bildeForslag: [] };
   data.adresse = finnAdresse(tekst); data.boligtype = finnBoligtype(tekst);
-  data.byggeaar = finnForsteTall(tekst, ["byggeår", "byggeaar", "oppført", "byggeår iht. eiendomsregisteret"], /(?:18|19|20)\d{2}/);
-  data.braI = finnAreal(tekst, ["BRA-i", "BRA i", "internt bruksareal"]);
-  data.braE = finnAreal(tekst, ["BRA-e", "BRA e", "eksternt bruksareal"]);
-  data.areal = data.braI || finnAreal(tekst, ["bruksareal", "totalt bruksareal", "BRA", "P-ROM", "primærrom"]);
-  data.tomteareal = finnAreal(tekst, ["tomteareal", "tomt"]);
-  data.bruttoareal = finnAreal(tekst, ["bruttoareal", "BTA"]);
+  data.byggeaar = finnForsteTall(tekst, ["byggeår", "byggeaar", "oppført", "byggeår iht. eiendomsregisteret", "year built", "construction year", "built"], /(?:18|19|20)\d{2}/);
+  data.braI = finnAreal(tekst, ["BRA-i", "BRA i", "internt bruksareal", "internal usage", "internal area"]);
+  data.braE = finnAreal(tekst, ["BRA-e", "BRA e", "eksternt bruksareal", "external usage", "external area"]);
+  data.areal = finnAreal(tekst, ["totalt bruksareal", "bruksareal totalt", "usage area", "total usage area", "BRA totalt", "BRA", "P-ROM", "primærrom"]) || data.braI;
+  data.tomteareal = finnAreal(tekst, ["tomteareal", "tomtestørrelse", "tomt", "plot area", "plot size", "lot area"]);
+  data.bruttoareal = finnAreal(tekst, ["bruttoareal", "BTA", "gross area"]);
   data.energimerking = finnEnergimerking(tekst);
   data.soverom = finnAntallSoverom(tekst);
-  data.antallRom = finnAntall(tekst, ["antall rom", "rom totalt"]) || treff(samlet, /\b(\d{1,2})\s*[- ]?roms\b/i);
+  data.antallRom = finnAntall(tekst, ["antall rom", "rom totalt", "number of rooms", "rooms total"]) || treff(samlet, /\b(\d{1,2})\s*[- ]?roms\b/i);
   data.etasjer = finnEtasje(tekst); data.leilighetsnummer = finnLeilighetsnummer(tekst); data.gnrBnr = finnMatrikkel(tekst);
   const bodAreal = finnAreal(tekst, ["bodareal", "ekstern bod", "sportsbod", "bod"]);
   if (bodAreal) data.bod = `Bod: ${bodAreal} m²`; else if (data.braE) data.bod = `Eksternt bruksareal (BRA-e): ${data.braE} m²`;
@@ -205,7 +216,9 @@ export function analyserBoligtekst(innhold: string): ImportertBolig {
     ...rom,
     sistPusset: rom.sistPusset || finnOppussingsaarForRom(rom.navn, data.viktigeDeler) || finnRomOppussingsaar(tekst, rom.navn),
   }));
-  data.tilleggsarealer = finnTilleggsarealer(samlet, data.bod); return data;
+  data.tilleggsarealer = finnTilleggsarealer(samlet, data.bod);
+  leggTilArealtyper(tekst, data.tilleggsarealer);
+  return data;
 }
 
 export function analyserBoligHtml(html: string): ImportertBolig {
@@ -222,6 +235,7 @@ export function analyserBoligHtml(html: string): ImportertBolig {
   data.tomteareal ||= finnJsonVerdi(json, ["plotArea", "lotArea", "siteArea"]);
   data.bruttoareal ||= finnJsonVerdi(json, ["grossArea", "bta", "BTA"]);
   data.energimerking ||= finnJsonVerdi(json, ["energyLabel", "energyRating", "energyClass"]);
+  data.etasjer ||= finnJsonVerdi(json, ["floor", "floorNumber", "numberOfFloors", "storey"]);
   data.leilighetsnummer ||= finnJsonVerdi(json, ["apartmentNumber", "unitCode", "dwellingNumber"]);
   data.bildeForslag = finnBilder(html); return data;
 }
@@ -261,19 +275,23 @@ function serUtSomAdresse(verdi: string) {
 function erUgyldigAdresse(verdi: string) { return /(?:https?:|www\.|@|prisantydning|totalpris|omkostninger|finn-kode|telefon|organisasjonsnummer|meglerforetak|\b(?:en|et|denne)\s+(?:modernisert|lekker|flott|innbydende|pen|romslig)|\b(?:roms|soverom|bad|bolig)\s+\d+$)/i.test(verdi) || verdi.length > 105; }
 function adressePoeng(adresse: string, tekst: string) { let p = 0; if (/\b\d{4}\s+[A-ZÆØÅa-zæøå]/i.test(adresse)) p += 25; if (ADRESSEORD.test(adresse)) p += 8; const gate = adresse.replace(/,?\s*\d{4}\s+[A-ZÆØÅa-zæøå].*$/i, "").trim().toLowerCase(); const n = gate.length > 4 ? tekst.toLowerCase().split(gate).length - 1 : 0; return p + Math.min(n, 5) * 2; }
 function ryddAdresse(verdi: unknown) {
-  let resultat = String(verdi || "").replace(/^(?:(?:se|vis)\s+)?kart(?:\s+over)?\s*:?\s*/i, "").replace(/^(?:eiendommens\s+adresse|matrikkeladresse|forretningsadresse|adresse|beliggenhet)\s*:?\s*/i, "").replace(ETIKETTSTOPP, "\0").split("\0")[0].replace(/^[,;:|\s]+|[,;:|\s]+$/g, "").replace(/\s+/g, " ").trim();
+  let resultat = String(verdi || "").replace(/^(?:(?:se|vis)\s+)?kart(?:\s+over)?\s*:?\s*/i, "").replace(/^(?:eiendommens\s+adresse|matrikkeladresse|forretningsadresse|adresse|beliggenhet)\s*:?\s*/i, "").replace(ETIKETTSTOPP, "\0").split("\0")[0].replace(/\s+(?:facts?\s+about|asking\s+price|property\s+type|usage\s+area|internal\s+usage|external\s+usage|plot\s+area|floor|bedrooms?|number\s+of\s+rooms|year\s+built|energy\s+rating)\b.*$/i, "").replace(/^[,;:|\s]+|[,;:|\s]+$/g, "").replace(/\s+/g, " ").trim();
   const match = resultat.match(/([A-ZÆØÅa-zæøå][A-ZÆØÅa-zæøå .'’-]{0,70}\s\d{1,4}[A-Za-z]?(?:\s*[-–]\s*\d{1,4})?(?:\s*,?\s*\d{4}\s+[A-ZÆØÅa-zæøå][A-ZÆØÅa-zæøå .'-]{1,35})?)/i); resultat = match?.[1]?.trim() || resultat; return resultat || undefined;
 }
 function normaliserAdresse(v: string) { const r = v.replace(/\s*,?\s*(\d{4})\s+/, ", $1 ").replace(/\s*,\s*/, ", "); return (r.charAt(0).toUpperCase() + r.slice(1)).replace(/, (\d{4}) ([a-zæøå])/g, (_, post: string, bokstav: string) => `, ${post} ${bokstav.toUpperCase()}`); }
 
 function finnBoligtype(tekst: string) { const oppgitt = verdiEtterEtikett(tekst, ["boligtype", "eiendomstype", "type bolig"]); if (oppgitt) for (const [u, navn] of BOLIGTYPER) if (u.test(oppgitt)) return navn; for (const [u, navn] of BOLIGTYPER) if (u.test(tekst)) return navn; return undefined; }
-function finnAreal(tekst: string, etiketter: string[]) { const t = tekst.replace(/\n+/g, " "); for (const e of etiketter) { const x = escapeRegExp(e).replace(/\\ /g, "\\s*"); const v = treff(t, new RegExp(`${x}\\s*(?:\\([^)]*\\))?\\s*[:–-]?\\s*(?:(?:på|ca\\.?)\\s*)?([\\d.,]+)\\s*m(?:²|2|\\^2)`, "i")); if (v) return normaliserTall(v); } return undefined; }
-function finnAntall(tekst: string, etiketter: string[]) { const t = tekst.replace(/\n+/g, " "); for (const e of etiketter) { const x = escapeRegExp(e).replace(/\\ /g, "\\s+"); const b = treff(t, new RegExp(`\\b(\\d{1,2})\\s+${x}\\b`, "i")); if (b) return b; const a = treff(t, new RegExp(`${x}\\s*[:–-]?\\s*(\\d{1,2})`, "i")); if (a) return a; } return undefined; }
+function finnAreal(tekst: string, etiketter: string[]) { const t = tekst.replace(/\n+/g, " "); const tall = "(\\d{1,3}(?:[\\s.]\\d{3})*(?:,\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?)"; for (const e of etiketter) { const x = escapeRegExp(e).replace(/\\ /g, "\\s*"); const v = treff(t, new RegExp(`${x}\\s*(?:\\([^)]*\\))?\\s*[:–-]?\\s*(?:(?:på|ca\\.?)\\s*)?${tall}\\s*(?:m(?:²|2|\\^2)|kvm)`, "i")); if (v) return normaliserTall(v); } return undefined; }
+function finnAntall(tekst: string, etiketter: string[]) { const t = tekst.replace(/\n+/g, " "); for (const e of etiketter) { const x = escapeRegExp(e).replace(/\\ /g, "\\s+"); const a = treff(t, new RegExp(`${x}\\s*[:–-]?\\s*(\\d{1,2})`, "i")); if (a) return a; const b = treff(t, new RegExp(`\\b(\\d{1,2})\\s+${x}\\b`, "i")); if (b) return b; } return undefined; }
 function finnAntallSoverom(tekst: string) {
   const linjer = tekst.split(/\n+/).map((linje) => linje.replace(/\s+/g, " ").trim()).filter(Boolean);
   const t = linjer.join(" ");
-  const tydelig = treff(t, /(?:antall\s+soverom|soverom\s+totalt)\s*[:–—-]?\s*(\d{1,2})\b/i) || linjer.map((linje) => treff(linje, /(?:^|[^.,\d])(\d{1,2})\s+soverom\b/i)).find(Boolean);
+  const tydelig = treff(t, /(?:antall\s+soverom|soverom\s+totalt|bedrooms?|bedroom\s+count)\s*[:–—-]?\s*(\d{1,2})\b/i)
+    || treff(t, /(?:bedrooms?|soverom)\s*[:–—-]?\s*(\d{1,2})\b/i)
+    || linjer.map((linje) => treff(linje, /(?:^|[^.,\d])(\d{1,2})\s+(?:soverom|bedrooms?)\b/i)).find(Boolean);
   if (tydelig) return tydelig;
+  const ordtreff = t.match(/\b(ett|én|en|to|tre|fire|fem|seks|sju|syv|åtte)\s+soverom\b/i)?.[1]?.toLocaleLowerCase("nb-NO");
+  if (ordtreff) return String(({ ett:1, "én":1, en:1, to:2, tre:3, fire:4, fem:5, seks:6, sju:7, syv:7, "åtte":8 } as Record<string,number>)[ordtreff]);
   for (const [indeks, linje] of linjer.entries()) {
     const felt = linje.match(/^soverom\s*[:–—-]\s*(\d{1,2})\s*$/i)?.[1];
     if (felt) return felt;
@@ -293,6 +311,8 @@ function finnEtasje(tekst: string) {
   const ord: Record<string,string> = { ett:"1", én:"1", en:"1", to:"2", tre:"3", fire:"4", fem:"5" };
   const antall = treff(t, /(?:antall\s+etasjer|etasjer\s+totalt|antall\s+plan)\s*[:–-]?\s*(\d{1,2})/i);
   if (antall) return antall;
+  const hjemEtasje = treff(t, /(?:^|\s)(?:floor|storey)\s*[:–-]?\s*(\d{1,2})(?=\s|$)/i);
+  if (hjemEtasje) return `${hjemEtasje}. etasje`;
   const direkte = treff(t, /\b(?:over|i)\s+(\d{1,2})\s+(?:plan|etasjer)\b/i);
   if (direkte) return direkte;
   const fordelt = treff(t, /\b(?:går|strekker\s+seg|fordelt)\s+(?:seg\s+)?over\s+(ett|én|en|to|tre|fire|fem|\d{1,2})\s+(?:plan|etasjer)\b/i);
@@ -302,11 +322,30 @@ function finnEtasje(tekst: string) {
 
 function finnEnergimerking(tekst: string) {
   const t = tekst.replace(/\n+/g, " ");
-  const hel = treff(t, /(?:energimerking|energikarakter|energiklasse)\s*[:–-]?\s*([A-G](?:\s*[-–/]?\s*(?:mørkegrønn|grønn|lysegrønn|gul|oransje|orange|rød))?)/i);
-  if (hel) return hel.toUpperCase().replace("ORANGE", "ORANSJE");
+  const hel = treff(t, /(?:energimerking|energikarakter|energiklasse|energy rating|energy label|energy class)\s*[:–-]?\s*([A-G](?:\s*[-–/]?\s*(?:mørkegrønn|dark green|light green|green|grønn|lysegrønn|yellow|gul|orange|oransje|red|rød))?)/i);
+  if (hel) return hel.toUpperCase()
+    .replace("DARK GREEN", "MØRKEGRØNN")
+    .replace("LIGHT GREEN", "LYSEGRØNN")
+    .replace("GREEN", "GRØNN")
+    .replace("YELLOW", "GUL")
+    .replace("ORANGE", "ORANSJE")
+    .replace("RED", "RØD");
   const karakter = treff(t, /\benergikarakter\s*[:–-]?\s*([A-G])\b/i);
   const oppvarming = treff(t, /\boppvarmingskarakter\s*[:–-]?\s*(mørkegrønn|grønn|lysegrønn|gul|oransje|orange|rød)\b/i);
   return [karakter?.toUpperCase(), oppvarming?.replace(/orange/i, "oransje")].filter(Boolean).join(" – ") || undefined;
+}
+
+function leggTilArealtyper(tekst: string, resultat: Record<string, string>) {
+  const typer: [string, string, string[]][] = [
+    ["braB", "BRA-b", ["BRA-b", "BRA b", "innglasset balkong", "glazed balcony"]],
+    ["tba", "TBA", ["TBA", "terrasse- og balkongareal", "balcony/terrace", "terrace area"]],
+    ["gua", "GUA", ["GUA", "gulvareal", "floor area"]],
+    ["alh", "ALH", ["ALH", "areal med lav takhøyde", "low ceiling area"]],
+  ];
+  for (const [felt, navn, etiketter] of typer) {
+    const areal = finnAreal(tekst, etiketter);
+    if (areal) resultat[felt] = `${navn}: ${areal} m²`;
+  }
 }
 function finnLeilighetsnummer(tekst: string) { const t = tekst.replace(/\n+/g, " "); return (treff(t, /(?:leilighetsnummer|bolignummer|bruksenhetsnummer|bruksenhet)\s*:?[\s-]*([HUKL]\s*\d{4})/i) || treff(t, /\b([HUKL]\d{4})\b/i))?.replace(/\s/g, "").toUpperCase(); }
 function finnMatrikkel(tekst: string) {
@@ -316,10 +355,10 @@ function finnMatrikkel(tekst: string) {
 
 function finnRomforslag(tekst: string, soverom: number) {
   const rom: string[] = []; const leggTil = (n: string) => { if (!rom.some((v) => v.toLowerCase() === n.toLowerCase())) rom.push(n); };
-  const faste: [RegExp, string][] = [[/\bkjøkken(?:et)?\b/i,"Kjøkken"],[/\bbad(?:et|ene)?\b|\bbaderom\b/i,"Bad"],[/\bvaskerom(?:met)?\b/i,"Vaskerom"],[/\bstue(?:n|r)?\b|\bdagligstue\b/i,"Stue"],[/\bentr[eé](?:en)?|\bgang(?:en)?\b/i,"Entré/gang"],[/\bkontor(?:et)?\b/i,"Kontor"],[/\bkjellerstue(?:n)?\b/i,"Kjellerstue"],[/\bloftstue(?:n)?\b/i,"Loftstue"],[/\bwc\b|\btoalettrom\b/i,"WC"]];
+  const faste: [RegExp, string][] = [[/\bkjøkken(?:et)?\b/i,"Kjøkken"],[/\bbad(?:et|ene)?\b|\bbaderom\b/i,"Bad"],[/\bvaskerom(?:met)?\b/i,"Vaskerom"],[/\bstue(?:n|r)?\b|\bdagligstue\b/i,"Stue"],[/\bentr[eé](?:en)?|\bgang(?:en)?\b/i,"Entré/gang"],[/\bkontor(?:et)?\b/i,"Kontor"],[/\bkjellerstue(?:n)?\b/i,"Kjellerstue"],[/\bloftstue(?:n)?\b/i,"Loftstue"],[/\bloft(?:et)?\b/i,"Loft"],[/\bbod(?:en|er)?\b|\bsportsbod\b/i,"Bod"],[/\bteknisk(?:e)?\s+(?:rom|kott)\b/i,"Teknisk rom"],[/\bgarderobe(?:n)?\b|\bomkledningsrom\b/i,"Garderobe"],[/\bwc\b|\btoalettrom\b/i,"WC"]];
   const linjer = tekst.split(/\n+/).map((linje) => linje.replace(/\s+/g, " ").trim()).filter(Boolean);
   const seksjoner: string[] = [];
-  const romord = /\b(?:kjøkken|stue|bad|baderom|vaskerom|entr[eé]|gang|kontor|kjellerstue|loftstue|wc|toalettrom|soverom)\b/i;
+  const romord = /\b(?:kjøkken|stue|bad|baderom|vaskerom|entr[eé]|gang|kontor|kjellerstue|loftstue|loft|bod|sportsbod|teknisk\s+rom|garderobe|wc|toalettrom|soverom)\b/i;
   for (const [indeks, linje] of linjer.entries()) {
     const erRomoversikt = /\b(?:innhold|planløsning|romfordeling|romoversikt|består\s+av|inneholder|følgende\s+rom)\b/i.test(linje);
     const romtreff = faste.filter(([monster]) => monster.test(linje)).length + (/\bsoverom\b/i.test(linje) ? 1 : 0);
@@ -330,17 +369,21 @@ function finnRomforslag(tekst: string, soverom: number) {
   const romtekst = seksjoner
     .map((seksjon) => seksjon.replace(/\b(?:kan\s+(?:også\s+)?brukes\s+som|kan\s+innredes\s+som|kan\s+gjøres\s+om\s+til|mulighet\s+for|potensial\s+for)\b[^.!;]*/gi, ""))
     .join("\n");
-  const harKjokkenStue = /\b(?:kjøkken\s*\/\s*stue|stue\s*\/\s*kjøkken)\b/i.test(romtekst);
+  const harKjokkenStue = /\b(?:kjøkken\s*\/\s*stue|stue\s*\/\s*kjøkken|stue\s+med\s+(?:åpen\s+)?kjøkken(?:løsning)?|åpen\s+stue[-/ ]kjøkkenløsning)\b/i.test(romtekst);
   const harBadVaskerom = /\b(?:bad(?:erom)?\s*\/\s*vaskerom|vaskerom\s*\/\s*bad(?:erom)?)\b/i.test(romtekst);
+  const nummererteBad = [...romtekst.matchAll(/\bbad(?:erom)?\s*(\d{1,2})\b/gi)].map((treff) => Number(treff[1]));
+  const antallBad = Math.min(Math.max(Number(treff(romtekst, /\b(\d{1,2})\s+(?:bad|baderom)\b/i) || 0), ...nummererteBad, 0), 6);
   if (harKjokkenStue) leggTil("Kjøkken/stue");
   if (harBadVaskerom) leggTil("Bad/vaskerom");
   faste.forEach(([monster, navn]) => {
     if (harKjokkenStue && (navn === "Kjøkken" || navn === "Stue")) return;
-    if (harBadVaskerom && (navn === "Bad" || navn === "Vaskerom")) return;
+    if ((harBadVaskerom || antallBad > 1) && navn === "Bad") return;
+    if (harBadVaskerom && navn === "Vaskerom") return;
     if (monster.test(romtekst)) leggTil(navn);
   });
   const antall = Math.min(Math.max(soverom, Number(treff(romtekst, /\b(\d{1,2})\s+soverom\b/i) || 0)), 12);
   for (let indeks = 1; indeks <= antall; indeks += 1) leggTil(antall === 1 ? "Soverom" : `Soverom ${indeks}`);
+  for (let indeks = 1; indeks <= antallBad; indeks += 1) leggTil(antallBad === 1 ? "Bad" : `Bad ${indeks}`);
   return rom;
 }
 
@@ -402,8 +445,15 @@ function finnRomdetaljer(tekst: string, soverom: number): ImportertRom[] {
 }
 
 function normaliserRomnavn(navn: string): string {
+  const heleNavnet = navn.toLocaleLowerCase("nb-NO").replace(/\s+/g, " ").trim();
+  if (/entr[eé].*\/.*gang|gang.*\/.*entr[eé]/i.test(heleNavnet)) return "Entré/gang";
   const sammensatt = navn.split(/\s*(?:\/|\+|&)\s*/).filter(Boolean);
-  if (sammensatt.length > 1) return sammensatt.map(normaliserRomnavn).join("/");
+  if (sammensatt.length > 1) {
+    const deler = sammensatt.map(normaliserRomnavn).filter((verdi, indeks, alle) => alle.indexOf(verdi) === indeks);
+    if (deler.includes("Stue") && deler.includes("Kjøkken")) return "Kjøkken/stue";
+    if (deler.includes("Bad") && deler.includes("Vaskerom")) return "Bad/vaskerom";
+    return deler.join("/");
+  }
   const liten = navn.toLocaleLowerCase("nb-NO");
   const tall = liten.match(/\d+/)?.[0];
   if (liten.startsWith("soverom") || /^sov\.?\b/.test(liten)) return tall ? `Soverom ${tall}` : "Soverom";
@@ -440,6 +490,10 @@ function finnOppussingsinfo(tekst: string, historikk: ImportertHistorikk[]) {
     ["elektrisk","Elektrisk anlegg",/\b(?:elektrisk|sikringsskap|elanlegg|el-anlegg)\b/i],
     ["ror","Rør",/\b(?:rør|røropplegg|vannledninger)\b/i],
     ["fasade","Fasade",/\b(?:fasade|kledning)\b/i],
+    ["gulv","Gulv",/\b(?:gulv|parkett|laminat)\b/i],
+    ["drenering","Drenering",/\b(?:drenering|dreneringen|dreneringsarbeid)\b/i],
+    ["dorer","Dører",/\b(?:ytterdør|inngangsdør|dører|dørene)\b/i],
+    ["terrasse","Terrasse",/\b(?:terrasse|balkong|veranda)\b/i],
     ["boligen","Boligen",/\b(?:huset|boligen|eiendommen)\b/i],
   ];
   const handling=/\b(?:pusset\s+opp|oppussing|oppusset|renovert|renovering|totalrenovert|rehabilitert|rehabilitering|oppgradert|modernisert|fornyet|skiftet|utskiftet|byttet|etablert|installert|tekket\s+om|omtekket|malt|nytt|ny|nye)\b/i;
@@ -472,10 +526,16 @@ function finnOppussingsinfo(tekst: string, historikk: ImportertHistorikk[]) {
     resultat[felt]=ar||"Oppusset/oppgradert – år ikke oppgitt";
     if(ar){
       const beskrivelse=presiseKandidater.find((s)=>s.includes(ar))||presiseKandidater[0];
-      if(!historikk.some((h)=>h.omrade===navn&&h.dato.startsWith(ar)))historikk.push({tittel:`${navn} oppusset eller oppgradert`,dato:`${ar}-01-01`,omrade:navn,beskrivelse:forkort(beskrivelse,320)});
+      if(!historikk.some((h)=>h.omrade===navn&&h.dato.startsWith(ar)))historikk.push({tittel:lagOppussingstittel(navn,beskrivelse),dato:`${ar}-01-01`,omrade:navn,beskrivelse:forkort(beskrivelse,320)});
     }
   }
   return resultat;
+}
+function lagOppussingstittel(omrade:string,beskrivelse:string){
+  const handling = /totalrenovert|renovert|rehabilitert|pusset\s+opp|oppusset|modernisert|oppgradert|skiftet|utskiftet|byttet|installert|etablert|malt|fornyet/i.exec(beskrivelse)?.[0]?.toLocaleLowerCase("nb-NO");
+  if(!handling)return `${omrade} oppusset eller oppgradert`;
+  const verb = handling === "pusset opp" || handling === "oppusset" ? "pusset opp" : handling;
+  return `${omrade} ${verb}`;
 }
 function finnTilleggsarealer(tekst:string,bod?:string){const r:Record<string,string>={};if(bod||/\b(?:bod|sportsbod|kjellerbod|loftsbod|utebod)(?:en|er)?\b/i.test(tekst))r.bod=bod||"Bod er omtalt i boligopplysningene";if(/\bgarasje(?:n)?\b/i.test(tekst))r.garasje="Garasje er omtalt i boligopplysningene";if(/\b(?:biloppstillingsplass|parkeringsplass|parkering|carport)\b/i.test(tekst))r.parkering=/\bcarport\b/i.test(tekst)?"Carport er omtalt i boligopplysningene":"Parkering er omtalt i boligopplysningene";if(/\b(?:balkong|terrasse|veranda|uteplass)(?:en)?\b/i.test(tekst)){const type=/\bbalkong/i.test(tekst)?"Balkong":/\bveranda/i.test(tekst)?"Veranda":/\buteplass/i.test(tekst)?"Uteplass":"Terrasse";r.balkong=`${type} er omtalt i boligopplysningene`;}if(/\b(?:hage|tomt|grøntareal)\b/i.test(tekst))r.hage="Hage eller uteareal er omtalt i boligopplysningene";if(/\b(?:fellesvaskeri|fellesareal|sykkelbod)\b/i.test(tekst))r.fellesareal="Fellesareal er omtalt i boligopplysningene";return r;}
 function finnOppvarming(tekst:string,deler:Record<string,string>){const etikett=verdiEtterEtikett(tekst,["oppvarming","oppvarmingstype","varmekilder","varmekilde","energi og oppvarming"]);const relevante=[etikett,...tekst.split(/\n+|(?<=[.!?])\s+/).filter((s)=>/\b(?:oppvarming|oppvarmes|varmekilde|varmeanlegg|varmepumpe|fjernvarme|vedfyring|panelovn|varmekabler|vannbåren)\b/i.test(s)).slice(0,16)].filter(Boolean).join(" ");if(!relevante)return;const typer:[RegExp,string][]=[[/\bvarmepumpe\b/i,"Varmepumpe"],[/\bfjernvarme\b/i,"Fjernvarme"],[/\bvedovn\b|\bpeis\b|\bvedfyring\b/i,"Vedovn/peis"],[/\bvarmekabler\b|\bgulvvarme\b/i,"Varmekabler/gulvvarme"],[/\bpanelovner?\b/i,"Panelovner"],[/\bvannbåren\s+varme\b/i,"Vannbåren varme"],[/\belektrisk(?:e)?\s+oppvarming\b|\belektrisitet\b/i,"Elektrisk oppvarming"],[/\boljefyr\b|\boljefyring\b/i,"Oljefyring"],[/\bbioenergi\b|\bpelletsovn\b/i,"Bioenergi"]];const f=typer.filter(([u])=>u.test(relevante)).map(([,n])=>n);if(f.length)deler.oppvarming=[...new Set(f)].join(", ");else if(etikett)deler.oppvarming=forkort(etikett,180);}
@@ -535,11 +595,13 @@ export async function serUtSomPlantegningVisuelt(fil: File) {
 function hentLesbarJsonTekst(html:string){const verdier:string[]=[];const nokler="description|adDescription|propertyDescription|body|content|heading|title|address|locationDescription|facilities|areaDescription";const u=new RegExp(`"(?:${nokler})"\\s*:\\s*"((?:\\\\.|[^"\\\\]){8,20000})"`,"gi");for(const m of html.matchAll(u)){const v=dekodJson(m[1]);if(!/https?:\/\//i.test(v)&&/[A-Za-zÆØÅæøå]{3}/.test(v))verdier.push(v);}return verdier.slice(0,80).join("\n");}
 function finnBilder(html:string){
   const d=dekodJson(decodeHtml(html));
-  const funn=d.match(/https?:\/\/[^\s"'<>\\]+finncdn\.no\/[^\s"'<>\\]+?\.(?:jpe?g|png|webp)(?:\?[^\s"'<>\\]*)?/gi)||[];
+  const funn=d.match(/https?:\/\/[^\s"'<>\\]+/gi)||[];
   const unike = new Map<string, string>();
   for (const ra of funn) {
     const url = ra.replace(/^s(?=https?:)/i,"").replace(/[),.;]+$/,"");
     if (!erTillattBildeUrl(url)) continue;
+    if (/\.(?:svg|gif|ico)(?:\?|$)|(?:logo|avatar|profile|favicon|megler|broker)/i.test(url)) continue;
+    if (!/\.(?:jpe?g|png|webp|avif)(?:\?|$)|(?:image|photo|picture|media|gallery|listing|property)/i.test(url)) continue;
     const nokkel = finnBildenokkel(url);
     const gammel = unike.get(nokkel);
     if (!gammel || bildeKvalitet(url) > bildeKvalitet(gammel)) unike.set(nokkel, url);
@@ -558,12 +620,12 @@ function bildeKvalitet(url:string){
   const tall=(url.match(/(?:width|w|size)[=/_-](\d{2,4})/i)?.[1]||url.match(/\/(\d{3,4})x\d{3,4}\//)?.[1]);
   return Number(tall||0)+url.length/10000;
 }
-export function erTillattBildeUrl(verdi:string){try{const u=new URL(verdi);const v=u.hostname.toLowerCase();return u.protocol==="https:"&&(v==="images.finncdn.no"||v.endsWith(".finncdn.no"));}catch{return false;}}
+export function erTillattBildeUrl(verdi:string){try{const u=new URL(verdi);const v=u.hostname.toLowerCase();return u.protocol==="https:"&&(v==="images.finncdn.no"||v.endsWith(".finncdn.no")||v==="assets.hjem.no"||v.endsWith(".hjem.no"));}catch{return false;}}
 function hentAdresseFraJson(tekst:string){const gate=finnJsonVerdi(tekst,["streetAddress","street_address","address"]);if(!gate||!serUtSomAdresse(gate))return undefined;const post=finnJsonVerdi(tekst,["postalCode","postal_code","zipCode"]);const sted=finnJsonVerdi(tekst,["addressLocality","postalCity","city"]);return ryddAdresse([gate,[post,sted].filter(Boolean).join(" ")].filter(Boolean).join(", "));}
 function finnJsonVerdi(tekst:string,nokler:string[]){for(const n of nokler){const m=tekst.match(new RegExp(`"${escapeRegExp(n)}"\\s*:\\s*(?:"((?:\\\\.|[^"\\\\]){1,180})"|(\\d+(?:[.,]\\d+)?))`,"i"));const v=rydd(dekodJson(m?.[1]||m?.[2]||""));if(v&&!/https?:\/\//i.test(v))return v;}return undefined;}
 function normaliserTekst(v:string){return decodeHtml(dekodJson(v)).replace(/!\[[^\]]*\]\([^)]*\)/g," ").replace(/https?:\/\/\S+/gi," ").replace(/\bwww\.\S+/gi," ").replace(/[{}\[\]"]{2,}/g," ").replace(/[\u200B-\u200D\uFEFF]/g,"").replace(/\r/g,"").replace(/[\t ]+/g," ").replace(/ *\n */g,"\n").replace(/\n{3,}/g,"\n\n").trim();}
 function ryddBeskrivelse(v:string){const r=v.replace(/https?:\/\/\S+/gi,"").replace(/(?:^|\s)["'\\,;:{}\[\]]+(?=\s|$)/g," ").replace(/\s+/g," ").trim();if(!r||/finncdn|\.jpe?g|\.png|\.webp/i.test(r))return undefined;return r;}
 function dekodJson(v:string){return v.replace(/\\u002F/gi,"/").replace(/\\u0026/gi,"&").replace(/\\u003C/gi,"<").replace(/\\u003E/gi,">").replace(/\\n/g,"\n").replace(/\\r/g,"").replace(/\\t/g," ").replace(/\\"/g,'"').replace(/\\\//g,"/");}
-function normaliserTall(v:string){return v.replace(/\.(?=\d{3}(?:\D|$))/g,"").replace(",",".");}
+function normaliserTall(v:string){return v.replace(/\s+/g,"").replace(/\.(?=\d{3}(?:\D|$))/g,"").replace(",",".");}
 function treff(t:string,u:RegExp){return rydd(t.match(u)?.[1]);} function rydd(v:unknown){const r=String(v||"").replace(/\s+/g," ").trim();return r||undefined;} function forkort(v:string,m:number){return v.length<=m?v:`${v.slice(0,m-1).trim()}…`;} function escapeRegExp(v:string){return v.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
 function decodeHtml(v:string){return v.replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&nbsp;|&#160;/g," ").replace(/&#x([0-9a-f]+);/gi,(_,k:string)=>String.fromCodePoint(Number.parseInt(k,16))).replace(/&#(\d+);/g,(_,k:string)=>String.fromCodePoint(Number(k)));}

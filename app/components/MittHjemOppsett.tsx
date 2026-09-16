@@ -379,7 +379,7 @@ export default function MittHjemOppsett({
         const blob = await svar.blob();
         const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
         const endelse = type.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
-        const fil = new File([blob], `finn-bilde-${indeks + 1}.${endelse}`, { type });
+        const fil = new File([blob], `annonsebilde-${indeks + 1}.${endelse}`, { type });
         filer.push({ fil, indeks, url });
       } catch {
         feilAntall += 1;
@@ -395,11 +395,11 @@ export default function MittHjemOppsett({
         const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
           boligId,
-          navn: erPlantegning ? `Plantegning fra FINN ${indeks + 1}` : `Boligbilde fra FINN ${indeks + 1}`,
+          navn: erPlantegning ? `Plantegning fra boligannonse ${indeks + 1}` : `Boligbilde fra boligannonse ${indeks + 1}`,
           kategori: erPlantegning ? "plantegning" : "boligbilde",
           ar: new Date().getFullYear(),
           dokumentdato: new Date().toISOString().slice(0, 10),
-          notat: "Importert fra godkjent FINN-annonse",
+          notat: "Importert fra godkjent boligannonse",
         });
       } catch {
         feilAntall += 1;
@@ -445,7 +445,7 @@ export default function MittHjemOppsett({
     if (finnKilde) oppgaver.push(async () =>
       lagreDokumentlenke({
           boligId,
-          navn: "FINN-annonse for boligen",
+          navn: finnKilde.includes("hjem.no") ? "Hjem.no-annonse for boligen" : "FINN-annonse for boligen",
           kategori: "finnlenke",
           ar: new Date().getFullYear(),
           dokumentdato: dato,

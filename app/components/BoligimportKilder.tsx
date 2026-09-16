@@ -23,7 +23,7 @@ type Adresseforslag = {
   bruksenhetsnummer?: string[];
 };
 
-type Kildetype = "finn" | "pdf" | "tekst" | "bilder" | "adresse" | "ingen";
+type Kildetype = "finn" | "hjem" | "pdf" | "tekst" | "bilder" | "ingen";
 
 const tomtResultat = (): ImportertBolig => ({
   romForslag: [],
@@ -38,7 +38,9 @@ const felter: { key: keyof ImportertBolig; navn: string; gruppe: string }[] = [
   { key: "adresse", navn: "Adresse", gruppe: "Grunninformasjon" },
   { key: "boligtype", navn: "Boligtype", gruppe: "Grunninformasjon" },
   { key: "byggeaar", navn: "Byggeår", gruppe: "Grunninformasjon" },
-  { key: "areal", navn: "Areal", gruppe: "Grunninformasjon" },
+  { key: "areal", navn: "Totalt bruksareal", gruppe: "Grunninformasjon" },
+  { key: "braI", navn: "BRA-i", gruppe: "Grunninformasjon" },
+  { key: "braE", navn: "BRA-e", gruppe: "Grunninformasjon" },
   { key: "tomteareal", navn: "Tomteareal", gruppe: "Grunninformasjon" },
   { key: "bruttoareal", navn: "Bruttoareal", gruppe: "Grunninformasjon" },
   { key: "energimerking", navn: "Energimerking", gruppe: "Grunninformasjon" },
@@ -55,7 +57,7 @@ const kildevalg: { type: Kildetype; ikon: string; navn: string }[] = [
   { type: "pdf", ikon: "📄", navn: "PDF" },
   { type: "tekst", ikon: "📝", navn: "Tekst" },
   { type: "bilder", ikon: "📷", navn: "Bilder" },
-  { type: "adresse", ikon: "🏠", navn: "Adresse" },
+  { type: "hjem", ikon: "🔗", navn: "Hjem.no-lenke" },
   { type: "ingen", ikon: "🧭", navn: "Ingen dokumenter" },
 ];
 
@@ -66,6 +68,7 @@ export default function BoligimportKilder({
 }) {
   const [aktiv, setAktiv] = useState<Kildetype | null>(null);
   const [finnLenke, setFinnLenke] = useState("");
+  const [hjemLenke, setHjemLenke] = useState("");
   const [pdfFiler, setPdfFiler] = useState<File[]>([]);
   const [tekstKilder, setTekstKilder] = useState<string[]>([]);
   const [tekst, setTekst] = useState("");
@@ -87,7 +90,7 @@ export default function BoligimportKilder({
   const [guide, setGuide] = useState(false);
   const [guideIndeks, setGuideIndeks] = useState(0);
 
-  const antallKilder = (finnLenke.trim() ? 1 : 0) + pdfFiler.length + tekstKilder.length + bildeFiler.length + (adresseValgt ? 1 : 0) + (ingenDokumenter ? 1 : 0);
+  const antallKilder = (finnLenke.trim() ? 1 : 0) + (hjemLenke.trim() ? 1 : 0) + pdfFiler.length + tekstKilder.length + bildeFiler.length + (adresseValgt ? 1 : 0) + (ingenDokumenter ? 1 : 0);
   const guideFelter = [
     ["bad", "Vet du når badet sist ble pusset opp?"],
     ["kjokken", "Vet du når kjøkkenet sist ble pusset opp?"],
@@ -170,6 +173,39 @@ export default function BoligimportKilder({
           }
         } catch {
           problemer.push("Vi klarte ikke å hente informasjon fra FINN-lenken, men analyserte de andre kildene.");
+        }
+      }
+
+      if (hjemLenke.trim()) {
+        setFremdrift("Henter Hjem.no-annonsen …");
+        try {
+          const svar = await autentisertFetch("/api/importer-bolig", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: hjemLenke.trim() }),
+          });
+          const innhold = await svar.json();
+          if (!svar.ok || !innhold.data) throw new Error(innhold.feil || "Kunne ikke lese annonsen");
+          kilder.push({ kilde: "Hjem.no", data: innhold.data });
+          const hjemBilder = Array.isArray(innhold.data.bildeForslag) ? innhold.data.bildeForslag : [];
+          hentedeFinnBilder = unike([...hentedeFinnBilder, ...hjemBilder]);
+          if (hjemBilder.length) {
+            try {
+              const plantegninger = await lesFinnPlantegninger(
+                hjemBilder,
+                (melding) => setFremdrift(melding.replace(/FINN-bildene/g, "annonsebildene")),
+              );
+              oppdagedeFinnPlantegninger = unike([...oppdagedeFinnPlantegninger, ...plantegninger.adresser]);
+              setFinnBildefiler((forrige) => [...forrige, ...plantegninger.filer]);
+              plantegninger.tekster.forEach((verdi, indeks) =>
+                kilder.push({ kilde: `Hjem.no-plantegning ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
+              );
+            } catch {
+              problemer.push("Hjem.no-annonsen ble lest, men plantegningene kunne ikke tekstleses denne gangen.");
+            }
+          }
+        } catch {
+          problemer.push("Vi klarte ikke å hente informasjon fra Hjem.no-lenken, men analyserte de andre kildene.");
         }
       }
 
@@ -272,13 +308,15 @@ export default function BoligimportKilder({
       </div>
 
       {aktiv === "finn" && <input type="url" value={finnLenke} onChange={(e) => setFinnLenke(e.target.value)} placeholder="https://www.finn.no/..." className="felt mt-3 bg-white" />}
+      {aktiv === "hjem" && <input type="url" value={hjemLenke} onChange={(e) => setHjemLenke(e.target.value)} placeholder="https://hjem.no/property/..." className="felt mt-3 bg-white" />}
       {aktiv === "pdf" && <label className="mt-3 block rounded-xl border-2 border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold">Velg én eller flere PDF-er<input type="file" multiple accept="application/pdf,.pdf" onChange={(e) => setPdfFiler((forrige) => [...forrige, ...Array.from(e.target.files || [])])} className="mt-3 block w-full max-w-full text-sm" /><span className="mt-2 block text-xs font-normal text-slate-500">Maks 80 MB per fil. Hele dokumentets lesbare tekst analyseres.</span></label>}
       {aktiv === "tekst" && <div className="mt-3"><textarea value={tekst} onChange={(e) => setTekst(e.target.value)} rows={6} placeholder="Lim inn annonsetekst, takst, gamle notater eller annen boligtekst …" className="felt bg-white" /><button type="button" onClick={leggTilTekst} className="mt-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-emerald-800">Legg til teksten</button></div>}
       {aktiv === "bilder" && <label className="mt-3 block rounded-xl border-2 border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold">Velg bilder eller skjermbilder<input type="file" multiple accept="image/*" onChange={(e) => setBildeFiler((forrige) => [...forrige, ...Array.from(e.target.files || [])])} className="mt-3 block w-full max-w-full text-sm" /><span className="mt-2 block text-xs font-normal text-slate-500">Tydelig synlig tekst leses. Bildenes utseende brukes ikke til å gjette boligfakta.</span></label>}
-      {(aktiv === "adresse" || aktiv === "ingen") && <div className="relative mt-3"><input value={adresse} onChange={(e) => sokAdresse(e.target.value)} placeholder="Søk etter riktig adresse" className="felt bg-white" />{adresseforslag.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-white shadow-xl">{adresseforslag.map((forslag, indeks) => <button key={`${forslag.adressetekst}-${indeks}`} type="button" onClick={() => { setAdresseValgt(forslag); setAdresse(`${forslag.adressetekst}, ${forslag.postnummer} ${forslag.poststed}`); setAdresseforslag([]); if (aktiv === "ingen") setIngenDokumenter(true); }} className="block w-full min-w-0 border-b px-4 py-3 text-left text-sm last:border-0 hover:bg-emerald-50"><strong>{forslag.adressetekst}</strong><span className="ml-2 text-slate-500">{forslag.postnummer} {forslag.poststed}</span></button>)}</div>}</div>}
+      {aktiv === "ingen" && <div className="relative mt-3"><input value={adresse} onChange={(e) => sokAdresse(e.target.value)} placeholder="Søk etter riktig adresse" className="felt bg-white" />{adresseforslag.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border bg-white shadow-xl">{adresseforslag.map((forslag, indeks) => <button key={`${forslag.adressetekst}-${indeks}`} type="button" onClick={() => { setAdresseValgt(forslag); setAdresse(`${forslag.adressetekst}, ${forslag.postnummer} ${forslag.poststed}`); setAdresseforslag([]); setIngenDokumenter(true); }} className="block w-full min-w-0 border-b px-4 py-3 text-left text-sm last:border-0 hover:bg-emerald-50"><strong>{forslag.adressetekst}</strong><span className="ml-2 text-slate-500">{forslag.postnummer} {forslag.poststed}</span></button>)}</div>}</div>}
 
       {antallKilder > 0 && <div className="mt-4 min-w-0 rounded-xl bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Kilder lagt til</p><div className="mt-2 space-y-2 text-sm">
         {finnLenke.trim() && <Kilderad navn="FINN-annonse" detalj={finnLenke} onSlett={() => setFinnLenke("")} />}
+        {hjemLenke.trim() && <Kilderad navn="Hjem.no-annonse" detalj={hjemLenke} onSlett={() => setHjemLenke("")} />}
         {pdfFiler.map((fil, i) => <Kilderad key={`${fil.name}-${i}`} navn={fil.name} detalj={`${Math.max(1, Math.round(fil.size / 1024 / 1024))} MB`} onSlett={() => setPdfFiler((alle) => alle.filter((_, n) => n !== i))} />)}
         {tekstKilder.map((verdi, i) => <Kilderad key={i} navn={`Innlimt tekst ${i + 1}`} detalj={`${verdi.length} tegn`} onSlett={() => setTekstKilder((alle) => alle.filter((_, n) => n !== i))} />)}
         {bildeFiler.map((fil, i) => <Kilderad key={`${fil.name}-${i}`} navn={fil.name} detalj="Bilde" onSlett={() => setBildeFiler((alle) => alle.filter((_, n) => n !== i))} />)}
@@ -303,13 +341,13 @@ export default function BoligimportKilder({
         <Oppslag tittel="Andre tilleggsarealer" verdier={resultat.tilleggsarealer} konflikter={konflikterPerFelt} prefiks="tilleggsarealer" onChange={(tilleggsarealer) => setResultat({ ...resultat, tilleggsarealer })} onVelgKonflikt={endreKonflikt} />
         <Historikkforslag verdier={resultat.historikkForslag} onChange={(historikkForslag) => setResultat({ ...resultat, historikkForslag })} />
 
-        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Bilder fra FINN</p><p className="mt-1 text-xs text-slate-500">Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst.</p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length} valgt</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><img src={url} alt={`Boligbilde ${indeks + 1}`} className="h-full w-full object-cover" /><input type="checkbox" checked={valgt} onChange={() => setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige)} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
+        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Bilder fra annonsen</p><p className="mt-1 text-xs text-slate-500">Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst.</p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length} valgt</span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><img src={url} alt={`Boligbilde ${indeks + 1}`} className="h-full w-full object-cover" /><input type="checkbox" checked={valgt} onChange={() => setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige)} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
 
         {!guide && <div className="mt-5 rounded-xl bg-stone-50 p-4"><p className="font-bold">Mangler det informasjon?</p><p className="mt-1 text-sm text-slate-600">Du kan legge til flere kilder over uten at forslagene dine nullstilles, eller fylle ut noen vanlige mangler trinnvis.</p><button type="button" onClick={() => { setGuide(true); setGuideIndeks(0); }} className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800">Ja, hjelp meg</button></div>}
         {guide && <GuideSporsmal key={guideIndeks} sporsmal={guideFelter[guideIndeks][1]} onSvar={svarGuide} />}
 
         {uttruknePlantegninger.length > 0 && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">Vi fant {uttruknePlantegninger.length} mulig{uttruknePlantegninger.length === 1 ? "" : "e"} plantegning{uttruknePlantegninger.length === 1 ? "" : "er"} i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning.</p>}
-        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
+        <button type="button" onClick={() => onGodkjenn(resultat, finnLenke.trim() || hjemLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white">Godkjenn og bruk forslagene</button>
         <p className="mt-2 text-center text-xs text-slate-500">Boligen opprettes først når du bruker hovedknappen nederst i skjemaet.</p>
       </div>}
     </div>

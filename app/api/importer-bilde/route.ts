@@ -30,6 +30,6 @@ export async function GET(request: NextRequest) {
     }
     throw new Error("For mange videresendinger");
   } catch {
-    return NextResponse.json({ feil: "Kunne ikke hente bildet fra FINN." }, { status: 502 });
+    return NextResponse.json({ feil: "Kunne ikke hente bildet fra boligannonsen." }, { status: 502 });
   }
 }
