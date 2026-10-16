@@ -12,12 +12,19 @@ function utenLokalId(bolig: Record<string, unknown>) {
   return data;
 }
 
-export async function hentBoliger(): Promise<BoligData[]> {
+export function erEksempelbolig(bolig: Record<string, unknown>) {
+  return /^(?:demo|eksempel)[-_]/i.test(String(bolig.id || "")) || bolig.eksempel === true || bolig.demo === true
+    || /^eksempel\s*(?:gata|gaten|gate|veien|vegen|vei|veg)\s+\d+[a-z]?(?:\s*,|\s|$)/i.test(String(bolig.adresse || "").trim());
+}
+
+export async function hentBoliger(valg: { kunEgne?: boolean } = {}): Promise<BoligData[]> {
   const supabase = createClient();
   const { data: brukerdata, error: brukerfeil } =
     await supabase.auth.getUser();
 
+  if (brukerfeil && brukerfeil.name !== "AuthSessionMissingError") throw brukerfeil;
   if (!brukerdata.user) {
+    if (valg.kunEgne) throw new Error("Innloggingen kunne ikke bekreftes. Logg inn igjen.");
     return DEMO_BOLIGER;
   }
 
@@ -44,11 +51,12 @@ export async function hentBoliger(): Promise<BoligData[]> {
         localStorage.getItem("boliger") || "[]",
       );
 
-      if (Array.isArray(lokale) && lokale.length > 0) {
+      const egneLokale = Array.isArray(lokale) ? lokale.filter((bolig) => bolig && typeof bolig === "object" && !erEksempelbolig(bolig)) : [];
+      if (egneLokale.length > 0) {
         const { error: migreringsfeil } = await supabase
           .from("boliger")
           .insert(
-            lokale.map((bolig) => ({
+            egneLokale.map((bolig) => ({
               user_id: bruker.id,
               data: utenLokalId(bolig),
             })),
@@ -94,7 +102,7 @@ export async function hentBoliger(): Promise<BoligData[]> {
       rad.user_id === bruker.id
         ? "eier"
         : delteRoller.get(String(rad.id)) || "leser",
-  }));
+  })).filter((bolig) => !erEksempelbolig(bolig));
 
   return Promise.all(boliger.map(oppdaterAutomatiskVerdi));
 }

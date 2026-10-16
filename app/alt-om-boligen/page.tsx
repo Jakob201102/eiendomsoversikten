@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Navigasjon from "../components/Navigasjon";
 import Boligadministrasjon from "../components/Boligadministrasjon";
 import Brannkontroll from "../components/Brannkontroll";
@@ -20,7 +20,8 @@ import {
   type Uteomradeinfo,
   type Utstyrinfo,
 } from "../lib/alt-om-boligen";
-import { hentBoliger, oppdaterBolig, type BoligData } from "../lib/boliger";
+import { erEksempelbolig, hentBoliger, oppdaterBolig, type BoligData } from "../lib/boliger";
+import { DEMO_BOLIGER } from "../lib/demo-data";
 import {
   dokumentLenke,
   hentDokumenter,
@@ -54,25 +55,33 @@ export default function AltOmBoligen() {
   const [feil, setFeil] = useState("");
   const [melding, setMelding] = useState("");
   const [filLenker, setFilLenker] = useState<Record<string, string>>({});
+  const innlasting = useRef(0);
+  const authBruker = useRef<string | null | undefined>(undefined);
 
   async function lastInn() {
+    const foresporsel = ++innlasting.current;
     setLaster(true);
     setFeil("");
     try {
       const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
+      const { data, error: authFeil } = await supabase.auth.getUser();
+      if (foresporsel !== innlasting.current) return;
+      if (authFeil && authFeil.name !== "AuthSessionMissingError") throw authFeil;
       const erInnlogget = Boolean(data.user);
-      const alleBoliger = await hentBoliger();
+      authBruker.current = data.user?.id || null;
+      setInnlogget(erInnlogget);
+      const alleBoliger = erInnlogget ? await hentBoliger({ kunEgne: true }) : DEMO_BOLIGER;
       const fraAdresse = new URLSearchParams(window.location.search).get("bolig") || "";
       const viserPrivatEksempel = !erInnlogget && (localStorage.getItem("demo_bruksomrade") === "privat" || fraAdresse === "demo-privat-hjem");
-      const b = viserPrivatEksempel ? [demoPrivatBolig] : alleBoliger;
+      const b = erInnlogget ? alleBoliger.filter((bolig) => !erEksempelbolig(bolig)) : viserPrivatEksempel ? [demoPrivatBolig] : alleBoliger;
       let d: Dokument[] = [];
       try {
         d = await hentDokumenter();
       } catch (dokumentfeil) {
         console.error("Kunne ikke hente boligfiler", dokumentfeil);
-        setFeil("Boligopplysningene ble hentet, men bilder og dokumenter kunne ikke lastes. Kontroller Supabase-oppsettet.");
+        if (foresporsel === innlasting.current) setFeil("Boligopplysningene ble hentet, men bilder og dokumenter kunne ikke lastes. Prøv igjen.");
       }
+      if (foresporsel !== innlasting.current) return;
       setInnlogget(erInnlogget);
       setBoliger(b);
       setDokumenter(d);
@@ -83,15 +92,38 @@ export default function AltOmBoligen() {
       );
       setValgtBoligId(start || "");
     } catch (error) {
+      if (foresporsel !== innlasting.current) return;
       console.error(error);
+      setBoliger([]);
+      setDokumenter([]);
+      setValgtBoligId("");
       setFeil("Kunne ikke hente boligopplysningene. Prøv igjen.");
     } finally {
-      setLaster(false);
+      if (foresporsel === innlasting.current) setLaster(false);
     }
   }
 
   useEffect(() => {
+    let aktiv = true;
+    let ventende: ReturnType<typeof setTimeout> | undefined;
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_hendelse, sesjon) => {
+      const brukerId = sesjon?.user.id || null;
+      if (authBruker.current === brukerId) return;
+      authBruker.current = brukerId;
+      ++innlasting.current;
+      setInnlogget(Boolean(brukerId));
+      setBoliger([]);
+      setDokumenter([]);
+      setValgtBoligId("");
+      setUtkast(null);
+      setRedigerer(false);
+      setFilLenker({});
+      setLaster(true);
+      clearTimeout(ventende);
+      ventende = setTimeout(() => { if (aktiv) void lastInn(); }, 0);
+    });
     lastInn();
+    return () => { aktiv = false; ++innlasting.current; clearTimeout(ventende); subscription.unsubscribe(); };
   }, []);
 
   const valgtBolig = useMemo(
@@ -124,11 +156,9 @@ export default function AltOmBoligen() {
     requestAnimationFrame(() => document.getElementById("del-tilgang")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }, [laster, data, redigerer]);
 
-  // Bruk nøyaktig samme bildekilde som Bilder-fanen i dokumentarkivet.
-  // Eldre FINN-importer kan ha feil eller manglende boligId, og skal derfor
-  // ikke forsvinne fra det visuelle arkivet på «Alt om boligen».
-  const bilder = dokumenter.filter((dokument) => dokument.kategori === BILDEKATEGORI);
-  const plantegninger = dokumenter.filter((dokument) => dokument.kategori === PLANTEGNINGKATEGORI);
+  // Filer uten riktig boligtilknytning vises bare i dokumentarkivet.
+  const bilder = dokumenter.filter((dokument) => dokument.boligId === valgtBoligId && dokument.kategori === BILDEKATEGORI);
+  const plantegninger = dokumenter.filter((dokument) => dokument.boligId === valgtBoligId && dokument.kategori === PLANTEGNINGKATEGORI);
   const valgtToppbilde = data
     ? bilder.find((dokument) => dokument.id === data.forsidebildeId) || bilder.find((dokument) => dokument.boligId === valgtBoligId) || bilder[0]
     : null;
@@ -162,6 +192,8 @@ export default function AltOmBoligen() {
   function velgBolig(id: string) {
     if (redigerer && !confirm("Forkast endringene og bytt bolig?")) return;
     setRedigerer(false);
+    setUtkast(null);
+    setFilLenker({});
     setValgtBoligId(id);
     setFeil("");
     setMelding("");
