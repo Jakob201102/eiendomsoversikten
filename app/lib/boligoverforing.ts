@@ -1,41 +1,23 @@
 import { createClient } from "./supabase/client";
-import type { AltOmBoligenData } from "./alt-om-boligen";
+export type { Overforingsvalg } from "./boligoverforing-pakke";
+import type { Overforingsvalg } from "./boligoverforing-pakke";
 import type { BoligData } from "./boliger";
-
-export type Overforingsvalg = { generell: boolean; viktigeDeler: boolean; rom: boolean; oppussing: boolean; teknisk: boolean; utstyr: boolean; sikkerhet: boolean; uteomrader: boolean; garantier: boolean; forsikringer: boolean; dokumentIder: string[] };
-
-function renBolig(bolig: BoligData, valg: Overforingsvalg) {
-  const alt = (bolig.altOmBoligen || {}) as Partial<AltOmBoligenData>;
-  const sikkerTeknisk = valg.teknisk ? alt.teknisk : undefined;
-  const nokler = valg.teknisk && Array.isArray(alt.nokler) ? alt.nokler.map((n) => ({ ...n, merking: "", notat: "" })) : [];
-  return {
-    brukstype: "privat",
-    adresse: String(bolig.adresse || ""), boligtype: valg.generell ? String(bolig.boligtype || "") : "", byggeaar: valg.generell ? String(bolig.byggeaar || "") : "", areal: valg.generell ? bolig.areal || "" : "", bolignummer: valg.generell ? String(bolig.bolignummer || "") : "",
-    kjopesum: 0, restlaan: 0, rente: 0, manedsleie: 0, felleskostnader: 0, kommunaleAvgifter: 0, stromInternett: 0, vedlikehold: 0, andreKostnader: 0,
-    altOmBoligen: {
-      versjon: 1, generell: valg.generell ? alt.generell || {} : {}, teknisk: sikkerTeknisk || {}, viktigeDeler: valg.viktigeDeler ? alt.viktigeDeler || {} : {}, sikkerhet: valg.sikkerhet ? alt.sikkerhet || {} : {}, tilleggsarealer: valg.generell ? alt.tilleggsarealer || {} : {},
-      rom: valg.rom ? alt.rom || [] : [], uteomrader: valg.uteomrader ? alt.uteomrader || [] : [], garantier: valg.garantier ? alt.garantier || [] : [], forsikringer: valg.forsikringer ? alt.forsikringer || [] : [], nokler, utstyr: valg.utstyr ? alt.utstyr || [] : [], oppussing: valg.oppussing ? alt.oppussing || [] : [], historikk: valg.oppussing ? alt.historikk || [] : [], mal: [], onboarding: { status: "ferdig", steg: 5 }, notater: "", oppdatert: new Date().toISOString(),
-    },
-    overfortFra: "Digital boligoverlevering", overfortDato: new Date().toISOString(),
-  };
+export type Overforingsinvitasjon = { token: string; lenke: string; epostSendt: boolean; epostFeil?: string };
+export type Overforingsinfo = { adresse: string; boligtype: string; selger_navn: string; status: string; utloper_at: string; antallDokumenter: number; antallVedlikehold: number; seksjoner: string[] };
+async function kall<T>(method: string, body?: unknown, token?: string): Promise<T> {
+  const { data, error } = await createClient().auth.getSession();
+  if (error || !data.session) throw new Error("Du må være innlogget for å overføre eller motta en bolig.");
+  const svar = await fetch(`/api/boligoverforing${token ? `?token=${encodeURIComponent(token)}` : ""}`, {
+    method, headers: { Authorization: `Bearer ${data.session.access_token}`, "Content-Type": "application/json" },
+    ...(body ? { body: JSON.stringify(body) } : {}), cache: "no-store",
+  });
+  const resultat = await svar.json().catch(() => null);
+  if (!svar.ok) throw new Error(resultat?.error || "Overføringen svarte ikke. Prøv igjen; en bolig blir ikke opprettet dobbelt.");
+  return resultat as T;
 }
-
-export async function opprettBoligoverforing(bolig: BoligData, mottakerEpost: string, valg: Overforingsvalg) {
-  const supabase = createClient(); const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("IKKE_INNLOGGET");
-  if (String(bolig.brukstype || "") !== "privat") throw new Error("KUN_PRIVAT_BOLIG");
-  const { data, error } = await supabase.from("boligoverforinger").insert({ selger_id: auth.user.id, bolig_id: bolig.id, mottaker_epost: mottakerEpost.trim().toLowerCase(), pakke: { bolig: renBolig(bolig, valg), dokumentIder: valg.dokumentIder } }).select("token").single();
-  if (error) throw error;
-  return `${window.location.origin}/motta-bolig?token=${data.token}`;
+export function opprettBoligoverforing(bolig: BoligData, mottakerEpost: string, valg: Overforingsvalg, requestId: string) {
+  return kall<Overforingsinvitasjon>("POST", { boligId: bolig.id, mottakerEpost, valg, requestId });
 }
-
-export async function hentBoligoverforing(token: string) {
-  const supabase = createClient();
-  const { data, error } = await supabase.rpc("hent_boligoverforing", { p_token: token });
-  if (error) throw error; return data?.[0] || null;
-}
-
-export async function aksepterBoligoverforing(token: string) {
-  const supabase = createClient(); const { data, error } = await supabase.rpc("aksepter_boligoverforing", { p_token: token });
-  if (error) throw error; return data as string;
-}
+export function sendOverforingPaNytt(token: string) { return kall<Overforingsinvitasjon>("PUT", { token }); }
+export function hentBoligoverforing(token: string) { return kall<Overforingsinfo>("GET", undefined, token); }
+export async function aksepterBoligoverforing(token: string) { return (await kall<{ boligId: string }>("PATCH", { token })).boligId; }
