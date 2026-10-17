@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText } from "../lib/language";
+
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -14,7 +16,7 @@ import { hentVedlikeholdsoppgaver, type Vedlikeholdsdata } from "../lib/vedlikeh
 
 const MittHjemDashboard = dynamic(() => import("../components/MittHjemDashboard"), {
   ssr: false,
-  loading: () => <p className="rounded-2xl bg-white p-8 text-center text-slate-500">Åpner boligoversikten…</p>,
+  loading: () => <p className="rounded-2xl bg-white p-8 text-center text-slate-500"><UiText text="Åpner boligoversikten…"/></p>,
 });
 const MittHjemOppsett = dynamic(() => import("../components/MittHjemOppsett"), { ssr: false });
 const BoligoverforingKort = dynamic(() => import("../components/BoligoverforingKort"), { ssr: false });
@@ -36,6 +38,7 @@ const demoOppgaver: Vedlikeholdsdata[] = [
 ];
 
 export default function MittHjem() {
+  useLanguage();
   const router = useRouter();
   const search = useSearchParams();
   const viserEksempel = search.get("eksempel") === "1";
@@ -118,7 +121,7 @@ export default function MittHjem() {
     }
 
     const adresse = String(bolig.adresse || "denne boligen");
-    if (!window.confirm(`Vil du slette ${adresse}?\n\nBoligen og alle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.`)) return;
+    if (!window.confirm(uiFormat("Vil du slette {0}?\n\nBoligen og alle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.", [adresse]))) return;
 
     setFeil("");
     try {
@@ -133,17 +136,17 @@ export default function MittHjem() {
     }
   }
 
-  if (laster) return <main className="min-h-screen bg-stone-50"><Navigasjon /><p className="p-12 text-center text-slate-500">Laster hjemmet ditt…</p></main>;
+  if (laster) return <main className="min-h-screen bg-stone-50"><Navigasjon /><p className="p-12 text-center text-slate-500"><UiText text="Laster hjemmet ditt…"/></p></main>;
 
   return <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900"><Navigasjon />
     <div className="mx-auto max-w-6xl px-4 py-5 sm:px-6 sm:py-8">
-      {search.get("overfort") === "ja" && <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">Boligmappen er mottatt og ligger nå under Mitt hjem.</p>}
-      {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>}
+      {search.get("overfort") === "ja" && <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><UiText text="Boligmappen er mottatt og ligger nå under Mitt hjem."/></p>}
+      {feil && <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
 
-      {ipadmodus === null ? <p className="rounded-2xl bg-white p-8 text-center text-slate-500">Åpner Mitt hjem…</p> : ipadmodus && valgt ? <MittHjemIPad bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} /> : innlogget && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : valgt ? <>
+      {ipadmodus === null ? <p className="rounded-2xl bg-white p-8 text-center text-slate-500"><UiText text="Åpner Mitt hjem…"/></p> : ipadmodus && valgt ? <MittHjemIPad bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} /> : innlogget && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : valgt ? <>
         <MittHjemDashboard key={`dashboard-${valgt.id}-${search.get("leggtil") || "vanlig"}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? setNyBolig(true) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} startVisning={search.get("leggtil") === "1" ? "valg" : null} />
         {innlogget && <BoligoverforingKort key={valgt.id} bolig={valgt} dokumenter={dokumenter} />}
-      </> : <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold">Mitt hjem</h1><p className="mt-2 text-slate-500">Opprett din første private bolig for å komme i gang.</p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white">+ Legg til privat bolig</button></section>}
+      </> : <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold"><UiText text="Mitt hjem"/></h1><p className="mt-2 text-slate-500"><UiText text="Opprett din første private bolig for å komme i gang."/></p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white"><UiText text="+ Legg til privat bolig"/></button></section>}
     </div>
   </main>;
 }
@@ -163,7 +166,8 @@ function MittHjemIPad({
   onVelgBolig: (id: string) => void;
   onLeggTilBolig: () => void;
 }) {
-  const data = lesAltOmBoligen(bolig);
+  useLanguage();
+  const data = uiDemoData(lesAltOmBoligen(bolig), String(bolig.id));
   const boligId = String(bolig.id);
   const boligDokumenter = dokumenter.filter((dokument) => dokument.boligId === boligId);
   const boligbilder = boligDokumenter.filter(
@@ -200,34 +204,34 @@ function MittHjemIPad({
     <section className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
       {bakgrunnsbilde && <><img src={bakgrunnsbilde} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/30" /></>}
       <div className="relative">
-      <p className="text-xs font-bold uppercase tracking-wider text-emerald-300">Mitt hjem</p>
-      <h1 className="mt-2 break-words text-3xl font-bold">{String(bolig.adresse || "Privat bolig")}</h1>
+      <p className="text-xs font-bold uppercase tracking-wider text-emerald-300"><UiText text="Mitt hjem"/></p>
+      <h1 className="mt-2 break-words text-3xl font-bold">{String(bolig.adresse || uiText("Privat bolig"))}</h1>
       <p className="mt-2 text-sm text-slate-300">{[
         String(bolig.boligtype || data.generell.boligtype || "Privat bolig"),
         data.generell.totalareal && `${data.generell.totalareal} m²`,
-        data.generell.byggeaar && `Byggeår ${data.generell.byggeaar}`,
+        data.generell.byggeaar && uiFormat("Byggeår {0}", [data.generell.byggeaar]),
       ].filter(Boolean).join(" · ")}</p>
-      {boliger.length > 1 && <select value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white">{boliger.map((verdi) => <option key={String(verdi.id)} value={String(verdi.id)}>{String(verdi.adresse || "Privat bolig")}</option>)}</select>}
+      {boliger.length > 1 && <select value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white">{boliger.map((verdi) => <option key={String(verdi.id)} value={String(verdi.id)}>{String(verdi.adresse || uiText("Privat bolig"))}</option>)}</select>}
       </div>
     </section>
 
     <section className="grid grid-cols-2 gap-3">
-      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Rom</p><strong className="mt-1 block text-2xl">{data.rom.length}</strong></div>
-      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Dokumenter og bilder</p><strong className="mt-1 block text-2xl">{boligDokumenter.length}</strong></div>
-      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Historikk</p><strong className="mt-1 block text-2xl">{data.historikk.length}</strong></div>
-      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">Kommende oppgaver</p><strong className="mt-1 block text-2xl">{kommende.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500"><UiText text="Rom"/></p><strong className="mt-1 block text-2xl">{data.rom.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500"><UiText text="Dokumenter og bilder"/></p><strong className="mt-1 block text-2xl">{boligDokumenter.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500"><UiText text="Historikk"/></p><strong className="mt-1 block text-2xl">{data.historikk.length}</strong></div>
+      <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500"><UiText text="Kommende oppgaver"/></p><strong className="mt-1 block text-2xl">{kommende.length}</strong></div>
     </section>
 
     <section className="rounded-3xl bg-white p-5 shadow-sm">
-      <h2 className="text-xl font-bold">Boligoversikt</h2>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{lenker.map(([ikon, navn, adresse]) => <Link key={adresse} href={adresse} className="flex min-h-14 items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 font-bold text-slate-800"><span className="text-xl">{ikon}</span><span>{navn}</span><span className="ml-auto text-slate-400">→</span></Link>)}</div>
+      <h2 className="text-xl font-bold"><UiText text="Boligoversikt"/></h2>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{lenker.map(([ikon, navn, adresse]) => <Link key={adresse} href={adresse} className="flex min-h-14 items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 font-bold text-slate-800"><span className="text-xl">{ikon}</span><span><UiText text={String(navn ?? "")}/></span><span className="ml-auto text-slate-400">→</span></Link>)}</div>
     </section>
 
     <section className="rounded-3xl bg-white p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">Neste vedlikehold</h2><Link href={`/vedlikehold?modus=privat&bolig=${boligId}`} className="text-sm font-bold text-emerald-700">Se alle</Link></div>
-      {kommende.length ? <div className="mt-3 divide-y divide-stone-100">{kommende.map((oppgave) => <div key={String(oppgave.id)} className="py-3"><strong className="block">{String(oppgave.tittel || "Vedlikeholdsoppgave")}</strong><span className="text-sm text-slate-500">{String(oppgave.frist || "Ingen dato")}</span></div>)}</div> : <p className="mt-3 text-sm text-slate-500">Ingen kommende oppgaver.</p>}
+      <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold"><UiText text="Neste vedlikehold"/></h2><Link href={`/vedlikehold?modus=privat&bolig=${boligId}`} className="text-sm font-bold text-emerald-700"><UiText text="Se alle"/></Link></div>
+      {kommende.length ? <div className="mt-3 divide-y divide-stone-100">{kommende.map((oppgave) => <div key={String(oppgave.id)} className="py-3"><strong className="block">{String(oppgave.tittel || uiText("Vedlikeholdsoppgave"))}</strong><span className="text-sm text-slate-500">{String(oppgave.frist || uiText("Ingen dato"))}</span></div>)}</div> : <p className="mt-3 text-sm text-slate-500"><UiText text="Ingen kommende oppgaver."/></p>}
     </section>
 
-    <button type="button" onClick={onLeggTilBolig} className="w-full rounded-xl border border-stone-300 bg-white px-5 py-3 font-bold text-slate-700">+ Legg til nytt hjem</button>
+    <button type="button" onClick={onLeggTilBolig} className="w-full rounded-xl border border-stone-300 bg-white px-5 py-3 font-bold text-slate-700"><UiText text="+ Legg til nytt hjem"/></button>
   </div>;
 }

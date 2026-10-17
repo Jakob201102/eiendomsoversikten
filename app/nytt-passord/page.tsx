@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
+
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -7,6 +9,7 @@ import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
 
 export default function NyttPassord() {
+  useLanguage();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const startet = useRef(false);
@@ -129,40 +132,38 @@ export default function NyttPassord() {
             EIENDOMSOVERSIKTEN
           </p>
 
-          <h1 className="mt-2 text-3xl font-bold">Velg nytt passord</h1>
+          <h1 className="mt-2 text-3xl font-bold"><UiText text="Velg nytt passord"/></h1>
 
           {lasterLenke ? (
-            <p className="mt-6 text-slate-500">Kontrollerer lenken…</p>
+            <p className="mt-6 text-slate-500"><UiText text="Kontrollerer lenken…"/></p>
           ) : !gyldigLenke ? (
             <>
               <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">
-                {feil}
+                <UiText text={String(feil ?? "")}/>
               </div>
 
               <Link
                 href="/logg-inn"
                 className="mt-5 block rounded-xl bg-slate-900 px-5 py-3 text-center font-semibold text-white"
-              >
-                Be om ny lenke
-              </Link>
+              ><UiText text="Be om ny lenke"/></Link>
             </>
           ) : (
             <form onSubmit={lagre} className="mt-6 space-y-4">
               <Passordfelt
-                label="Nytt passord"
+                label={uiText("Nytt passord")}
                 value={passord}
                 onChange={setPassord}
               />
 
               <Passordfelt
-                label="Gjenta passord"
+                label={uiText("Gjenta passord")}
                 value={gjenta}
                 onChange={setGjenta}
               />
 
               {feil && (
                 <div className="rounded-xl bg-red-50 p-4 text-red-700">
-                  {feil}
+                  <UiText text={String(feil ?? "")}/>
                 </div>
               )}
 
@@ -171,7 +172,7 @@ export default function NyttPassord() {
                 disabled={laster}
                 className="w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-60"
               >
-                {laster ? "Lagrer…" : "Lagre nytt passord"}
+                {laster ? uiText("Lagrer…") : uiText("Lagre nytt passord")}
               </button>
             </form>
           )}
@@ -190,9 +191,10 @@ function Passordfelt({
   value: string;
   onChange: (verdi: string) => void;
 }) {
+  useLanguage();
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium">{label}</span>
+      <span className="mb-2 block text-sm font-medium"><UiText text={String(label ?? "")}/></span>
 
       <input
         type="password"

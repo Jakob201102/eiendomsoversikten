@@ -1,0 +1,66 @@
+async function lesFinnPlantegninger(
+  adresser: string[],
+  onFremdrift: (melding: string) => void,
+) {
+  const nedlastede: { fil: File; indeks: number; adresse: string }[] = [];
+  const visueltPlantegning = new Set<File>();
+  const begrenset = adresser.slice(0, 40);
+  let neste = 0;
+  await Promise.all(Array.from({ length: Math.min(5, begrenset.length) }, async () => {
+    while (neste < begrenset.length) {
+      const indeks = neste;
+      neste += 1;
+      try {
+        onFremdrift(uiFormat("Ser etter plantegninger i FINN-bildene · {0} av {1}", [indeks + 1, begrenset.length]));
+        const svar = await autentisertFetch(`/api/importer-bilde?url=${encodeURIComponent(begrenset[indeks])}`);
+        if (!svar.ok) continue;
+        const blob = await svar.blob();
+        const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+        const fil = new File([blob], `finn-${indeks + 1}.${type.includes("png") ? "png" : "jpg"}`, { type });
+        nedlastede.push({ fil, indeks, adresse: begrenset[indeks] });
+        if (await serUtSomPlantegningVisuelt(fil)) visueltPlantegning.add(fil);
+      } catch {
+        // Én bildefeil skal ikke stoppe resten av boligimporten.
+      }
+    }
+  }));
+
+  const valgte = nedlastede.sort((a, b) => a.indeks - b.indeks);
+  if (!valgte.length) return { tekster: [] as string[], adresser: [] as string[], filer: [] as { url: string; fil: File }[] };
+
+  const tekster: string[] = [];
+  const plantegningAdresser: string[] = [];
+  const kandidater = valgte
+    .filter((kandidat) => visueltPlantegning.has(kandidat.fil))
+    .slice(0, 8);
+  if (!kandidater.length) {
+    return {
+      tekster,
+      adresser: plantegningAdresser,
+      filer: valgte.map(({ adresse: url, fil }) => ({ url, fil })),
+    };
+  }
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("nor+eng");
+  try {
+    for (const [indeks, kandidat] of kandidater.entries()) {
+      onFremdrift(uiFormat("Tekstleser mulig plantegning {0} av {1}", [indeks + 1, kandidater.length]));
+      try {
+        const lest = await worker.recognize(kandidat.fil);
+        const tekst = String(lest.data.text || "").trim();
+        if (tekst.length >= 5 && erPlantegningstekst(tekst)) tekster.push(tekst);
+        plantegningAdresser.push(kandidat.adresse);
+      } catch {
+        plantegningAdresser.push(kandidat.adresse);
+      }
+    }
+  } finally {
+    await worker.terminate();
+  }
+  return {
+    tekster,
+    adresser: plantegningAdresser,
+    filer: valgte.map(({ adresse: url, fil }) => ({ url, fil })),
+  };
+}
+

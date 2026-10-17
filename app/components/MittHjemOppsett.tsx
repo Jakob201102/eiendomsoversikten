@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
+
 
 import { useEffect, useState } from "react";
 import {
@@ -176,6 +178,7 @@ export default function MittHjemOppsett({
   onOppdatert: (boliger: BoligData[], valgtId?: string) => void;
   onAvbryt?: () => void;
 }) {
+  useLanguage();
   const startsteg = bolig
     ? Math.max(2, Math.min(5, lesAltOmBoligen(bolig).onboarding.steg || 2))
     : 1;
@@ -196,6 +199,7 @@ export default function MittHjemOppsett({
   const [importFinnBildefiler, setImportFinnBildefiler] = useState<{ url: string; fil: File }[]>([]);
   const [gjenbrukImportanalyse, setGjenbrukImportanalyse] = useState(false);
   const [importKildebilder, setImportKildebilder] = useState<File[]>([]);
+  const [importKildeanalyse, setImportKildeanalyse] = useState<{ fil: File; erPlantegning: boolean }[]>([]);
   const [importKildepdfer, setImportKildepdfer] = useState<File[]>([]);
   const [delerData, setDelerData] = useState<Record<string, string>>(() =>
     bolig ? { ...lesAltOmBoligen(bolig).viktigeDeler } : {},
@@ -266,6 +270,7 @@ export default function MittHjemOppsett({
     setGjenbrukImportanalyse(false);
     setImportPlantegningbilder([]);
     setImportFinnBildefiler([]);
+    setImportKildeanalyse([]);
     try {
       if (importMetode === "pdf" && salgsoppgave) {
         if (salgsoppgave.size > 80 * 1024 * 1024) throw new Error("PDF-en kan maksimalt være 80 MB.");
@@ -279,7 +284,7 @@ export default function MittHjemOppsett({
         setFinnForslag(data);
         setFinnKilde("");
         setValgteImportbilder([]);
-        setImportMelding(`Salgsoppgaven er lest (${lest.totalPages} sider). Kontroller forslagene før de brukes.`);
+        setImportMelding(uiFormat("Salgsoppgaven er lest ({0} sider). Kontroller forslagene før de brukes.", [lest.totalPages]));
         return;
       } else {
         const svar = await autentisertFetch("/api/importer-bolig", {
@@ -341,6 +346,7 @@ export default function MittHjemOppsett({
     kildePdfer: File[],
     finnPlantegninger: string[],
     finnBildefiler: { url: string; fil: File }[],
+    kildeanalyse: { fil: File; erPlantegning: boolean }[] = [],
   ) {
     setGrunninfo((forrige) => {
       const neste = { ...forrige };
@@ -358,6 +364,7 @@ export default function MittHjemOppsett({
     setImportFinnBildefiler(finnBildefiler);
     setGjenbrukImportanalyse(true);
     setImportKildebilder(kildeBilder);
+    setImportKildeanalyse(kildeanalyse);
     setImportKildepdfer(kildePdfer);
     setImportMelding("Forslagene er overført. Kontroller feltene og opprett boligen når du er klar.");
   }
@@ -410,7 +417,10 @@ export default function MittHjemOppsett({
 
   async function lastOppKildebilder(boligId: string) {
     let feilAntall = 0;
-    const plantegninger = await finnPlantegninger(importKildebilder);
+    const kjent = new Map(importKildeanalyse.map(({ fil, erPlantegning }) => [fil, erPlantegning]));
+    const ukjente = importKildebilder.filter((fil) => !kjent.has(fil));
+    const plantegninger = await finnPlantegninger(ukjente);
+    for (const [fil, erPlantegning] of kjent) if (erPlantegning) plantegninger.add(fil);
     await kjorBegrenset(importKildebilder, 3, async (fil, indeks) => {
       try {
         const erPlantegning = plantegninger.has(fil);
@@ -558,7 +568,7 @@ export default function MittHjemOppsett({
         lagreImportkilder(nyBoligId),
       ]);
       const alle = await hentBoliger();
-      if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(`${bildeFeil + kildebildeFeil + kildeFeil} vedlegg kunne ikke lagres. Resten av boligen ble lagret.`);
+      if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(uiFormat("{0} vedlegg kunne ikke lagres. Resten av boligen ble lagret.", [bildeFeil + kildebildeFeil + kildeFeil]));
       onOppdatert(
         alle.filter((verdi) => String(verdi.brukstype || "") === "privat"),
         nyBoligId,
@@ -786,17 +796,15 @@ export default function MittHjemOppsett({
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl">
           ✓
         </div>
-        <h2 className="mt-5 text-3xl font-bold">Boligen din er klar</h2>
+        <h2 className="mt-5 text-3xl font-bold"><UiText text="Boligen din er klar"/></h2>
         <p className="mt-2 text-slate-500">
-          {String(bolig.adresse || "Privat bolig")}
+          {String(bolig.adresse || uiText("Privat bolig"))}
         </p>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="mt-7 w-full rounded-xl bg-emerald-500 px-6 py-3.5 font-bold text-white"
-        >
-          Gå til Mitt hjem
-        </button>
+        ><UiText text="Gå til Mitt hjem"/></button>
       </section>
     );
   }
@@ -806,15 +814,13 @@ export default function MittHjemOppsett({
       <div className="border-b border-stone-100 px-5 py-5 sm:px-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-              Trinn {steg} av 5
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">{stegtittel(steg)}</h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Trinn "/>{steg}<UiText text=" av 5"/></p>
+            <h2 className="mt-1 text-2xl font-bold"><UiText text={String(stegtittel(steg) ?? "")}/></h2>
           </div>
           <div className="text-right">
             <div
               className="flex justify-end gap-1.5"
-              aria-label={`Trinn ${steg} av 5`}
+              aria-label={uiText(uiFormat("Trinn {0} av 5", [steg]))}
             >
               {[1, 2, 3, 4, 5].map((nummer) => (
                 <span
@@ -828,9 +834,7 @@ export default function MittHjemOppsett({
                 type="button"
                 onClick={onAvbryt}
                 className="mt-3 text-xs font-semibold text-slate-500"
-              >
-                Avbryt
-              </button>
+              ><UiText text="Avbryt"/></button>
             )}
           </div>
         </div>
@@ -840,34 +844,25 @@ export default function MittHjemOppsett({
             onClick={avsluttSenere}
             disabled={jobber}
             className="mt-3 text-xs font-semibold text-slate-500"
-          >
-            Avslutt oppsett – fyll ut senere
-          </button>
+          ><UiText text="Avslutt oppsett – fyll ut senere"/></button>
         )}
       </div>
       <div className="p-5 sm:p-8">
         {feil && (
           <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {feil}
+            <UiText text={String(feil ?? "")}/>
           </p>
         )}
         {steg === 1 && (
           <div className="space-y-5">
-            <p className="text-slate-600">
-              Start med adressen. Resten kan du fylle ut nå eller senere.
-            </p>
+            <p className="text-slate-600"><UiText text="Start med adressen. Resten kan du fylle ut nå eller senere."/></p>
 
             <BoligimportKilder onGodkjenn={brukSammenslattForslag} />
-            {importMelding && <p className="break-words rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{importMelding}</p>}
+            {importMelding && <p className="break-words rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900"><UiText text={importMelding}/></p>}
 
             <div className="hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5">
-              <p className="font-bold text-emerald-950">
-                Fyll inn boligen raskere (valgfritt)
-              </p>
-              <p className="mt-1 text-sm text-emerald-900/75">
-                Velg kilden som passer. Du godkjenner alltid forslagene før de
-                brukes.
-              </p>
+              <p className="font-bold text-emerald-950"><UiText text="Fyll inn boligen raskere (valgfritt)"/></p>
+              <p className="mt-1 text-sm text-emerald-900/75"><UiText text="Velg kilden som passer. Du godkjenner alltid forslagene før de brukes."/></p>
               <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-white/80 p-1">
                 {(
                   [
@@ -886,7 +881,7 @@ export default function MittHjemOppsett({
                     }}
                     className={`min-h-11 rounded-lg px-2 py-2 text-xs font-bold sm:text-sm ${importMetode === verdi ? "bg-emerald-600 text-white" : "text-emerald-900 hover:bg-emerald-100"}`}
                   >
-                    {navn}
+                    <UiText text={navn}/>
                   </button>
                 ))}
               </div>
@@ -902,7 +897,7 @@ export default function MittHjemOppsett({
               )}
               {importMetode === "pdf" && (
                 <label className="mt-3 block rounded-xl border-2 border-dashed border-emerald-200 bg-white p-4 text-sm font-semibold">
-                  <span>Velg salgsoppgave som PDF</span>
+                  <span><UiText text="Velg salgsoppgave som PDF"/></span>
                   <input
                     type="file"
                     accept="application/pdf,.pdf"
@@ -911,10 +906,7 @@ export default function MittHjemOppsett({
                     }
                     className="mt-3 block w-full text-sm"
                   />
-                  <span className="mt-2 block text-xs font-normal text-slate-500">
-                    Maks 80 MB. Filen leses på enheten din og lagres ikke
-                    automatisk.
-                  </span>
+                  <span className="mt-2 block text-xs font-normal text-slate-500"><UiText text="Maks 80 MB. Filen leses på enheten din og lagres ikke automatisk."/></span>
                 </label>
               )}
               {importMetode === "tekst" && (
@@ -922,7 +914,7 @@ export default function MittHjemOppsett({
                   value={annonseTekst}
                   onChange={(event) => setAnnonseTekst(event.target.value)}
                   rows={6}
-                  placeholder="Kopier teksten fra FINN-annonsen eller salgsoppgaven og lim den inn her …"
+                  placeholder={uiText("Kopier teksten fra FINN-annonsen eller salgsoppgaven og lim den inn her …")}
                   className="felt mt-3 bg-white"
                 />
               )}
@@ -932,31 +924,29 @@ export default function MittHjemOppsett({
                 disabled={importerer}
                 className="mt-3 min-h-12 w-full rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white disabled:opacity-50"
               >
-                {importerer ? "Analyserer…" : "Finn boligopplysninger"}
+                {importerer ? uiText("Analyserer…") : uiText("Finn boligopplysninger")}
               </button>
               {importMelding && (
-                <p className="mt-3 text-sm text-slate-700">{importMelding}</p>
+                <p className="mt-3 text-sm text-slate-700"><UiText text={importMelding}/></p>
               )}
 
               {finnForslag && (
                 <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
-                  <p className="text-sm font-bold">Dette fant vi</p>
+                  <p className="text-sm font-bold"><UiText text="Dette fant vi"/></p>
                   <dl className="mt-3 grid gap-x-5 gap-y-2 text-sm sm:grid-cols-2">
                     {finnVisningsfelt(finnForslag).map(([navn, verdi]) => (
                       <div
                         key={navn}
                         className="flex justify-between gap-3 border-b border-stone-100 pb-2"
                       >
-                        <dt className="text-slate-500">{navn}</dt>
+                        <dt className="text-slate-500"><UiText text={navn}/></dt>
                         <dd className="text-right font-semibold">{verdi}</dd>
                       </div>
                     ))}
                   </dl>
                   {(finnForslag.romForslag?.length || 0) > 0 && (
                     <div className="mt-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Forslag til rom
-                      </p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Forslag til rom"/></p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {finnForslag.romForslag?.map((rom) => (
                           <span
@@ -971,15 +961,13 @@ export default function MittHjemOppsett({
                   )}
                   {Object.keys(finnForslag.viktigeDeler || {}).length > 0 && (
                     <div className="mt-4">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Oppussing og viktige deler
-                      </p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Oppussing og viktige deler"/></p>
                       <div className="mt-2 space-y-1 text-sm">
                         {Object.entries(finnForslag.viktigeDeler || {}).map(
                           ([felt, verdi]) => (
                             <p key={felt}>
                               <strong className="capitalize">
-                                {feltNavn(felt)}:
+                                <UiText text={String(feltNavn(felt) ?? "")}/>:
                               </strong>{" "}
                               {verdi}
                             </p>
@@ -990,18 +978,16 @@ export default function MittHjemOppsett({
                   )}
                   {(finnForslag.historikkForslag?.length || 0) > 0 && (
                     <p className="mt-3 text-sm text-slate-600">
-                      {finnForslag.historikkForslag?.length} tidligere arbeid
-                      foreslås lagt i bolighistorikken.
-                    </p>
+                      {finnForslag.historikkForslag?.length}<UiText text=" tidligere arbeid foreslås lagt i bolighistorikken."/></p>
                   )}
                   {(finnForslag.bildeForslag?.length || 0) > 0 && (
                     <div className="mt-4">
                       <div className="flex items-end justify-between gap-3">
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Boligbilder</p>
-                          <p className="mt-1 text-xs text-slate-500">Velg bildene som skal lagres i Bilder og dokumentasjon. Maks 12.</p>
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Boligbilder"/></p>
+                          <p className="mt-1 text-xs text-slate-500"><UiText text="Velg bildene som skal lagres i Bilder og dokumentasjon. Maks 12."/></p>
                         </div>
-                        <span className="text-xs font-semibold text-emerald-700">{valgteImportbilder.length} valgt</span>
+                        <span className="text-xs font-semibold text-emerald-700">{valgteImportbilder.length}<UiText text=" valgt"/></span>
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
                         {finnForslag.bildeForslag?.slice(0, 24).map((url, indeks) => {
@@ -1024,22 +1010,17 @@ export default function MittHjemOppsett({
                       </div>
                     </div>
                   )}
-                  <p className="mt-3 text-xs text-slate-500">
-                    Kontroller opplysningene mot annonsen. Du kan endre alle
-                    feltene etterpå.
-                  </p>
+                  <p className="mt-3 text-xs text-slate-500"><UiText text="Kontroller opplysningene mot annonsen. Du kan endre alle feltene etterpå."/></p>
                   <button
                     type="button"
                     onClick={brukFinnForslag}
                     className="mt-4 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white sm:w-auto"
-                  >
-                    Bruk opplysningene
-                  </button>
+                  ><UiText text="Bruk opplysningene"/></button>
                 </div>
               )}
             </div>
 
-            <Felt label="Adresse *">
+            <Felt label={uiText("Adresse *")}>
               <div className="relative">
                 <input
                   autoFocus
@@ -1047,7 +1028,7 @@ export default function MittHjemOppsett({
                   onChange={(event) =>
                     setGrunninfo({ ...grunninfo, adresse: event.target.value })
                   }
-                  placeholder="Søk etter adressen din"
+                  placeholder={uiText("Søk etter adressen din")}
                   className="felt"
                 />
                 {forslag.length > 0 && (
@@ -1084,7 +1065,7 @@ export default function MittHjemOppsett({
               </div>
             </Felt>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Felt label="Boligtype">
+              <Felt label={uiText("Boligtype")}>
                 <select
                   value={grunninfo.boligtype}
                   onChange={(event) =>
@@ -1095,14 +1076,14 @@ export default function MittHjemOppsett({
                   }
                   className="felt"
                 >
-                  <option>Enebolig</option>
-                  <option>Leilighet</option>
-                  <option>Rekkehus</option>
-                  <option>Tomannsbolig</option>
-                  <option>Fritidsbolig</option>
+                  <option value="Enebolig"><UiText text="Enebolig"/></option>
+                  <option value="Leilighet"><UiText text="Leilighet"/></option>
+                  <option value="Rekkehus"><UiText text="Rekkehus"/></option>
+                  <option value="Tomannsbolig"><UiText text="Tomannsbolig"/></option>
+                  <option value="Fritidsbolig"><UiText text="Fritidsbolig"/></option>
                 </select>
               </Felt>
-              <Felt label="Boligens navn (valgfritt)">
+              <Felt label={uiText("Boligens navn (valgfritt)")}>
                 <input
                   value={grunninfo.bolignavn}
                   onChange={(event) =>
@@ -1111,22 +1092,22 @@ export default function MittHjemOppsett({
                       bolignavn: event.target.value,
                     })
                   }
-                  placeholder="For eksempel Hjemme"
+                  placeholder={uiText("For eksempel Hjemme")}
                   className="felt"
                 />
               </Felt>
-              <Felt label="Byggeår (valgfritt)">
+              <Felt label={uiText("Byggeår (valgfritt)")}>
                 <input
                   inputMode="numeric"
                   value={grunninfo.byggeaar}
                   onChange={(event) =>
                     setGrunninfo({ ...grunninfo, byggeaar: event.target.value })
                   }
-                  placeholder="Vet ikke"
+                  placeholder={uiText("Vet ikke")}
                   className="felt"
                 />
               </Felt>
-              <Felt label="Størrelse i m² (valgfritt)">
+              <Felt label={uiText("Størrelse i m² (valgfritt)")}>
                 <input
                   inputMode="decimal"
                   value={grunninfo.areal}
@@ -1136,7 +1117,7 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Tomteareal i m² (valgfritt)">
+              <Felt label={uiText("Tomteareal i m² (valgfritt)")}>
                 <input
                   inputMode="decimal"
                   value={grunninfo.tomteareal}
@@ -1146,7 +1127,7 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Bruttoareal i m² (valgfritt)">
+              <Felt label={uiText("Bruttoareal i m² (valgfritt)")}>
                 <input
                   inputMode="decimal"
                   value={grunninfo.bruttoareal}
@@ -1156,17 +1137,17 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Energimerking (valgfritt)">
+              <Felt label={uiText("Energimerking (valgfritt)")}>
                 <input
                   value={grunninfo.energimerking}
                   onChange={(event) =>
                     setGrunninfo({ ...grunninfo, energimerking: event.target.value })
                   }
-                  placeholder="For eksempel D – Oransje"
+                  placeholder={uiText("For eksempel D – Oransje")}
                   className="felt"
                 />
               </Felt>
-              <Felt label="Etasje / antall etasjer (valgfritt)">
+              <Felt label={uiText("Etasje / antall etasjer (valgfritt)")}>
                 <input
                   value={grunninfo.etasjer}
                   onChange={(event) =>
@@ -1175,7 +1156,7 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Antall rom (valgfritt)">
+              <Felt label={uiText("Antall rom (valgfritt)")}>
                 <input
                   inputMode="numeric"
                   value={grunninfo.antallRom}
@@ -1188,7 +1169,7 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Soverom (valgfritt)">
+              <Felt label={uiText("Soverom (valgfritt)")}>
                 <input
                   inputMode="numeric"
                   value={grunninfo.soverom}
@@ -1198,7 +1179,7 @@ export default function MittHjemOppsett({
                   className="felt"
                 />
               </Felt>
-              <Felt label="Leilighetsnummer (valgfritt)">
+              <Felt label={uiText("Leilighetsnummer (valgfritt)")}>
                 <input
                   value={grunninfo.leilighetsnummer}
                   onChange={(event) =>
@@ -1207,27 +1188,27 @@ export default function MittHjemOppsett({
                       leilighetsnummer: event.target.value,
                     })
                   }
-                  placeholder="For eksempel H0201"
+                  placeholder={uiText("For eksempel H0201")}
                   className="felt"
                 />
               </Felt>
-              <Felt label="Gnr./bnr. (valgfritt)">
+              <Felt label={uiText("Gnr./bnr. (valgfritt)")}>
                 <input
                   value={grunninfo.gnrBnr}
                   onChange={(event) =>
                     setGrunninfo({ ...grunninfo, gnrBnr: event.target.value })
                   }
-                  placeholder="For eksempel 158/24"
+                  placeholder={uiText("For eksempel 158/24")}
                   className="felt"
                 />
               </Felt>
-              <Felt label="Bod / eksternt areal (valgfritt)">
+              <Felt label={uiText("Bod / eksternt areal (valgfritt)")}>
                 <input
                   value={grunninfo.bod}
                   onChange={(event) =>
                     setGrunninfo({ ...grunninfo, bod: event.target.value })
                   }
-                  placeholder="For eksempel bod på 6 m²"
+                  placeholder={uiText("For eksempel bod på 6 m²")}
                   className="felt"
                 />
               </Felt>
@@ -1241,9 +1222,7 @@ export default function MittHjemOppsett({
         )}
         {steg === 2 && (
           <div>
-            <p className="mb-5 text-slate-600">
-              Fyll bare inn det du vet. Årstall og oppvarmingstype er nok.
-            </p>
+            <p className="mb-5 text-slate-600"><UiText text="Fyll bare inn det du vet. Årstall og oppvarmingstype er nok."/></p>
             <div className="grid gap-3 sm:grid-cols-2">
               {deler.map(([ikon, navn, key, hjelp]) => (
                 <label
@@ -1251,10 +1230,10 @@ export default function MittHjemOppsett({
                   className="rounded-2xl border border-stone-200 p-4"
                 >
                   <span className="font-bold">
-                    {ikon} {navn}
+                    {ikon} <UiText text={navn}/>
                   </span>
                   <span className="mt-1 block text-xs text-slate-500">
-                    {hjelp}
+                    <UiText text={hjelp}/>
                   </span>
                   <input
                     inputMode="numeric"
@@ -1262,7 +1241,7 @@ export default function MittHjemOppsett({
                     onChange={(event) =>
                       setDelerData({ ...delerData, [key]: event.target.value })
                     }
-                    placeholder="Årstall"
+                    placeholder={uiText("Årstall")}
                     className="felt mt-3"
                   />
                   <button
@@ -1271,16 +1250,12 @@ export default function MittHjemOppsett({
                       setDelerData({ ...delerData, [key]: "Vet ikke" })
                     }
                     className="mt-2 text-xs font-semibold text-slate-500"
-                  >
-                    Vet ikke
-                  </button>
+                  ><UiText text="Vet ikke"/></button>
                 </label>
               ))}
               <label className="rounded-2xl border border-stone-200 p-4">
-                <span className="font-bold">🔥 Oppvarming</span>
-                <span className="mt-1 block text-xs text-slate-500">
-                  Type oppvarming
-                </span>
+                <span className="font-bold"><UiText text="🔥 Oppvarming"/></span>
+                <span className="mt-1 block text-xs text-slate-500"><UiText text="Type oppvarming"/></span>
                 <input
                   value={delerData.oppvarming || ""}
                   onChange={(event) =>
@@ -1289,7 +1264,7 @@ export default function MittHjemOppsett({
                       oppvarming: event.target.value,
                     })
                   }
-                  placeholder="For eksempel varmepumpe"
+                  placeholder={uiText("For eksempel varmepumpe")}
                   className="felt mt-3"
                 />
                 <button
@@ -1298,9 +1273,7 @@ export default function MittHjemOppsett({
                     setDelerData({ ...delerData, oppvarming: "Vet ikke" })
                   }
                   className="mt-2 text-xs font-semibold text-slate-500"
-                >
-                  Vet ikke
-                </button>
+                ><UiText text="Vet ikke"/></button>
               </label>
             </div>
             <Neste
@@ -1313,9 +1286,7 @@ export default function MittHjemOppsett({
         )}
         {steg === 3 && (
           <div>
-            <p className="text-slate-600">
-              Har du gjort større arbeider eller oppgraderinger?
-            </p>
+            <p className="text-slate-600"><UiText text="Har du gjort større arbeider eller oppgraderinger?"/></p>
             <div className="mt-4 flex flex-wrap gap-2">
               {hurtigvalg.map((valg) => (
                 <button
@@ -1326,20 +1297,20 @@ export default function MittHjemOppsett({
                   }
                   className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800"
                 >
-                  + {valg}
+                  + <UiText text={valg}/>
                 </button>
               ))}
             </div>
             {arbeid && (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Felt label="Hva ble gjort?">
+                <Felt label={uiText("Hva ble gjort?")}>
                   <input
                     value={arbeid}
                     onChange={(event) => setArbeid(event.target.value)}
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Når?">
+                <Felt label={uiText("Når?")}>
                   <input
                     type="date"
                     value={arbeidsdato}
@@ -1347,15 +1318,15 @@ export default function MittHjemOppsett({
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Hvor?">
+                <Felt label={uiText("Hvor?")}>
                   <input
                     value={arbeidsomrade}
                     onChange={(event) => setArbeidsomrade(event.target.value)}
-                    placeholder="Bad, tak, hage …"
+                    placeholder={uiText("Bad, tak, hage …")}
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Kostnad (valgfritt)">
+                <Felt label={uiText("Kostnad (valgfritt)")}>
                   <input
                     inputMode="numeric"
                     value={kostnad}
@@ -1363,7 +1334,7 @@ export default function MittHjemOppsett({
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Utført av">
+                <Felt label={uiText("Utført av")}>
                   <select
                     value={utfortAv}
                     onChange={(event) =>
@@ -1376,13 +1347,13 @@ export default function MittHjemOppsett({
                     }
                     className="felt"
                   >
-                    <option value="selv">Meg selv</option>
-                    <option value="firma">Firma/håndverker</option>
-                    <option value="tidligere-eier">Tidligere eier</option>
+                    <option value="selv"><UiText text="Meg selv"/></option>
+                    <option value="firma"><UiText text="Firma/håndverker"/></option>
+                    <option value="tidligere-eier"><UiText text="Tidligere eier"/></option>
                   </select>
                 </Felt>
                 {utfortAv === "firma" && (
-                  <Felt label="Firma (valgfritt)">
+                  <Felt label={uiText("Firma (valgfritt)")}>
                     <input
                       value={firma}
                       onChange={(event) => setFirma(event.target.value)}
@@ -1390,16 +1361,14 @@ export default function MittHjemOppsett({
                     />
                   </Felt>
                 )}
-                <label className="sm:col-span-2 text-sm font-semibold">
-                  Notat
-                  <textarea
+                <label className="sm:col-span-2 text-sm font-semibold"><UiText text="Notat"/><textarea
                     value={beskrivelse}
                     onChange={(event) => setBeskrivelse(event.target.value)}
                     rows={3}
                     className="felt mt-2"
                   />
                 </label>
-                <Felt label="Bilder (valgfritt)">
+                <Felt label={uiText("Bilder (valgfritt)")}>
                   <input
                     type="file"
                     accept="image/*"
@@ -1411,7 +1380,7 @@ export default function MittHjemOppsett({
                     className="felt text-sm"
                   />
                 </Felt>
-                <Felt label="Faktura eller dokumentasjon (valgfritt)">
+                <Felt label={uiText("Faktura eller dokumentasjon (valgfritt)")}>
                   <input
                     type="file"
                     accept="image/*,.pdf,.doc,.docx"
@@ -1435,18 +1404,11 @@ export default function MittHjemOppsett({
         )}
         {steg === 4 && (
           <div>
-            <p className="text-slate-600">
-              Samle fakturaer, kvitteringer, garantier, samsvarserklæringer,
-              tegninger og rapporter. Du kan også gjøre dette senere.
-            </p>
+            <p className="text-slate-600"><UiText text="Samle fakturaer, kvitteringer, garantier, samsvarserklæringer, tegninger og rapporter. Du kan også gjøre dette senere."/></p>
             <label className="mt-5 block rounded-2xl border-2 border-dashed border-stone-300 p-6 text-center">
               <span className="text-3xl">📄</span>
-              <span className="mt-2 block font-bold">
-                Velg dokumenter eller bilder
-              </span>
-              <span className="mt-1 block text-sm text-slate-500">
-                Du kan velge flere filer
-              </span>
+              <span className="mt-2 block font-bold"><UiText text="Velg dokumenter eller bilder"/></span>
+              <span className="mt-1 block text-sm text-slate-500"><UiText text="Du kan velge flere filer"/></span>
               <input
                 type="file"
                 accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
@@ -1470,10 +1432,7 @@ export default function MittHjemOppsett({
         )}
         {steg === 5 && (
           <div>
-            <p className="text-slate-600">
-              Legg til én kommende oppgave nå, eller gjør det senere fra Mitt
-              hjem.
-            </p>
+            <p className="text-slate-600"><UiText text="Legg til én kommende oppgave nå, eller gjør det senere fra Mitt hjem."/></p>
             <div className="mt-4 flex flex-wrap gap-2">
               {vedlikeholdsvalg.map((valg) => (
                 <button
@@ -1484,20 +1443,20 @@ export default function MittHjemOppsett({
                   }
                   className="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800"
                 >
-                  + {valg}
+                  + <UiText text={valg}/>
                 </button>
               ))}
             </div>
             {vedlikehold && (
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <Felt label="Hva skal gjøres?">
+                <Felt label={uiText("Hva skal gjøres?")}>
                   <input
                     value={vedlikehold}
                     onChange={(event) => setVedlikehold(event.target.value)}
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Når?">
+                <Felt label={uiText("Når?")}>
                   <input
                     type="date"
                     value={frist}
@@ -1505,7 +1464,7 @@ export default function MittHjemOppsett({
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Område">
+                <Felt label={uiText("Område")}>
                   <input
                     value={vedlikeholdOmrade}
                     onChange={(event) =>
@@ -1514,7 +1473,7 @@ export default function MittHjemOppsett({
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Estimert kostnad (valgfritt)">
+                <Felt label={uiText("Estimert kostnad (valgfritt)")}>
                   <input
                     inputMode="numeric"
                     value={vedlikeholdKostnad}
@@ -1524,9 +1483,7 @@ export default function MittHjemOppsett({
                     className="felt"
                   />
                 </Felt>
-                <label className="sm:col-span-2 text-sm font-semibold">
-                  Notat (valgfritt)
-                  <textarea
+                <label className="sm:col-span-2 text-sm font-semibold"><UiText text="Notat (valgfritt)"/><textarea
                     value={vedlikeholdNotat}
                     onChange={(event) =>
                       setVedlikeholdNotat(event.target.value)
@@ -1562,6 +1519,7 @@ function Neste({
   tekst: string;
   hoppTekst?: string;
 }) {
+  useLanguage();
   return (
     <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
       <button
@@ -1570,7 +1528,7 @@ function Neste({
         onClick={onClick}
         className="min-h-12 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-50"
       >
-        {jobber ? "Lagrer…" : tekst}
+        {jobber ? uiText("Lagrer…") : uiText(tekst)}
       </button>
       {hoppTekst && (
         <button
@@ -1579,7 +1537,7 @@ function Neste({
           onClick={onHopp || onClick}
           className="min-h-12 px-3 text-sm font-semibold text-slate-500"
         >
-          {hoppTekst}
+          <UiText text={String(hoppTekst ?? "")}/>
         </button>
       )}
     </div>
@@ -1593,9 +1551,10 @@ function Felt({
   label: string;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <label className="block text-sm font-semibold">
-      <span className="mb-2 block">{label}</span>
+      <span className="mb-2 block"><UiText text={String(label ?? "")}/></span>
       {children}
     </label>
   );

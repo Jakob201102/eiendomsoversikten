@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
+
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -12,6 +14,7 @@ const demoGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", a
 const demoBolig: BoligData = { ...demoGrunnlag, altOmBoligen: demoAltOmBoligen(demoGrunnlag) };
 
 export default function KontakterSide() {
+  useLanguage();
   const search = useSearchParams();
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [boligId, setBoligId] = useState("");
@@ -56,33 +59,29 @@ export default function KontakterSide() {
       <Navigasjon />
       <header className="bg-slate-900 px-4 py-9 text-white sm:px-6">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-bold text-emerald-400">DOKUMENTER</p>
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-            Håndverkere og kontakter
-          </h1>
-          <p className="mt-2 max-w-2xl text-slate-300">
-            Finn igjen firmaene som kjenner boligen, og se hvilket arbeid de har utført.
-          </p>
+          <p className="text-sm font-bold text-emerald-400"><UiText text="DOKUMENTER"/></p>
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl"><UiText text="Håndverkere og kontakter"/></h1>
+          <p className="mt-2 max-w-2xl text-slate-300"><UiText text="Finn igjen firmaene som kjenner boligen, og se hvilket arbeid de har utført."/></p>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6">
-        {feil && <p className="rounded-xl bg-red-50 p-4 text-red-700">{feil}</p>}
+        {feil && <p className="rounded-xl bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
         {laster ? (
-          <p className="rounded-2xl bg-white p-10 text-center text-slate-500">Laster kontakter…</p>
+          <p className="rounded-2xl bg-white p-10 text-center text-slate-500"><UiText text="Laster kontakter…"/></p>
         ) : !bolig ? (
           <div className="rounded-3xl bg-white p-10 text-center shadow-sm">
-            <h2 className="text-2xl font-bold">Ingen privat bolig</h2>
-            <p className="mt-2 text-slate-500">Opprett en privat bolig under Mitt hjem først.</p>
+            <h2 className="text-2xl font-bold"><UiText text="Ingen privat bolig"/></h2>
+            <p className="mt-2 text-slate-500"><UiText text="Opprett en privat bolig under Mitt hjem først."/></p>
           </div>
         ) : (
           <>
             <label className="block max-w-xl text-sm font-semibold">
-              <span className="mb-2 block">Velg bolig</span>
+              <span className="mb-2 block"><UiText text="Velg bolig"/></span>
               <select value={String(bolig.id)} onChange={(event) => setBoligId(event.target.value)} className="felt">
                 {boliger.map((verdi) => (
                   <option key={String(verdi.id)} value={String(verdi.id)}>
-                    {String(verdi.adresse || "Privat bolig")}
+                    {String(verdi.adresse || uiText("Privat bolig"))}
                   </option>
                 ))}
               </select>

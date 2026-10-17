@@ -1,4 +1,7 @@
 "use client";
+import BrandLogo from "../components/BrandLogo";
+import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
+
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -19,6 +22,7 @@ function medTidsgrense<Resultat>(jobb: Promise<Resultat>, millisekunder = 15000)
 }
 
 export default function LoggInn() {
+  useLanguage();
   const searchParams = useSearchParams();
   const nesteParameter = searchParams.get("neste") || "";
   const neste = nesteParameter.startsWith("/") && !nesteParameter.startsWith("//") ? nesteParameter : "";
@@ -146,28 +150,24 @@ export default function LoggInn() {
           <Link
             href="/"
             className="text-sm font-semibold text-emerald-700"
-          >
-            ← Tilbake til forsiden
-          </Link>
+          ><UiText text="← Tilbake til forsiden"/></Link>
 
-          <p className="mt-8 text-sm font-semibold text-emerald-700">
-            EIENDOMSOVERSIKTEN
-          </p>
+          <BrandLogo className="mx-auto mt-6 w-56 max-w-full rounded-xl" />
 
           <h1 className="mt-2 text-3xl font-bold">
             {glemt
-              ? "Glemt passord"
+              ? uiText("Glemt passord")
               : modus === "logg-inn"
-                ? "Logg inn"
-                : "Opprett konto"}
+                ? uiText("Logg inn")
+                : uiText("Opprett konto")}
           </h1>
 
           <p className="mt-2 text-slate-500">
             {glemt
-              ? "Skriv inn e-posten din, så sender vi en tilbakestillingslenke."
+              ? uiText("Skriv inn e-posten din, så sender vi en tilbakestillingslenke.")
               : modus === "logg-inn"
-                ? "Logg inn for å se boligen eller eiendomsporteføljen din."
-                : "Opprett en konto for å samle boligen eller eiendomsporteføljen din."}
+                ? uiText("Logg inn for å se boligen eller eiendomsporteføljen din.")
+                : uiText("Opprett en konto for å samle boligen eller eiendomsporteføljen din.")}
           </p>
 
           {!glemt && (
@@ -175,24 +175,18 @@ export default function LoggInn() {
               <Modusknapp
                 aktiv={modus === "logg-inn"}
                 onClick={() => byttModus("logg-inn")}
-              >
-                Logg inn
-              </Modusknapp>
+              ><UiText text="Logg inn"/></Modusknapp>
 
               <Modusknapp
                 aktiv={modus === "registrer"}
                 onClick={() => byttModus("registrer")}
-              >
-                Registrer
-              </Modusknapp>
+              ><UiText text="Registrer"/></Modusknapp>
             </div>
           )}
 
           <form onSubmit={sendSkjema} className="mt-6">
             <label>
-              <span className="mb-2 block text-sm font-medium">
-                E-post
-              </span>
+              <span className="mb-2 block text-sm font-medium"><UiText text="E-post"/></span>
               <input
                 type="email"
                 autoComplete="email"
@@ -205,9 +199,7 @@ export default function LoggInn() {
 
             {!glemt && (
               <label className="mt-4 block">
-                <span className="mb-2 block text-sm font-medium">
-                  Passord
-                </span>
+                <span className="mb-2 block text-sm font-medium"><UiText text="Passord"/></span>
                 <input
                   type="password"
                   autoComplete={
@@ -217,7 +209,7 @@ export default function LoggInn() {
                   }
                   value={passord}
                   onChange={(event) => setPassord(event.target.value)}
-                  placeholder="Minst 6 tegn"
+                  placeholder={uiText("Minst 6 tegn")}
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
                 />
               </label>
@@ -228,13 +220,11 @@ export default function LoggInn() {
                 type="button"
                 onClick={() => byttModus("glemt")}
                 className="mt-3 text-sm font-semibold text-emerald-700"
-              >
-                Glemt passord?
-              </button>
+              ><UiText text="Glemt passord?"/></button>
             )}
 
-            {feilmelding && <Beskjed feil>{feilmelding}</Beskjed>}
-            {melding && <Beskjed>{melding}</Beskjed>}
+            {feilmelding && <Beskjed feil><UiText text={feilmelding}/></Beskjed>}
+            {melding && <Beskjed><UiText text={String(melding ?? "")}/></Beskjed>}
 
             <button
               type="submit"
@@ -242,12 +232,12 @@ export default function LoggInn() {
               className="mt-6 w-full rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white hover:bg-emerald-600 disabled:opacity-60"
             >
               {laster
-                ? "Vennligst vent…"
+                ? uiText("Vennligst vent…")
                 : glemt
-                  ? "Send tilbakestillingslenke"
+                  ? uiText("Send tilbakestillingslenke")
                   : modus === "logg-inn"
-                    ? "Logg inn"
-                    : "Opprett konto"}
+                    ? uiText("Logg inn")
+                    : uiText("Opprett konto")}
             </button>
           </form>
 
@@ -256,19 +246,14 @@ export default function LoggInn() {
               type="button"
               onClick={() => byttModus("logg-inn")}
               className="mt-4 w-full text-sm font-semibold text-slate-600"
-            >
-              Tilbake til innlogging
-            </button>
+            ><UiText text="Tilbake til innlogging"/></button>
           )}
 
-          <p className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-500">
-            Trenger du hjelp?{" "}
+          <p className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-500"><UiText text="Trenger du hjelp?"/>{" "}
             <a
               href="mailto:eiendomsoversikten@gmail.com"
               className="font-semibold text-emerald-700 hover:text-emerald-800"
-            >
-              Kontakt oss
-            </a>
+            ><UiText text="Kontakt oss"/></a>
           </p>
         </div>
       </section>
@@ -285,6 +270,7 @@ function Modusknapp({
   onClick: () => void;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <button
       type="button"
@@ -307,6 +293,7 @@ function Beskjed({
   feil?: boolean;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <div
       className={`mt-4 rounded-xl border p-4 text-sm ${

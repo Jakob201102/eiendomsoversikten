@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
+
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -32,6 +35,7 @@ type Arkivhendelse = Historikkinfo & {
 type Redigeringsmodus = "hendelse" | "dokumentasjon" | null;
 
 export default function Bolighistorikk() {
+  useLanguage();
   const router = useRouter();
   const search = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
@@ -251,7 +255,7 @@ export default function Bolighistorikk() {
     if (!bolig || !data || !kanRedigere || !hendelse.kanRedigeres) return;
     if (
       !confirm(
-        `Slett «${hendelse.tittel}» fra bolighistorikken? Bilder og dokumenter beholdes i dokumentarkivet.`,
+        uiFormat("Slett «{0}» fra bolighistorikken? Bilder og dokumenter beholdes i dokumentarkivet.", [hendelse.tittel]),
       )
     )
       return;
@@ -335,7 +339,7 @@ export default function Bolighistorikk() {
 
   async function slettVedleggFraHendelse(dokument: Dokument) {
     if (!bolig || !data || !redigerer || !kanRedigere) return;
-    if (!confirm(`Slett «${dokument.navn}»? Filen fjernes også fra dokumentarkivet.`)) return;
+    if (!confirm(uiFormat("Slett «{0}»? Filen fjernes også fra dokumentarkivet.", [dokument.navn]))) return;
     setJobber(true);
     setFeil("");
     try {
@@ -366,7 +370,7 @@ export default function Bolighistorikk() {
     return (
       <main className="min-h-screen bg-stone-50">
         <Navigasjon />
-        <p className="p-12 text-center text-slate-500">Laster historikken…</p>
+        <p className="p-12 text-center text-slate-500"><UiText text="Laster historikken…"/></p>
       </main>
     );
 
@@ -377,33 +381,24 @@ export default function Bolighistorikk() {
         <Link
           href={bolig ? `/mitt-hjem?bolig=${bolig.id}` : "/mitt-hjem"}
           className="text-sm font-bold text-emerald-700"
-        >
-          ← Tilbake til Mitt hjem
-        </Link>
+        ><UiText text="← Tilbake til Mitt hjem"/></Link>
         <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
-            Digital servicebok
-          </p>
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Digital servicebok"/></p>
           <div className="mt-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Boligens historikk</h1>
-              <p className="mt-2 text-slate-500">
-                Samlet arkiv over oppussing, arbeid, utført vedlikehold og
-                reparerte skader.
-              </p>
+              <h1 className="text-3xl font-bold"><UiText text="Boligens historikk"/></h1>
+              <p className="mt-2 text-slate-500"><UiText text="Samlet arkiv over oppussing, arbeid, utført vedlikehold og reparerte skader."/></p>
             </div>
             <div className="flex flex-col gap-3 sm:items-end">
               {boliger.length > 1 && (
-                <label className="text-sm font-semibold">
-                  Bolig
-                  <select
+                <label className="text-sm font-semibold"><UiText text="Bolig"/><select
                     value={valgtId}
                     onChange={(event) => setValgtId(event.target.value)}
                     className="felt mt-2 sm:w-72"
                   >
                     {boliger.map((verdi) => (
                       <option key={verdi.id} value={String(verdi.id)}>
-                        {String(verdi.adresse || "Privat bolig")}
+                        {String(verdi.adresse || uiText("Privat bolig"))}
                       </option>
                     ))}
                   </select>
@@ -414,22 +409,19 @@ export default function Bolighistorikk() {
                   type="button"
                   onClick={startNyHendelse}
                   className="min-h-11 rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white"
-                >
-                  + Legg til tidligere arbeid
-                </button>
+                ><UiText text="+ Legg til tidligere arbeid"/></button>
               )}
             </div>
           </div>
           {bolig && (
             <p className="mt-4 rounded-xl bg-stone-50 p-3 text-sm font-semibold">
-              {String(bolig.adresse || "Privat bolig")} · {hendelser.length}{" "}
-              historikkhendelse{hendelser.length === 1 ? "" : "r"}
+              {String(bolig.adresse || uiText("Privat bolig"))} · {uiFormat(hendelser.length === 1 ? "{0} historikkhendelse" : "{0} historikkhendelser", [hendelser.length])}
             </p>
           )}
         </section>
         {feil && (
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {feil}
+            <UiText text={String(feil ?? "")}/>
           </p>
         )}
         <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
@@ -447,23 +439,19 @@ export default function Bolighistorikk() {
               onClick={() => setFane(verdi)}
               className={`min-h-11 rounded-xl px-3 py-2 text-sm font-bold ${fane === verdi ? "bg-emerald-500 text-white" : "text-slate-600 hover:bg-stone-50"}`}
             >
-              {navn}
+              <UiText text={String(navn ?? "")}/>
             </button>
           ))}
         </div>
         <div className="mt-3 grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2">
-          <label className="min-w-0 text-sm font-semibold">
-            År
-            <select value={aarFilter} onChange={(event) => setAarFilter(event.target.value)} className="felt mt-2">
-              <option value="alle">Alle år</option>
+          <label className="min-w-0 text-sm font-semibold"><UiText text="År"/><select value={aarFilter} onChange={(event) => setAarFilter(event.target.value)} className="felt mt-2">
+              <option value="alle"><UiText text="Alle år"/></option>
               {[...new Set(hendelser.map((hendelse) => hendelse.dato?.slice(0, 4)).filter(Boolean))].sort().reverse().map((aar) => <option key={aar} value={aar}>{aar}</option>)}
             </select>
           </label>
-          <label className="min-w-0 text-sm font-semibold">
-            Rom / område
-            <select value={romFilter} onChange={(event) => setRomFilter(event.target.value)} className="felt mt-2">
-              <option value="alle">Alle rom og områder</option>
-              {(data?.rom || []).map((rom) => <option key={rom.id} value={`rom:${rom.id}`}>{rom.navn}</option>)}
+          <label className="min-w-0 text-sm font-semibold"><UiText text="Rom / område"/><select value={romFilter} onChange={(event) => setRomFilter(event.target.value)} className="felt mt-2">
+              <option value="alle"><UiText text="Alle rom og områder"/></option>
+              {(data?.rom || []).map((rom) => <option key={rom.id} value={`rom:${rom.id}`}>{uiDemoText(rom.navn, rom.id)}</option>)}
               {[...new Set(hendelser.filter((hendelse) => !hendelse.romId && hendelse.omrade).map((hendelse) => hendelse.omrade))].sort().map((omrade) => <option key={omrade} value={`omrade:${omrade}`}>{omrade}</option>)}
             </select>
           </label>
@@ -486,15 +474,13 @@ export default function Bolighistorikk() {
               ))}
             </div>
           ) : (
-            <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-center text-slate-500">
-              Ingen hendelser i denne kategorien ennå.
-            </p>
+            <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-center text-slate-500"><UiText text="Ingen hendelser i denne kategorien ennå."/></p>
           )}
         </section>
       </div>
       {redigerer && redigeringsmodus === "hendelse" && (
         <Modal
-          tittel="Rediger historikkhendelse"
+          tittel={uiText("Rediger historikkhendelse")}
           onLukk={() => {
             setRedigerer(null);
             setRedigeringsmodus(null);
@@ -507,14 +493,14 @@ export default function Bolighistorikk() {
           />
           {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).length > 0 && (
             <div className="mt-5">
-              <p className="text-sm font-bold">Bilder og dokumenter</p>
+              <p className="text-sm font-bold"><UiText text="Bilder og dokumenter"/></p>
               <div className="mt-2 space-y-2">
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
                     <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {dokument.navn}
+                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {uiDemoText(dokument.navn, dokument.id)}
                     </button>
-                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50">Slett</button>
+                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
                 ))}
               </div>
@@ -526,13 +512,13 @@ export default function Bolighistorikk() {
             disabled={jobber}
             className="mt-6 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"
           >
-            {jobber ? "Lagrer…" : "Lagre endringer"}
+            {jobber ? uiText("Lagrer…") : uiText("Lagre endringer")}
           </button>
         </Modal>
       )}
       {redigerer && redigeringsmodus === "dokumentasjon" && (
         <Modal
-          tittel="Oppdater dokumentasjon"
+          tittel={uiText("Oppdater dokumentasjon")}
           onLukk={() => {
             setRedigerer(null);
             setRedigeringsmodus(null);
@@ -540,14 +526,9 @@ export default function Bolighistorikk() {
         >
           <p className="rounded-xl bg-stone-50 p-4">
             <strong>{redigerer.tittel}</strong>
-            <span className="mt-1 block text-sm text-slate-500">
-              Dokumentasjonssjekken er frivillig. Velg «Ingen
-              dokumentasjonssjekk» dersom du ikke ønsker varsel.
-            </span>
+            <span className="mt-1 block text-sm text-slate-500"><UiText text="Dokumentasjonssjekken er frivillig. Velg «Ingen dokumentasjonssjekk» dersom du ikke ønsker varsel."/></span>
           </p>
-          <label className="mt-5 block text-sm font-semibold">
-            Dokumentasjonssjekk
-            <select
+          <label className="mt-5 block text-sm font-semibold"><UiText text="Dokumentasjonssjekk"/><select
               value={redigerer.arbeidstype || ""}
               onChange={(event) =>
                 setRedigerer({
@@ -560,7 +541,7 @@ export default function Bolighistorikk() {
             >
               {dokumentasjonstyper.map((valg) => (
                 <option key={valg.verdi} value={valg.verdi}>
-                  {valg.navn}
+                  <UiText text={String(valg.navn ?? "")}/>
                 </option>
               ))}
             </select>
@@ -576,26 +557,26 @@ export default function Bolighistorikk() {
           )}
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Filfelt
-              label="Nye bilder"
+              label={uiText("Nye bilder")}
               accept="image/*,.heic,.heif"
               onVelg={setBilder}
             />
             <Filfelt
-              label="Nye dokumenter"
+              label={uiText("Nye dokumenter")}
               accept="image/*,.pdf,.doc,.docx"
               onVelg={setFiler}
             />
           </div>
           {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).length > 0 && (
             <div className="mt-5">
-              <p className="text-sm font-bold">Eksisterende bilder og dokumenter</p>
+              <p className="text-sm font-bold"><UiText text="Eksisterende bilder og dokumenter"/></p>
               <div className="mt-2 space-y-2">
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
                     <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {dokument.navn}
+                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {uiDemoText(dokument.navn, dokument.id)}
                     </button>
-                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50">Slett</button>
+                    <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
                 ))}
               </div>
@@ -607,7 +588,7 @@ export default function Bolighistorikk() {
             disabled={jobber}
             className="mt-6 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"
           >
-            {jobber ? "Lagrer…" : "Lagre"}
+            {jobber ? uiText("Lagrer…") : uiText("Lagre")}
           </button>
         </Modal>
       )}
@@ -634,6 +615,7 @@ function Historikkrad({
   kanRedigere: boolean;
   jobber: boolean;
 }) {
+  useLanguage();
   const krav = kravForArbeidstype(hendelse.arbeidstype);
   const bekreftet = hendelse.dokumentasjonBekreftet || [];
   const mangler = krav.filter((punkt) => !bekreftet.includes(punkt.id));
@@ -648,17 +630,17 @@ function Historikkrad({
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
             {maanedAar(hendelse.dato)}
           </p>
-          <h2 className="mt-1 text-xl font-bold">{hendelse.tittel}</h2>
+          <h2 className="mt-1 text-xl font-bold">{uiDemoText(hendelse.tittel, hendelse.id)}</h2>
           <p className="mt-1 text-sm text-slate-500">
             {[
-              hendelse.omrade,
+              uiDemoText(hendelse.omrade, hendelse.id),
               hendelse.kostnad ? kroner(hendelse.kostnad) : "",
               hendelse.firma ||
                 (hendelse.utfortAv === "selv"
-                  ? "Gjort selv"
+                  ? uiText("Gjort selv")
                   : hendelse.utfortAv === "tidligere-eier" ||
                       !hendelse.utfortAv
-                    ? "Tidligere eier"
+                    ? uiText("Tidligere eier")
                     : ""),
             ]
               .filter(Boolean)
@@ -666,11 +648,11 @@ function Historikkrad({
           </p>
         </div>
         <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-bold text-slate-600">
-          {typenavn(hendelse.arkivtype)}
+          <UiText text={String(typenavn(hendelse.arkivtype) ?? "")}/>
         </span>
       </div>
-      {rensSynligTekst(hendelse.beskrivelse) && (
-        <p className="mt-3 max-w-full break-words text-sm text-slate-600">{rensSynligTekst(hendelse.beskrivelse)}</p>
+      {hendelse.beskrivelse && (
+        <p className="mt-3 max-w-full break-words text-sm text-slate-600">{uiDemoText(rensSynligTekst(hendelse.beskrivelse), hendelse.id)}</p>
       )}
       {krav.length > 0 && (
         <div
@@ -679,16 +661,15 @@ function Historikkrad({
           <div className="flex flex-wrap justify-between gap-2">
             <strong>
               {komplett
-                ? "✓ Dokumentasjonen er komplett"
-                : `Dokumentasjon ${krav.length - mangler.length} av ${krav.length}`}
+                ? uiText("✓ Dokumentasjonen er komplett")
+                : uiFormat("Dokumentasjon {0} av {1}", [krav.length - mangler.length, krav.length])}
             </strong>
             <span className="text-xs font-semibold">
-              {navnPaArbeidstype(hendelse.arbeidstype)}
+              <UiText text={String(navnPaArbeidstype(hendelse.arbeidstype) ?? "")}/>
             </span>
           </div>
           {mangler.length > 0 && (
-            <p className="mt-1 text-xs">
-              Mangler: {mangler.map((punkt) => punkt.navn).join(", ")}
+            <p className="mt-1 text-xs"><UiText text="Mangler: "/>{mangler.map((punkt) => uiText(punkt.navn)).join(", ")}
             </p>
           )}
         </div>
@@ -703,7 +684,7 @@ function Historikkrad({
               className="min-w-0 max-w-full break-words text-left text-sm font-bold text-emerald-700"
             >
               {dokument.filtype.startsWith("image/") ? "📸" : "📄"}{" "}
-              {dokument.navn}
+              {uiDemoText(dokument.navn, dokument.id)}
             </button>
           ))}
         </div>
@@ -714,24 +695,20 @@ function Historikkrad({
             type="button"
             onClick={onRediger}
             className="text-emerald-700"
-          >
-            Rediger
-          </button>
+          ><UiText text="Rediger"/></button>
           <button
             type="button"
             onClick={onDokumentasjon}
             className="text-slate-600"
           >
-            {krav.length ? "Oppdater dokumentasjon" : "Dokumentasjon"}
+            {krav.length ? uiText("Oppdater dokumentasjon") : uiText("Dokumentasjon")}
           </button>
           <button
             type="button"
             onClick={onSlett}
             disabled={jobber}
             className="text-red-600 disabled:opacity-50"
-          >
-            Slett
-          </button>
+          ><UiText text="Slett"/></button>
         </div>
       )}
     </article>
@@ -747,6 +724,7 @@ function Hendelsesskjema({
   rom: Rominfo[];
   onEndre: (hendelse: Historikkinfo) => void;
 }) {
+  useLanguage();
   const valgtOmrade = hendelse.romId
     ? `rom:${hendelse.romId}`
     : hendelse.omrade;
@@ -764,17 +742,17 @@ function Hendelsesskjema({
   }
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Felt label="Hva ble gjort? *">
+      <Felt label={uiText("Hva ble gjort? *")}>
         <input
           autoFocus
-          value={hendelse.tittel}
+          value={uiDemoText(hendelse.tittel, hendelse.id)}
           onChange={(event) =>
             onEndre({ ...hendelse, tittel: event.target.value })
           }
           className="felt"
         />
       </Felt>
-      <Felt label="Når?">
+      <Felt label={uiText("Når?")}>
         <input
           type="date"
           value={hendelse.dato}
@@ -784,27 +762,26 @@ function Hendelsesskjema({
           className="felt"
         />
       </Felt>
-      <Felt label="Hvor på boligen?">
+      <Felt label={uiText("Hvor på boligen?")}>
         <select
           value={valgtOmrade}
           onChange={(event) => velgOmrade(event.target.value)}
           className="felt"
         >
-          <option value="">Velg rom</option>
+          <option value=""><UiText text="Velg rom"/></option>
           {rom.map((romverdi) => (
             <option key={romverdi.id} value={`rom:${romverdi.id}`}>
-              {romverdi.navn}
+              {uiDemoText(romverdi.navn, romverdi.id)}
             </option>
           ))}
-          <option value="Annet">Annet</option>
+          <option value="Annet"><UiText text="Annet"/></option>
           {tidligereOmrade && (
-            <option value={hendelse.omrade}>
-              {hendelse.omrade} (tidligere valg)
-            </option>
+            <option value={uiDemoText(hendelse.omrade, hendelse.id)}>
+              {uiDemoText(hendelse.omrade, hendelse.id)}<UiText text=" (tidligere valg)"/></option>
           )}
         </select>
       </Felt>
-      <Felt label="Kostnad">
+      <Felt label={uiText("Kostnad")}>
         <input
           inputMode="numeric"
           value={hendelse.kostnad || ""}
@@ -814,7 +791,7 @@ function Hendelsesskjema({
           className="felt"
         />
       </Felt>
-      <Felt label="Utført av">
+      <Felt label={uiText("Utført av")}>
         <select
           value={hendelse.utfortAv || "tidligere-eier"}
           onChange={(event) =>
@@ -828,13 +805,13 @@ function Hendelsesskjema({
           }
           className="felt"
         >
-          <option value="selv">Meg selv</option>
-          <option value="firma">Firma/håndverker</option>
-          <option value="tidligere-eier">Tidligere eier</option>
+          <option value="selv"><UiText text="Meg selv"/></option>
+          <option value="firma"><UiText text="Firma/håndverker"/></option>
+          <option value="tidligere-eier"><UiText text="Tidligere eier"/></option>
         </select>
       </Felt>
       {hendelse.utfortAv === "firma" && (
-        <Felt label="Firma/håndverker">
+        <Felt label={uiText("Firma/håndverker")}>
           <input
             value={hendelse.firma}
             onChange={(event) =>
@@ -844,11 +821,9 @@ function Hendelsesskjema({
           />
         </Felt>
       )}
-      <label className="text-sm font-semibold sm:col-span-2">
-        Notat
-        <textarea
+      <label className="text-sm font-semibold sm:col-span-2"><UiText text="Notat"/><textarea
           rows={4}
-          value={hendelse.beskrivelse}
+          value={uiDemoText(hendelse.beskrivelse, hendelse.id)}
           onChange={(event) =>
             onEndre({ ...hendelse, beskrivelse: event.target.value })
           }
@@ -868,6 +843,7 @@ function Sjekkliste({
   valgte: string[];
   onEndre: (verdier: string[]) => void;
 }) {
+  useLanguage();
   const krav = kravForArbeidstype(type);
   return (
     <div className="mt-5 space-y-2">
@@ -888,7 +864,7 @@ function Sjekkliste({
             }
             className="h-5 w-5 accent-emerald-500"
           />
-          {punkt.navn}
+          <UiText text={String(punkt.navn ?? "")}/>
         </label>
       ))}
     </div>
@@ -903,9 +879,10 @@ function Filfelt({
   accept: string;
   onVelg: (filer: File[]) => void;
 }) {
+  useLanguage();
   return (
     <label className="text-sm font-semibold">
-      {label}
+      <UiText text={String(label ?? "")}/>
       <input
         type="file"
         multiple
@@ -923,9 +900,10 @@ function Felt({
   label: string;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <label className="block text-sm font-semibold">
-      <span className="mb-2 block">{label}</span>
+      <span className="mb-2 block"><UiText text={String(label ?? "")}/></span>
       {children}
     </label>
   );
@@ -939,6 +917,7 @@ function Modal({
   onLukk: () => void;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-3"
@@ -947,14 +926,12 @@ function Modal({
     >
       <div className="mx-auto my-4 max-w-2xl rounded-3xl bg-white p-5 shadow-2xl sm:my-10 sm:p-7">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">{tittel}</h2>
+          <h2 className="text-2xl font-bold"><UiText text={String(tittel ?? "")}/></h2>
           <button
             type="button"
             onClick={onLukk}
             className="min-h-11 px-3 text-sm font-semibold text-slate-500"
-          >
-            Lukk
-          </button>
+          ><UiText text="Lukk"/></button>
         </div>
         {children}
       </div>
@@ -968,13 +945,11 @@ function typenavn(type: Arkivhendelse["arkivtype"]) {
       ? "Løst skade/avvik"
       : "Oppussing og arbeid";
 }
-function kroner(verdi: number) {
-  return `${Math.round(verdi).toLocaleString("nb-NO")} kr`;
-}
+function kroner(verdi: number) { return formatMoney(parseNok(verdi), false); }
 function maanedAar(dato: string) {
   if (!dato) return "Dato ikke registrert";
   try {
-    return new Intl.DateTimeFormat("nb-NO", {
+    return new Intl.DateTimeFormat(uiLocale(), {
       month: "long",
       year: "numeric",
     }).format(new Date(`${dato}T12:00:00`));

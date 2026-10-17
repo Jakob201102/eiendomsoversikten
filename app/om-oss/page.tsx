@@ -1,3 +1,5 @@
+
+import { UiText } from "../lib/language";
 import Link from "next/link";
 import Navigasjon from "../components/Navigasjon";
 
@@ -15,15 +17,9 @@ export default function OmOss() {
 
       <header className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="font-semibold text-emerald-400">
-            OM EIENDOMSOVERSIKTEN
-          </p>
-          <h1 className="mt-4 text-4xl font-bold sm:text-5xl">
-            Alt om eiendommene dine – samlet
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            En digital boligoversikt for vanlige boligeiere og utleiere.
-          </p>
+          <p className="font-semibold text-emerald-400"><UiText text="OM EIENDOMSOVERSIKTEN"/></p>
+          <h1 className="mt-4 text-4xl font-bold sm:text-5xl"><UiText text="Alt om eiendommene dine – samlet"/></h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300"><UiText text="En digital boligoversikt for vanlige boligeiere og utleiere."/></p>
         </div>
       </header>
 
@@ -32,39 +28,23 @@ export default function OmOss() {
           <div className="grid gap-6 md:grid-cols-2">
             <article className="rounded-3xl bg-white p-7 shadow-sm sm:p-9">
               <div className="h-2 w-14 rounded-full bg-emerald-400" />
-              <h2 className="mt-5 text-2xl font-bold">
-                Alt samlet i én tjeneste
-              </h2>
-              <p className="mt-4 leading-7 text-slate-600">
-                Eiendomsoversikten samler praktisk boliginformasjon,
-                dokumenter, bilder, historikk og vedlikehold uten spredte
-                notater og mapper.
-              </p>
-              <p className="mt-4 leading-7 text-slate-600">
-                Utleiere får i tillegg oversikt over leieforhold, økonomi,
-                kontrakter og årsrapport.
-              </p>
+              <h2 className="mt-5 text-2xl font-bold"><UiText text="Alt samlet i én tjeneste"/></h2>
+              <p className="mt-4 leading-7 text-slate-600"><UiText text="Eiendomsoversikten samler praktisk boliginformasjon, dokumenter, bilder, historikk og vedlikehold uten spredte notater og mapper."/></p>
+              <p className="mt-4 leading-7 text-slate-600"><UiText text="Utleiere får i tillegg oversikt over leieforhold, økonomi, kontrakter og årsrapport."/></p>
             </article>
 
             <article className="rounded-3xl bg-white p-7 shadow-sm sm:p-9">
               <div className="h-2 w-14 rounded-full bg-emerald-400" />
-              <h2 className="mt-5 text-2xl font-bold">Betaversjon</h2>
-              <p className="mt-4 leading-7 text-slate-600">
-                Tjenesten testes og forbedres fortløpende. Beregninger av
-                yield, kontantstrøm og andre nøkkeltall er estimater basert på
-                opplysningene brukeren legger inn.
-              </p>
-              <p className="mt-4 leading-7 text-slate-600">
-                Viktige dokumenter bør også oppbevares separat mens tjenesten
-                er i beta.
-              </p>
+              <h2 className="mt-5 text-2xl font-bold"><UiText text="Betaversjon"/></h2>
+              <p className="mt-4 leading-7 text-slate-600"><UiText text="Tjenesten testes og forbedres fortløpende. Beregninger av yield, kontantstrøm og andre nøkkeltall er estimater basert på opplysningene brukeren legger inn."/></p>
+              <p className="mt-4 leading-7 text-slate-600"><UiText text="Viktige dokumenter bør også oppbevares separat mens tjenesten er i beta."/></p>
             </article>
           </div>
 
           <section className="mt-8 rounded-3xl bg-white p-7 shadow-sm sm:p-9">
-            <p className="text-sm font-bold uppercase tracking-wider text-emerald-700">Dette hjelper vi med</p>
-            <h2 className="mt-3 text-3xl font-bold">Bedre kontroll gjennom hele eiertiden</h2>
-            <p className="mt-4 max-w-3xl leading-7 text-slate-600">Eiendomsoversikten er laget for at viktig kunnskap om en bolig ikke skal forsvinne i e-poster, skuffer og tilfeldige mapper. Du kan bygge opp en digital servicebok som blir mer nyttig hver gang noe vedlikeholdes, repareres eller dokumenteres.</p>
+            <p className="text-sm font-bold uppercase tracking-wider text-emerald-700"><UiText text="Dette hjelper vi med"/></p>
+            <h2 className="mt-3 text-3xl font-bold"><UiText text="Bedre kontroll gjennom hele eiertiden"/></h2>
+            <p className="mt-4 max-w-3xl leading-7 text-slate-600"><UiText text="Eiendomsoversikten er laget for at viktig kunnskap om en bolig ikke skal forsvinne i e-poster, skuffer og tilfeldige mapper. Du kan bygge opp en digital servicebok som blir mer nyttig hver gang noe vedlikeholdes, repareres eller dokumenteres."/></p>
             <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["🏠", "Boliginformasjon", "Samle rom, materialer, fargekoder og viktige plasseringer."],
@@ -73,19 +53,14 @@ export default function OmOss() {
                 ["📁", "Dokumentasjon", "Finn igjen kvitteringer, garantier, bilder og viktige dokumenter."],
                 ["👨‍👩‍👧", "Delt hjem", "Gi familien tilgang til den samme oppdaterte boligoversikten."],
                 ["🏘️", "Utleie", "Få egne verktøy for boliger, leietakere, økonomi og årsrapport."],
-              ].map(([ikon, tittel, tekst]) => <article key={tittel} className="rounded-2xl bg-stone-50 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold">{tittel}</h3><p className="mt-2 text-sm leading-6 text-slate-600">{tekst}</p></article>)}
+              ].map(([ikon, tittel, tekst]) => <article key={tittel} className="rounded-2xl bg-stone-50 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold"><UiText text={String(tittel ?? "")}/></h3><p className="mt-2 text-sm leading-6 text-slate-600"><UiText text={tekst}/></p></article>)}
             </div>
           </section>
 
           <section className="mt-8 rounded-3xl bg-emerald-500 px-6 py-10 text-center text-slate-950 sm:px-10 sm:py-12">
-            <p className="font-semibold">KONTAKT OSS</p>
-            <h2 className="mt-3 text-3xl font-bold">
-              Har du spørsmål, funnet en feil eller har et forslag?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl leading-7 text-emerald-950/80">
-              Vi setter stor pris på tilbakemeldinger som kan gjøre
-              Eiendomsoversikten bedre.
-            </p>
+            <p className="font-semibold"><UiText text="KONTAKT OSS"/></p>
+            <h2 className="mt-3 text-3xl font-bold"><UiText text="Har du spørsmål, funnet en feil eller har et forslag?"/></h2>
+            <p className="mx-auto mt-4 max-w-2xl leading-7 text-emerald-950/80"><UiText text="Vi setter stor pris på tilbakemeldinger som kan gjøre Eiendomsoversikten bedre."/></p>
             <a
               href="mailto:eiendomsoversikten@gmail.com"
               className="mt-7 inline-flex rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white hover:bg-slate-800"
@@ -98,15 +73,11 @@ export default function OmOss() {
             <Link
               href="/kalkulator"
               className="rounded-xl bg-slate-950 px-6 py-3 text-center font-semibold text-white hover:bg-slate-800"
-            >
-              Kom i gang
-            </Link>
+            ><UiText text="Kom i gang"/></Link>
             <Link
               href="/personvern"
               className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-center font-semibold hover:border-emerald-500"
-            >
-              Les om personvern
-            </Link>
+            ><UiText text="Les om personvern"/></Link>
           </div>
         </div>
       </section>

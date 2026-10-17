@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
+
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -77,6 +80,7 @@ const kategorier: Kategori[] = [
 const detteAret = new Date().getFullYear();
 
 export default function Skatterapport() {
+  useLanguage();
   const router = useRouter();
   const [ar, setAr] = useState(detteAret);
   const [boliger, setBoliger] = useState<Bolig[]>([]);
@@ -257,7 +261,7 @@ export default function Skatterapport() {
   }
 
   async function slett(post: Skattepost) {
-    if (!window.confirm(`Vil du slette ${kategorinavn(post.kategori)} på ${kroner(post.belop)}?`)) return;
+    if (!window.confirm(uiFormat("Vil du slette {0} på {1}?", [kategorinavn(post.kategori), kroner(post.belop)]))) return;
     try {
       await slettSkattepost(post.id);
       setPoster((gamle) => gamle.filter((p) => p.id !== post.id));
@@ -310,11 +314,11 @@ export default function Skatterapport() {
 
   async function kopierTilExcel() {
     const sammendrag = [
-      ["SAMMENDRAG PER BOLIG", `INNTEKTSÅR ${ar}`],
+      ["SAMMENDRAG PER BOLIG", uiFormat("INNTEKTSÅR {0}", [ar])],
       ["Bolig", "Leieinntekter", "Driftskostnader normalt fradrag", "Renter", "Kostnader som må vurderes", "Ikke løpende fradrag", "Foreløpig skattemessig resultat"],
       ...regnskapsSammendrag.map((rad) => [rad.bolig, rad.inntekt, rad.drift, rad.renter, rad.vurdering, rad.utenFradrag, rad.forelopigResultat]),
       [],
-      ["FULL REGNSKAPSOVERSIKT", `INNTEKTSÅR ${ar}`],
+      ["FULL REGNSKAPSOVERSIKT", uiFormat("INNTEKTSÅR {0}", [ar])],
       ["Nr.", "Dato", "Bolig", "Type", "Kategori", "Beskrivelse", "Vurdering", "Kilde", "Inntekt", "Normalt fradrag", "Må vurderes", "Ikke løpende fradrag"],
       ...[...vistePoster].sort((a, b) => a.dato.localeCompare(b.dato)).map((post, indeks) => [
         indeks + 1,
@@ -349,19 +353,17 @@ export default function Skatterapport() {
 
       <header className="bg-slate-950 px-4 py-10 text-white sm:px-6 print:bg-white print:px-0 print:py-4 print:text-black">
         <div className="mx-auto max-w-7xl">
-          <p className="font-semibold text-emerald-400 print:text-black">ÅRSRAPPORT</p>
-          <h1 className="mt-2 text-3xl font-bold sm:text-4xl">Underlag til skattemeldingen</h1>
-          <p className="mt-3 max-w-3xl text-slate-300 print:text-black">
-            Samle faktiske leieinntekter og kostnader for valgt år. Rapporten er et hjelpemiddel og erstatter ikke skattemessig rådgivning.
-          </p>
+          <p className="font-semibold text-emerald-400 print:text-black"><UiText text="ÅRSRAPPORT"/></p>
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl"><UiText text="Underlag til skattemeldingen"/></h1>
+          <p className="mt-3 max-w-3xl text-slate-300 print:text-black"><UiText text="Samle faktiske leieinntekter og kostnader for valgt år. Rapporten er et hjelpemiddel og erstatter ikke skattemessig rådgivning."/></p>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 print:px-0 print:py-2">
         <section className="grid gap-4 rounded-2xl bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-[180px_1fr_auto] print:shadow-none">
-          <label><span className="mb-2 block text-sm font-medium">Inntektsår</span><select value={ar} onChange={(e) => { setAr(Number(e.target.value)); setDato(`${e.target.value}-01-01`); }} className="w-full rounded-xl border px-4 py-3">{Array.from({ length: 7 }, (_, i) => detteAret + 1 - i).map((a) => <option key={a}>{a}</option>)}</select></label>
-          <label><span className="mb-2 block text-sm font-medium">Bolig i rapporten</span><select value={boligfilter} onChange={(e) => setBoligfilter(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value="alle">Hele porteføljen</option>{boliger.map((b) => <option key={b.id} value={b.id}>{b.adresse}</option>)}</select></label>
-          <button type="button" onClick={() => setVisSkjema(!visSkjema)} className="self-end rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white print:hidden">{visSkjema ? "Lukk skjema" : "+ Registrer post"}</button>
+          <label><span className="mb-2 block text-sm font-medium"><UiText text="Inntektsår"/></span><select value={ar} onChange={(e) => { setAr(Number(e.target.value)); setDato(`${e.target.value}-01-01`); }} className="w-full rounded-xl border px-4 py-3">{Array.from({ length: 7 }, (_, i) => detteAret + 1 - i).map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+          <label><span className="mb-2 block text-sm font-medium"><UiText text="Bolig i rapporten"/></span><select value={boligfilter} onChange={(e) => setBoligfilter(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value="alle"><UiText text="Hele porteføljen"/></option>{boliger.map((b) => <option key={b.id} value={b.id}>{b.adresse}</option>)}</select></label>
+          <button type="button" onClick={() => setVisSkjema(!visSkjema)} className="self-end rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white print:hidden">{visSkjema ? uiText("Lukk skjema") : uiText("+ Registrer post")}</button>
         </section>
 
         <label className="mt-4 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 print:hidden">
@@ -372,27 +374,20 @@ export default function Skatterapport() {
             className="mt-1 h-5 w-5 accent-emerald-600"
           />
           <span>
-            <strong>Ta med automatiske opplysninger</strong>
-            <span className="mt-1 block text-sm leading-6 text-slate-600">
-              Faktisk mottatt husleie og betalte utgifter fra Økonomi brukes først.
-              Beregnede boligkostnader brukes bare når det ikke finnes en faktisk post
-              i samme kategori. Kontroller mot bilag og bankens årsoppgave.
-            </span>
+            <strong><UiText text="Ta med automatiske opplysninger"/></strong>
+            <span className="mt-1 block text-sm leading-6 text-slate-600"><UiText text="Faktisk mottatt husleie og betalte utgifter fra Økonomi brukes først. Beregnede boligkostnader brukes bare når det ikke finnes en faktisk post i samme kategori. Kontroller mot bilag og bankens årsoppgave."/></span>
           </span>
         </label>
 
         <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm print:hidden">
           <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-emerald-700">REGNSKAPSOVERSIKT {ar}</p>
-              <h2 className="mt-1 text-2xl font-bold">Kopier alt til Excel</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Kopierer både sammendrag per bolig og alle regnskapslinjer med dato, kategori,
-                beskrivelse, vurdering, kilde og beløp i separate kolonner.
-              </p>
+              <p className="text-sm font-semibold text-emerald-700"><UiText text="REGNSKAPSOVERSIKT "/>{ar}</p>
+              <h2 className="mt-1 text-2xl font-bold"><UiText text="Kopier alt til Excel"/></h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600"><UiText text="Kopierer både sammendrag per bolig og alle regnskapslinjer med dato, kategori, beskrivelse, vurdering, kilde og beløp i separate kolonner."/></p>
             </div>
             <button type="button" onClick={kopierTilExcel} disabled={vistePoster.length === 0} className="shrink-0 rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white disabled:opacity-50">
-              {kopiert ? "✓ Kopiert – lim inn i Excel" : "Kopier hele oversikten"}
+              {kopiert ? uiText("✓ Kopiert – lim inn i Excel") : uiText("Kopier hele oversikten")}
             </button>
           </div>
 
@@ -400,13 +395,13 @@ export default function Skatterapport() {
             <table className="w-full min-w-[950px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-5 py-3">Bolig</th>
-                  <th className="px-4 py-3 text-right">Leieinntekter</th>
-                  <th className="px-4 py-3 text-right">Driftsfradrag</th>
-                  <th className="px-4 py-3 text-right">Renter</th>
-                  <th className="px-4 py-3 text-right">Må vurderes</th>
-                  <th className="px-4 py-3 text-right">Ikke fradrag</th>
-                  <th className="px-5 py-3 text-right">Foreløpig resultat</th>
+                  <th className="px-5 py-3"><UiText text="Bolig"/></th>
+                  <th className="px-4 py-3 text-right"><UiText text="Leieinntekter"/></th>
+                  <th className="px-4 py-3 text-right"><UiText text="Driftsfradrag"/></th>
+                  <th className="px-4 py-3 text-right"><UiText text="Renter"/></th>
+                  <th className="px-4 py-3 text-right"><UiText text="Må vurderes"/></th>
+                  <th className="px-4 py-3 text-right"><UiText text="Ikke fradrag"/></th>
+                  <th className="px-5 py-3 text-right"><UiText text="Foreløpig resultat"/></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -421,11 +416,11 @@ export default function Skatterapport() {
                     <td className="px-5 py-4 text-right font-bold">{kroner(rad.forelopigResultat)}</td>
                   </tr>
                 ))}
-                {regnskapsSammendrag.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500">Ingen rapportposter å vise.</td></tr>}
+                {regnskapsSammendrag.length === 0 && <tr><td colSpan={7} className="px-5 py-8 text-center text-slate-500"><UiText text="Ingen rapportposter å vise."/></td></tr>}
               </tbody>
               <tfoot className="border-t-2 border-slate-300 bg-slate-50 font-bold">
                 <tr>
-                  <td className="px-5 py-4">Totalt</td>
+                  <td className="px-5 py-4"><UiText text="Totalt"/></td>
                   <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.inntekt, 0))}</td>
                   <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.drift, 0))}</td>
                   <td className="px-4 py-4 text-right">{kroner(regnskapsSammendrag.reduce((sum, rad) => sum + rad.renter, 0))}</td>
@@ -436,94 +431,86 @@ export default function Skatterapport() {
               </tfoot>
             </table>
           </div>
-          <p className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-5 text-slate-500">
-            Dette er et regnskaps- og dokumentasjonsunderlag. Opplysningene må kontrolleres og føres i riktige felt i skattemeldingen eller næringsspesifikasjonen. Filen er ikke en direkte innsending til Skatteetaten.
-          </p>
+          <p className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-5 text-slate-500"><UiText text="Dette er et regnskaps- og dokumentasjonsunderlag. Opplysningene må kontrolleres og føres i riktige felt i skattemeldingen eller næringsspesifikasjonen. Filen er ikke en direkte innsending til Skatteetaten."/></p>
         </section>
 
-        {feil && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 print:hidden">{feil}</div>}
+        {feil && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 print:hidden"><UiText text={String(feil ?? "")}/></div>}
 
         {visSkjema && (
           <form onSubmit={lagre} className="mt-5 rounded-2xl bg-white p-5 shadow-sm print:hidden">
-            <h2 className="text-xl font-bold">{redigeringsId ? "Rediger post" : "Ny inntekt eller kostnad"}</h2>
+            <h2 className="text-xl font-bold">{redigeringsId ? uiText("Rediger post") : uiText("Ny inntekt eller kostnad")}</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Felt label="Bolig"><select value={boligId} onChange={(e) => setBoligId(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value="">Ingen bestemt bolig</option>{boliger.map((b) => <option key={b.id} value={b.id}>{b.adresse}</option>)}</select></Felt>
-              <Felt label="Dato"><input type="date" value={dato} onChange={(e) => setDato(e.target.value)} className="w-full rounded-xl border px-4 py-3" /></Felt>
-              <Felt label="Kategori"><select value={kategori} onChange={(e) => velgKategori(e.target.value)} className="w-full rounded-xl border px-4 py-3">{kategorier.map((k) => <option key={k.verdi} value={k.verdi}>{k.navn}</option>)}</select></Felt>
-              <Felt label="Beløp"><input type="number" min="0" step="0.01" value={belop} onChange={(e) => setBelop(Number(e.target.value))} className="w-full rounded-xl border px-4 py-3" /></Felt>
-              <Felt label="Beskrivelse"><input value={beskrivelse} onChange={(e) => setBeskrivelse(e.target.value)} placeholder="F.eks. maling av stue" className="w-full rounded-xl border px-4 py-3" /></Felt>
-              {type === "kostnad" && <Felt label="Vurdering"><select value={fradragsstatus} onChange={(e) => setFradragsstatus(e.target.value as Fradragsstatus)} className="w-full rounded-xl border px-4 py-3"><option value="normalt">Normalt fradragsberettiget</option><option value="vurder">Må vurderes</option><option value="ikke">Ikke løpende fradrag</option></select></Felt>}
+              <Felt label={uiText("Bolig")}><select value={boligId} onChange={(e) => setBoligId(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value=""><UiText text="Ingen bestemt bolig"/></option>{boliger.map((b) => <option key={b.id} value={b.id}>{b.adresse}</option>)}</select></Felt>
+              <Felt label={uiText("Dato")}><input type="date" value={dato} onChange={(e) => setDato(e.target.value)} className="w-full rounded-xl border px-4 py-3" /></Felt>
+              <Felt label={uiText("Kategori")}><select value={kategori} onChange={(e) => velgKategori(e.target.value)} className="w-full rounded-xl border px-4 py-3">{kategorier.map((k) => <option key={k.verdi} value={k.verdi}><UiText text={String(k.navn ?? "")}/></option>)}</select></Felt>
+              <Felt label={uiText("Beløp")}><input type="number" min="0" step="0.01" value={belop} onChange={(e) => setBelop(Number(e.target.value))} className="w-full rounded-xl border px-4 py-3" /></Felt>
+              <Felt label={uiText("Beskrivelse")}><input value={beskrivelse} onChange={(e) => setBeskrivelse(e.target.value)} placeholder={uiText("F.eks. maling av stue")} className="w-full rounded-xl border px-4 py-3" /></Felt>
+              {type === "kostnad" && <Felt label={uiText("Vurdering")}><select value={fradragsstatus} onChange={(e) => setFradragsstatus(e.target.value as Fradragsstatus)} className="w-full rounded-xl border px-4 py-3"><option value="normalt"><UiText text="Normalt fradragsberettiget"/></option><option value="vurder"><UiText text="Må vurderes"/></option><option value="ikke"><UiText text="Ikke løpende fradrag"/></option></select></Felt>}
             </div>
-            {valgtKategori && <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">{valgtKategori.forklaring}</p>}
-            <div className="mt-5 flex gap-3"><button disabled={lagrer} className="rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white disabled:opacity-50">{lagrer ? "Lagrer…" : redigeringsId ? "Lagre endringer" : "Lagre post"}</button><button type="button" onClick={nullstillSkjema} className="rounded-xl border px-6 py-3 font-semibold">Avbryt</button></div>
+            {valgtKategori && <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm leading-6 text-slate-600"><UiText text={String(valgtKategori.forklaring ?? "")}/></p>}
+            <div className="mt-5 flex gap-3"><button disabled={lagrer} className="rounded-xl bg-slate-950 px-6 py-3 font-semibold text-white disabled:opacity-50">{lagrer ? uiText("Lagrer…") : redigeringsId ? uiText("Lagre endringer") : uiText("Lagre post")}</button><button type="button" onClick={nullstillSkjema} className="rounded-xl border px-6 py-3 font-semibold"><UiText text="Avbryt"/></button></div>
           </form>
         )}
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Tallkort label="Registrerte inntekter" verdi={kroner(inntekter)} />
-          <Tallkort label="Driftsfradrag" verdi={kroner(driftsfradrag)} tone="gronn" />
-          <Tallkort label="Rentefradrag" verdi={kroner(rentefradrag)} tone="gronn" />
-          <Tallkort label="Estimert igjen" verdi={kroner(estimertIgjen)} tone={estimertIgjen >= 0 ? "gronn" : "rod"} />
+          <Tallkort label={uiText("Registrerte inntekter")} verdi={kroner(inntekter)} />
+          <Tallkort label={uiText("Driftsfradrag")} verdi={kroner(driftsfradrag)} tone="gronn" />
+          <Tallkort label={uiText("Rentefradrag")} verdi={kroner(rentefradrag)} tone="gronn" />
+          <Tallkort label={uiText("Estimert igjen")} verdi={kroner(estimertIgjen)} tone={estimertIgjen >= 0 ? "gronn" : "rod"} />
         </section>
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[1fr_360px]">
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm print:shadow-none">
-            <div className="border-b p-5"><h2 className="text-xl font-bold">Rapportposter</h2><p className="mt-1 text-sm text-slate-500">{vistePoster.length} automatiske og manuelle poster i {ar}</p></div>
-            {laster ? <p className="p-8 text-center text-slate-500">Laster…</p> : vistePoster.length === 0 ? <p className="p-8 text-center text-slate-500">Ingen poster funnet for valgt år og bolig.</p> : <div className="divide-y">{vistePoster.map((post) => <article key={post.id} className="grid gap-3 p-5 sm:grid-cols-[100px_1fr_auto] sm:items-center"><div className="text-sm text-slate-500">{formaterDato(post.dato)}</div><div><div className="flex flex-wrap items-center gap-2"><strong>{kategorinavn(post.kategori)}</strong>{post.type === "kostnad" && <Status status={post.fradragsstatus} />}{post.faktisk && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">Faktisk registrert</span>}{post.automatisk && !post.faktisk && <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800">Beregnet</span>}</div><p className="mt-1 text-sm text-slate-500">{boligadresse(boliger, post.boligId)}{post.beskrivelse ? ` · ${post.beskrivelse}` : ""}</p></div><div className="flex items-center gap-3 sm:justify-end"><strong className={post.type === "inntekt" ? "text-emerald-700" : "text-slate-900"}>{post.type === "inntekt" ? "+" : "−"} {kroner(post.belop)}</strong>{!post.automatisk && !post.faktisk && <div className="flex gap-2 print:hidden"><button type="button" onClick={() => rediger(post)} className="text-sm font-semibold text-emerald-700">Rediger</button><button type="button" onClick={() => slett(post)} className="text-sm font-semibold text-red-600">Slett</button></div>}</div></article>)}</div>}
+            <div className="border-b p-5"><h2 className="text-xl font-bold"><UiText text="Rapportposter"/></h2><p className="mt-1 text-sm text-slate-500">{vistePoster.length}<UiText text=" automatiske og manuelle poster i "/>{ar}</p></div>
+            {laster ? <p className="p-8 text-center text-slate-500"><UiText text="Laster…"/></p> : vistePoster.length === 0 ? <p className="p-8 text-center text-slate-500"><UiText text="Ingen poster funnet for valgt år og bolig."/></p> : <div className="divide-y">{vistePoster.map((post) => <article key={post.id} className="grid gap-3 p-5 sm:grid-cols-[100px_1fr_auto] sm:items-center"><div className="text-sm text-slate-500">{formaterDato(post.dato)}</div><div><div className="flex flex-wrap items-center gap-2"><strong><UiText text={String(kategorinavn(post.kategori) ?? "")}/></strong>{post.type === "kostnad" && <Status status={post.fradragsstatus} />}{post.faktisk && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"><UiText text="Faktisk registrert"/></span>}{post.automatisk && !post.faktisk && <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-800"><UiText text="Beregnet"/></span>}</div><p className="mt-1 text-sm text-slate-500">{boligadresse(boliger, post.boligId)}{post.beskrivelse ? ` · ${post.beskrivelse}` : ""}</p></div><div className="flex items-center gap-3 sm:justify-end"><strong className={post.type === "inntekt" ? "text-emerald-700" : "text-slate-900"}>{post.type === "inntekt" ? "+" : "−"} {kroner(post.belop)}</strong>{!post.automatisk && !post.faktisk && <div className="flex gap-2 print:hidden"><button type="button" onClick={() => rediger(post)} className="text-sm font-semibold text-emerald-700"><UiText text="Rediger"/></button><button type="button" onClick={() => slett(post)} className="text-sm font-semibold text-red-600"><UiText text="Slett"/></button></div>}</div></article>)}</div>}
           </div>
 
           <aside className="h-fit rounded-2xl bg-slate-950 p-6 text-white">
-            <p className="text-sm font-semibold text-emerald-400">SAMMENDRAG {ar}</p>
-            <h2 className="mt-2 text-2xl font-bold">Skatt og kontantoversikt</h2>
+            <p className="text-sm font-semibold text-emerald-400"><UiText text="SAMMENDRAG "/>{ar}</p>
+            <h2 className="mt-2 text-2xl font-bold"><UiText text="Skatt og kontantoversikt"/></h2>
             <div className="mt-5 space-y-3">
-              <RapportRad label="Leieinntekter" verdi={inntekter} />
-              <RapportRad label="Driftsfradrag" verdi={-driftsfradrag} />
+              <RapportRad label={uiText("Leieinntekter")} verdi={inntekter} />
+              <RapportRad label={uiText("Driftsfradrag")} verdi={-driftsfradrag} />
               <div className="border-t border-slate-700 pt-3">
-                <RapportRad label="Resultat før renter" verdi={resultatForRenter} viktig />
+                <RapportRad label={uiText("Resultat før renter")} verdi={resultatForRenter} viktig />
               </div>
-              <RapportRad label="Rentefradrag" verdi={-rentefradrag} />
+              <RapportRad label={uiText("Rentefradrag")} verdi={-rentefradrag} />
               <div className="border-t border-slate-700 pt-3">
-                <RapportRad label="Beregnet skattegrunnlag" verdi={beregnetSkattegrunnlag} viktig />
+                <RapportRad label={uiText("Beregnet skattegrunnlag")} verdi={beregnetSkattegrunnlag} viktig />
               </div>
-              <RapportRad label="Forenklet skatt (22 %)" verdi={-beregnetSkatt} />
+              <RapportRad label={uiText("Forenklet skatt (22 %)")} verdi={-beregnetSkatt} />
               <div className="mt-4 border-t border-slate-700 pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Andre utbetalinger</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400"><UiText text="Andre utbetalinger"/></p>
                 <div className="space-y-3">
-                  <RapportRad label="Avdrag på lån (ikke fradrag)" verdi={-avdrag} />
-                  {maVurderes > 0 && <RapportRad label="Kostnader som må vurderes" verdi={-maVurderes} />}
-                  {andreIkkeFradrag > 0 && <RapportRad label="Andre kostnader uten fradrag" verdi={-andreIkkeFradrag} />}
+                  <RapportRad label={uiText("Avdrag på lån (ikke fradrag)")} verdi={-avdrag} />
+                  {maVurderes > 0 && <RapportRad label={uiText("Kostnader som må vurderes")} verdi={-maVurderes} />}
+                  {andreIkkeFradrag > 0 && <RapportRad label={uiText("Andre kostnader uten fradrag")} verdi={-andreIkkeFradrag} />}
                 </div>
               </div>
               <div className="mt-4 border-t border-emerald-700 pt-4">
-                <RapportRad label="Estimert igjen etter skatt og alle registrerte kostnader" verdi={estimertIgjen} viktig />
+                <RapportRad label={uiText("Estimert igjen etter skatt og alle registrerte kostnader")} verdi={estimertIgjen} viktig />
               </div>
             </div>
-            <p className="mt-5 text-xs leading-5 text-slate-400">«Beregnet skattegrunnlag» brukes kun til skatteanslaget. «Estimert igjen» trekker også fra avdrag, kostnader som må vurderes og andre registrerte kostnader. Kontroller rentene mot bankens årsoppgave, slik at fradraget ikke føres dobbelt.</p>
-            <div className="mt-6 grid gap-3 print:hidden"><button type="button" onClick={lastNedPdf} disabled={lagerPdf || laster} className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold disabled:opacity-60">{lagerPdf ? "Lager PDF…" : "Last ned årsrapport som PDF"}</button><button type="button" onClick={lastNedCsv} className="rounded-xl border border-slate-600 px-5 py-3 font-semibold">Last ned CSV/Excel</button></div>
+            <p className="mt-5 text-xs leading-5 text-slate-400"><UiText text="«Beregnet skattegrunnlag» brukes kun til skatteanslaget. «Estimert igjen» trekker også fra avdrag, kostnader som må vurderes og andre registrerte kostnader. Kontroller rentene mot bankens årsoppgave, slik at fradraget ikke føres dobbelt."/></p>
+            <div className="mt-6 grid gap-3 print:hidden"><button type="button" onClick={lastNedPdf} disabled={lagerPdf || laster} className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold disabled:opacity-60">{lagerPdf ? uiText("Lager PDF…") : uiText("Last ned årsrapport som PDF")}</button><button type="button" onClick={lastNedCsv} className="rounded-xl border border-slate-600 px-5 py-3 font-semibold"><UiText text="Last ned CSV/Excel"/></button></div>
           </aside>
         </section>
 
         <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
-          <strong>Viktig – kontroller alle opplysninger før levering:</strong>{" "}
-          Årsrapporten er kun et hjelpemiddel og utgjør ikke juridisk,
-          skattemessig eller økonomisk rådgivning. Automatiske beregninger og
-          vurderinger kan være ufullstendige eller feil. Du er selv ansvarlig
-          for å kontrollere inntekter, kostnader, dokumentasjon og
-          fradragsrett mot gjeldende regler før opplysningene brukes i
-          skattemeldingen. Eiendomsoversikten kan ikke garantere at rapporten
-          er fullstendig, oppdatert eller korrekt. Ved usikkerhet bør du
-          kontrollere opplysningene hos Skatteetaten eller kontakte en
-          kvalifisert rådgiver.
-        </section>
+          <strong><UiText text="Viktig – kontroller alle opplysninger før levering:"/></strong>{" "}<UiText text="Årsrapporten er kun et hjelpemiddel og utgjør ikke juridisk, skattemessig eller økonomisk rådgivning. Automatiske beregninger og vurderinger kan være ufullstendige eller feil. Du er selv ansvarlig for å kontrollere inntekter, kostnader, dokumentasjon og fradragsrett mot gjeldende regler før opplysningene brukes i skattemeldingen. Eiendomsoversikten kan ikke garantere at rapporten er fullstendig, oppdatert eller korrekt. Ved usikkerhet bør du kontrollere opplysningene hos Skatteetaten eller kontakte en kvalifisert rådgiver."/></section>
       </div>
     </main>
   );
 }
 
-function Felt({ label, children }: { label: string; children: React.ReactNode }) { return <label><span className="mb-2 block text-sm font-medium">{label}</span>{children}</label>; }
-function Tallkort({ label, verdi, tone }: { label: string; verdi: string; tone?: "gronn" | "gul" | "rod" }) { const stil = tone === "gronn" ? "border-emerald-200 bg-emerald-50" : tone === "gul" ? "border-amber-200 bg-amber-50" : tone === "rod" ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"; return <div className={`rounded-2xl border p-5 ${stil}`}><p className="text-sm text-slate-600">{label}</p><p className="mt-2 text-2xl font-bold">{verdi}</p></div>; }
-function Status({ status }: { status: Fradragsstatus }) { const stil = status === "normalt" ? "bg-emerald-100 text-emerald-800" : status === "vurder" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"; return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stil}`}>{statustekst(status)}</span>; }
-function RapportRad({ label, verdi, viktig, dempet }: { label: string; verdi: number; viktig?: boolean; dempet?: boolean }) { return <div className={`flex justify-between gap-4 ${dempet ? "text-slate-400" : ""}`}><span className={viktig ? "font-bold" : ""}>{label}</span><span className={viktig ? "text-lg font-bold" : "font-semibold"}>{verdi < 0 ? "− " : ""}{kroner(Math.abs(verdi))}</span></div>; }
+function Felt({ label, children }: { label: string; children: React.ReactNode }) {
+  useLanguage(); return <label><span className="mb-2 block text-sm font-medium"><UiText text={String(label ?? "")}/></span>{children}</label>; }
+function Tallkort({ label, verdi, tone }: { label: string; verdi: string; tone?: "gronn" | "gul" | "rod" }) {
+  useLanguage(); const stil = tone === "gronn" ? "border-emerald-200 bg-emerald-50" : tone === "gul" ? "border-amber-200 bg-amber-50" : tone === "rod" ? "border-red-200 bg-red-50" : "border-slate-200 bg-white"; return <div className={`rounded-2xl border p-5 ${stil}`}><p className="text-sm text-slate-600"><UiText text={String(label ?? "")}/></p><p className="mt-2 text-2xl font-bold">{verdi}</p></div>; }
+function Status({ status }: { status: Fradragsstatus }) {
+  useLanguage(); const stil = status === "normalt" ? "bg-emerald-100 text-emerald-800" : status === "vurder" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"; return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${stil}`}><UiText text={String(statustekst(status) ?? "")}/></span>; }
+function RapportRad({ label, verdi, viktig, dempet }: { label: string; verdi: number; viktig?: boolean; dempet?: boolean }) {
+  useLanguage(); return <div className={`flex justify-between gap-4 ${dempet ? "text-slate-400" : ""}`}><span className={viktig ? "font-bold" : ""}><UiText text={String(label ?? "")}/></span><span className={viktig ? "text-lg font-bold" : "font-semibold"}>{verdi < 0 ? "− " : ""}{kroner(Math.abs(verdi))}</span></div>; }
 
 function kombinerMedFaktiskePoster(
   beregnede: Rapportpost[],
@@ -595,7 +582,7 @@ function byggAutomatiskePoster(
       dato: rapportdato,
       type: "inntekt",
       kategori: "husleie",
-      beskrivelse: `Forventet husleie for ${leietaker.navn}, ${maneder} måneder. Kontroller mot faktisk innbetalt leie.`,
+      beskrivelse: uiFormat("Forventet husleie for {0}, {1} måneder. Kontroller mot faktisk innbetalt leie.", [leietaker.navn, maneder]),
       belop,
       fradragsstatus: "ikke",
       automatisk: true,
@@ -706,7 +693,7 @@ function byggAutomatiskePoster(
       dato: oppgavedato,
       type: "kostnad",
       kategori: "vedlikehold",
-      beskrivelse: `${oppgave.tittel || "Vedlikeholdsoppgave"}. Må vurderes mot skillet mellom vedlikehold og påkostning.`,
+      beskrivelse: uiFormat("{0}. Må vurderes mot skillet mellom vedlikehold og påkostning.", [oppgave.tittel || "Vedlikeholdsoppgave"]),
       belop: kostnad,
       fradragsstatus: "vurder",
       automatisk: true,
@@ -790,7 +777,7 @@ function antallLeiemaneder(ar: number, startdato: string, sluttdato: string) {
 
 function sum(poster: Skattepost[]) { return poster.reduce((total, post) => total + Number(post.belop || 0), 0); }
 function kategorinavn(verdi: string) { return kategorier.find((k) => k.verdi === verdi)?.navn || verdi; }
-function statustekst(status: Fradragsstatus) { return status === "normalt" ? "Normalt fradrag" : status === "vurder" ? "Må vurderes" : "Ikke løpende fradrag"; }
-function boligadresse(boliger: Bolig[], id: string) { if (!id) return "Hele porteføljen"; return boliger.find((b) => b.id === id)?.adresse || "Ukjent bolig"; }
-function formaterDato(dato: string) { return new Intl.DateTimeFormat("nb-NO").format(new Date(`${dato}T00:00:00`)); }
-function kroner(belop: number) { return new Intl.NumberFormat("nb-NO", { style: "currency", currency: "NOK", maximumFractionDigits: 0 }).format(Number.isFinite(belop) ? belop : 0); }
+function statustekst(status: Fradragsstatus) { return status === "normalt" ? uiText("Normalt fradrag") : status === "vurder" ? uiText("Må vurderes") : uiText("Ikke løpende fradrag"); }
+function boligadresse(boliger: Bolig[], id: string) { if (!id) return uiText("Hele porteføljen"); return boliger.find((b) => b.id === id)?.adresse || uiText("Ukjent bolig"); }
+function formaterDato(dato: string) { return new Intl.DateTimeFormat(uiLocale()).format(new Date(`${dato}T00:00:00`)); }
+function kroner(belop: number) { return formatMoney(parseNok(belop), false); }

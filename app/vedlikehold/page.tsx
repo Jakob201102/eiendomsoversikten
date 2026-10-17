@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
+
 
 import {
   FormEvent,
@@ -49,6 +52,7 @@ type Vedlikeholdsoppgave = {
 };
 
 export default function Vedlikehold() {
+  useLanguage();
   const router = useRouter();
   const search = useSearchParams();
   const [boliger, setBoliger] = useState<Bolig[]>([]);
@@ -363,7 +367,7 @@ export default function Vedlikehold() {
 
     if (
       !window.confirm(
-        `Vil du slette "${oppgave?.tittel || "oppgaven"}"?`,
+        uiFormat("Vil du slette \"{0}\"?", [oppgave?.tittel || "oppgaven"]),
       )
     ) {
       return;
@@ -386,18 +390,11 @@ export default function Vedlikehold() {
       <header className="bg-slate-900 px-4 py-8 text-white sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-emerald-400">
-              VEDLIKEHOLD
-            </p>
+            <p className="text-sm font-semibold text-emerald-400"><UiText text="VEDLIKEHOLD "/></p>
 
-            <h1 className="mt-1 text-3xl font-bold">
-              Oppgaver og tiltak
-            </h1>
+            <h1 className="mt-1 text-3xl font-bold"><UiText text="Oppgaver og tiltak"/></h1>
 
-            <p className="mt-2 text-slate-400">
-              Se hva som skal startes, hva som haster og
-              hva vedlikeholdet kan koste.
-            </p>
+            <p className="mt-2 text-slate-400"><UiText text="Se hva som skal startes, hva som haster og hva vedlikeholdet kan koste."/></p>
           </div>
 
           {privatFane !== "skader" && harBoligSomKanRedigeres && <button
@@ -413,7 +410,7 @@ export default function Vedlikehold() {
             }}
             className="rounded-xl bg-emerald-400 px-5 py-3 font-semibold text-slate-950"
           >
-            {visSkjema ? "Lukk skjema" : "+ Ny oppgave"}
+            {visSkjema ? uiText("Lukk skjema") : uiText("+ Ny oppgave")}
           </button>}
         </div>
       </header>
@@ -421,19 +418,17 @@ export default function Vedlikehold() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {feilmelding && !visSkjema && (
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {feilmelding}
+            <UiText text={feilmelding}/>
           </div>
         )}
 
         {laster ? (
-          <div className="rounded-2xl bg-white px-6 py-14 text-center">
-            Laster vedlikeholdsoppgavene…
-          </div>
+          <div className="rounded-2xl bg-white px-6 py-14 text-center"><UiText text="Laster vedlikeholdsoppgavene…"/></div>
         ) : (
           <>
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Nokkeltall
-            label="Kritiske oppgaver"
+            label={uiText("Kritiske oppgaver")}
             value={String(kritiskeOppgaver)}
             farge={
               kritiskeOppgaver > 0
@@ -443,7 +438,7 @@ export default function Vedlikehold() {
           />
 
           <Nokkeltall
-            label="Utløpt frist"
+            label={uiText("Utløpt frist")}
             value={String(utlopteOppgaver)}
             farge={
               utlopteOppgaver > 0
@@ -453,19 +448,19 @@ export default function Vedlikehold() {
           />
 
           <Nokkeltall
-            label="Estimert kostnad"
+            label={uiText("Estimert kostnad")}
             value={kroner(estimerteKostnader)}
           />
 
           <Nokkeltall
-            label="Ferdige oppgaver"
+            label={uiText("Ferdige oppgaver")}
             value={String(ferdigeOppgaver)}
           />
         </section>
 
         {boliger.some((bolig) => bolig.brukstype === "privat") && (
           <nav
-            aria-label="Vedlikeholdsvisning for privat bolig"
+            aria-label={uiText("Vedlikeholdsvisning for privat bolig")}
             className="mt-5 grid grid-cols-3 gap-1 rounded-2xl bg-white p-1.5 shadow-sm"
           >
             {([
@@ -488,7 +483,7 @@ export default function Vedlikehold() {
                     : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                {tekst}
+                <UiText text={String(tekst ?? "")}/>
               </button>
             ))}
           </nav>
@@ -508,19 +503,16 @@ export default function Vedlikehold() {
             className="mt-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6"
           >
             <h2 className="text-xl font-bold">
-              {redigererId ? "Rediger vedlikeholdsoppgave" : "Ny vedlikeholdsoppgave"}
+              {redigererId ? uiText("Rediger vedlikeholdsoppgave") : uiText("Ny vedlikeholdsoppgave")}
             </h2>
 
             {boliger.length === 0 ? (
-              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-                Du må registrere minst én bolig før du kan
-                opprette vedlikeholdsoppgaver.
-              </div>
+              <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900"><UiText text="Du må registrere minst én bolig før du kan opprette vedlikeholdsoppgaver."/></div>
             ) : (
               <>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
                   <label>
-                    <Felttekst>Bolig</Felttekst>
+                    <Felttekst><UiText text="Bolig"/></Felttekst>
 
                     <select
                       value={boligId}
@@ -543,7 +535,7 @@ export default function Vedlikehold() {
                   </label>
 
                   <label>
-                    <Felttekst>Hva må gjøres?</Felttekst>
+                    <Felttekst><UiText text="Hva må gjøres?"/></Felttekst>
 
                     <input
                       type="text"
@@ -551,13 +543,13 @@ export default function Vedlikehold() {
                       onChange={(event) =>
                         setTittel(event.target.value)
                       }
-                      placeholder="For eksempel reparere lekkasje"
+                      placeholder={uiText("For eksempel reparere lekkasje")}
                       className="w-full rounded-xl border border-slate-300 px-4 py-3"
                     />
                   </label>
 
                   <label>
-                    <Felttekst>Prioritet</Felttekst>
+                    <Felttekst><UiText text="Prioritet"/></Felttekst>
 
                     <select
                       value={prioritet}
@@ -568,19 +560,15 @@ export default function Vedlikehold() {
                       }
                       className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
                     >
-                      <option value="kritisk">
-                        Kritisk
-                      </option>
-                      <option value="hoy">Høy</option>
-                      <option value="normal">
-                        Normal
-                      </option>
-                      <option value="lav">Lav</option>
+                      <option value="kritisk"><UiText text="Kritisk"/></option>
+                      <option value="hoy"><UiText text="Høy"/></option>
+                      <option value="normal"><UiText text="Normal"/></option>
+                      <option value="lav"><UiText text="Lav"/></option>
                     </select>
                   </label>
 
                   <label>
-                    <Felttekst>Estimert kostnad</Felttekst>
+                    <Felttekst><UiText text="Estimert kostnad"/></Felttekst>
 
                     <input
                       type="number"
@@ -596,47 +584,47 @@ export default function Vedlikehold() {
                   </label>
 
                   <div className="md:col-span-2">
-                    <Felttekst>Når skal arbeidet gjøres?</Felttekst>
+                    <Felttekst><UiText text="Når skal arbeidet gjøres?"/></Felttekst>
                     <div className="mt-2 flex gap-2">
-                      <button type="button" onClick={() => { setDatotype("enkelt"); setStartdato(""); }} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "enkelt" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>Én bestemt dag</button>
-                      <button type="button" onClick={() => setDatotype("periode")} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "periode" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}>Start- og sluttdato</button>
+                      <button type="button" onClick={() => { setDatotype("enkelt"); setStartdato(""); }} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "enkelt" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}><UiText text="Én bestemt dag"/></button>
+                      <button type="button" onClick={() => setDatotype("periode")} className={`rounded-xl px-4 py-2.5 font-semibold ${datotype === "periode" ? "bg-slate-900 text-white" : "border border-slate-300 bg-white"}`}><UiText text="Start- og sluttdato"/></button>
                     </div>
                   </div>
 
                   {datotype === "enkelt" ? (
                     <label className="md:col-span-2">
-                      <Felttekst>Dato</Felttekst>
+                      <Felttekst><UiText text="Dato"/></Felttekst>
                       <input type="date" value={frist} onChange={(event) => setFrist(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
                     </label>
                   ) : (
                     <>
                       <label>
-                        <Felttekst>Startdato</Felttekst>
+                        <Felttekst><UiText text="Startdato"/></Felttekst>
                         <input type="date" value={startdato} onChange={(event) => setStartdato(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
                       </label>
                       <label>
-                        <Felttekst>Sluttdato</Felttekst>
+                        <Felttekst><UiText text="Sluttdato"/></Felttekst>
                         <input type="date" value={frist} min={startdato || undefined} onChange={(event) => setFrist(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3" />
                       </label>
                     </>
                   )}
 
                   {valgtErPrivat && <>
-                    <label><Felttekst>Gjentas</Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri">Aldri</option><option value="maanedlig">Hver måned</option><option value="kvartalsvis">Hver 3. måned</option><option value="halvaarlig">Hver 6. måned</option><option value="aarlig">Årlig</option><option value="toaarlig">Hvert 2. år</option><option value="egendefinert">Egendefinert</option></select></label>
-                    {gjentakelse === "egendefinert" && <label><Felttekst>Antall dager mellom hver gang</Felttekst><input type="number" min="1" value={egendefinertDager} onChange={(event) => setEgendefinertDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
-                    <label><Felttekst>Påminnelse</Felttekst><select value={paaminnelseDager} onChange={(event) => setPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="0">Samme dag</option><option value="1">1 dag før</option><option value="7">1 uke før</option><option value="30">1 måned før</option><option value="-1">Egendefinert</option></select></label>
-                    {paaminnelseDager === -1 && <label><Felttekst>Antall dager før</Felttekst><input type="number" min="0" value={egenPaaminnelseDager} onChange={(event) => setEgenPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
+                    <label><Felttekst><UiText text="Gjentas"/></Felttekst><select value={gjentakelse} onChange={(event) => setGjentakelse(event.target.value as Gjentakelse)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="aldri"><UiText text="Aldri"/></option><option value="maanedlig"><UiText text="Hver måned"/></option><option value="kvartalsvis"><UiText text="Hver 3. måned"/></option><option value="halvaarlig"><UiText text="Hver 6. måned"/></option><option value="aarlig"><UiText text="Årlig"/></option><option value="toaarlig"><UiText text="Hvert 2. år"/></option><option value="egendefinert"><UiText text="Egendefinert"/></option></select></label>
+                    {gjentakelse === "egendefinert" && <label><Felttekst><UiText text="Antall dager mellom hver gang"/></Felttekst><input type="number" min="1" value={egendefinertDager} onChange={(event) => setEgendefinertDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
+                    <label><Felttekst><UiText text="Påminnelse"/></Felttekst><select value={paaminnelseDager} onChange={(event) => setPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="0"><UiText text="Samme dag"/></option><option value="1"><UiText text="1 dag før"/></option><option value="7"><UiText text="1 uke før"/></option><option value="30"><UiText text="1 måned før"/></option><option value="-1"><UiText text="Egendefinert"/></option></select></label>
+                    {paaminnelseDager === -1 && <label><Felttekst><UiText text="Antall dager før"/></Felttekst><input type="number" min="0" value={egenPaaminnelseDager} onChange={(event) => setEgenPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
                   </>}
 
                   <label className="md:col-span-2">
-                    <Felttekst>Notat</Felttekst>
+                    <Felttekst><UiText text="Notat"/></Felttekst>
 
                     <textarea
                       value={notat}
                       onChange={(event) =>
                         setNotat(event.target.value)
                       }
-                      placeholder="Valgfritt notat"
+                      placeholder={uiText("Valgfritt notat")}
                       rows={3}
                       className="w-full resize-none rounded-xl border border-slate-300 px-4 py-3"
                     />
@@ -645,7 +633,7 @@ export default function Vedlikehold() {
 
                 {feilmelding && (
                   <div className="mt-4 rounded-xl bg-red-50 p-4 text-red-700">
-                    {feilmelding}
+                    <UiText text={feilmelding}/>
                   </div>
                 )}
 
@@ -654,7 +642,7 @@ export default function Vedlikehold() {
                   disabled={lagrer}
                   className="mt-5 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white disabled:opacity-60"
                 >
-                  {lagrer ? "Lagrer…" : redigererId ? "Lagre endringer" : "Lagre oppgave"}
+                  {lagrer ? uiText("Lagrer…") : redigererId ? uiText("Lagre endringer") : uiText("Lagre oppgave")}
                 </button>
               </>
             )}
@@ -664,17 +652,14 @@ export default function Vedlikehold() {
         <section className="mt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-2xl font-bold">
-                Vedlikeholdsoversikt
-              </h2>
+              <h2 className="text-2xl font-bold"><UiText text="Vedlikeholdsoversikt"/></h2>
 
               <p className="mt-1 text-slate-500">
-                {sorterteOppgaver.length} oppgaver vises
-              </p>
+                {sorterteOppgaver.length}<UiText text=" oppgaver vises"/></p>
             </div>
 
             <label>
-              <Felttekst>Vis oppgaver</Felttekst>
+              <Felttekst><UiText text="Vis oppgaver"/></Felttekst>
 
               <select
                 value={filter}
@@ -683,21 +668,11 @@ export default function Vedlikehold() {
                 }
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 sm:w-52"
               >
-                <option value="aktive">
-                  Aktive oppgaver
-                </option>
-                <option value="alle">
-                  Alle oppgaver
-                </option>
-                <option value="kritisk">
-                  Kritiske
-                </option>
-                <option value="utlopt">
-                  Utløpt frist
-                </option>
-                <option value="ferdig">
-                  Ferdige
-                </option>
+                <option value="aktive"><UiText text="Aktive oppgaver"/></option>
+                <option value="alle"><UiText text="Alle oppgaver"/></option>
+                <option value="kritisk"><UiText text="Kritiske"/></option>
+                <option value="utlopt"><UiText text="Utløpt frist"/></option>
+                <option value="ferdig"><UiText text="Ferdige"/></option>
               </select>
             </label>
           </div>
@@ -748,6 +723,7 @@ function Oppgavekort({
   slett: (id: string) => void;
   kanRedigere: boolean;
 }) {
+  useLanguage();
   const utlopt = erUtlopt(oppgave);
 
   return (
@@ -767,17 +743,15 @@ function Oppgavekort({
               />
 
               {utlopt && (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                  Frist utløpt
-                </span>
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700"><UiText text="Frist utløpt"/></span>
               )}
 
               <Statusmerke status={oppgave.status} />
-              {oppgave.gjentakelse && oppgave.gjentakelse !== "aldri" && <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">↻ {gjentakelseTekst(oppgave.gjentakelse)}</span>}
+              {oppgave.gjentakelse && oppgave.gjentakelse !== "aldri" && <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">↻ <UiText text={String(gjentakelseTekst(oppgave.gjentakelse) ?? "")}/></span>}
             </div>
 
             <h3 className="mt-3 text-xl font-bold">
-              {oppgave.tittel}
+              {uiDemoText(oppgave.tittel, oppgave.id)}
             </h3>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -793,22 +767,22 @@ function Oppgavekort({
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           {oppgave.startdato && oppgave.frist && oppgave.startdato !== oppgave.frist ? (
             <>
-              <Datokort label="Startdato" verdi={formaterDato(oppgave.startdato)} />
-              <Datokort label="Sluttdato" verdi={formaterDato(oppgave.frist)} />
+              <Datokort label={uiText("Startdato")} verdi={formaterDato(oppgave.startdato)} />
+              <Datokort label={uiText("Sluttdato")} verdi={formaterDato(oppgave.frist)} />
             </>
           ) : (
-            <Datokort label="Dato" verdi={formaterDato(oppgave.frist || oppgave.startdato)} />
+            <Datokort label={uiText("Dato")} verdi={formaterDato(oppgave.frist || oppgave.startdato)} />
           )}
 
           <Datokort
-            label="Status"
+            label={uiText("Status")}
             verdi={statusTekst(oppgave.status)}
           />
         </div>
 
         {oppgave.notat && (
           <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
-            {oppgave.notat}
+            {uiDemoText(oppgave.notat, oppgave.id)}
           </p>
         )}
 
@@ -817,9 +791,7 @@ function Oppgavekort({
             type="button"
             onClick={() => rediger(oppgave)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 font-semibold"
-          >
-            Rediger
-          </button>
+          ><UiText text="Rediger"/></button>
 
           {oppgave.status === "planlagt" && (
             <button
@@ -828,9 +800,7 @@ function Oppgavekort({
                 endreStatus(oppgave.id, "pagar")
               }
               className="rounded-xl bg-emerald-500 px-4 py-2.5 font-semibold text-white hover:bg-emerald-600"
-            >
-              Start oppgave
-            </button>
+            ><UiText text="Start oppgave"/></button>
           )}
 
           {oppgave.status === "pagar" && (
@@ -840,9 +810,7 @@ function Oppgavekort({
                 endreStatus(oppgave.id, "ferdig")
               }
               className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-700"
-            >
-              Marker som ferdig
-            </button>
+            ><UiText text="Marker som ferdig"/></button>
           )}
 
           {oppgave.status === "ferdig" && (
@@ -852,9 +820,7 @@ function Oppgavekort({
                 endreStatus(oppgave.id, "planlagt")
               }
               className="rounded-xl border border-slate-300 px-4 py-2.5 font-semibold"
-            >
-              Åpne oppgaven igjen
-            </button>
+            ><UiText text="Åpne oppgaven igjen"/></button>
           )}
 
           <select
@@ -865,21 +831,19 @@ function Oppgavekort({
                 event.target.value as Status,
               )
             }
-            aria-label="Endre status"
+            aria-label={uiText("Endre status")}
             className="rounded-xl border border-slate-300 bg-white px-3 py-2.5"
           >
-            <option value="planlagt">Planlagt</option>
-            <option value="pagar">Pågår</option>
-            <option value="ferdig">Ferdig</option>
+            <option value="planlagt"><UiText text="Planlagt"/></option>
+            <option value="pagar"><UiText text="Pågår"/></option>
+            <option value="ferdig"><UiText text="Ferdig"/></option>
           </select>
 
           <button
             type="button"
             onClick={() => slett(oppgave.id)}
             className="rounded-xl border border-red-200 px-4 py-2.5 font-semibold text-red-600"
-          >
-            Slett
-          </button>
+          ><UiText text="Slett"/></button>
         </div>}
       </div>
     </article>
@@ -891,6 +855,7 @@ function Prioritetsmerke({
 }: {
   prioritet: Prioritet;
 }) {
+  useLanguage();
   const tekst = {
     kritisk: "Kritisk",
     hoy: "Høy",
@@ -909,12 +874,13 @@ function Prioritetsmerke({
     <span
       className={`rounded-full px-3 py-1 text-xs font-semibold ${farge[prioritet]}`}
     >
-      {tekst[prioritet]}
+      <UiText text={String(tekst[prioritet] ?? "")}/>
     </span>
   );
 }
 
 function Statusmerke({ status }: { status: Status }) {
+  useLanguage();
   const tekst = {
     planlagt: "Planlagt",
     pagar: "Pågår",
@@ -931,7 +897,7 @@ function Statusmerke({ status }: { status: Status }) {
     <span
       className={`rounded-full px-3 py-1 text-xs font-semibold ${farge[status]}`}
     >
-      {tekst[status]}
+      <UiText text={String(tekst[status] ?? "")}/>
     </span>
   );
 }
@@ -943,9 +909,10 @@ function Datokort({
   label: string;
   verdi: string;
 }) {
+  useLanguage();
   return (
     <div className="rounded-xl bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-500"><UiText text={String(label ?? "")}/></p>
       <p className="mt-1 font-semibold">{verdi}</p>
     </div>
   );
@@ -960,9 +927,10 @@ function Nokkeltall({
   value: string;
   farge?: string;
 }) {
+  useLanguage();
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm">
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-500"><UiText text={String(label ?? "")}/></p>
       <p className={`mt-1 text-xl font-bold ${farge}`}>
         {value}
       </p>
@@ -975,6 +943,7 @@ function Felttekst({
 }: {
   children: ReactNode;
 }) {
+  useLanguage();
   return (
     <span className="mb-2 block text-sm font-medium">
       {children}
@@ -989,12 +958,13 @@ function TomTilstand({
   harOppgaver: boolean;
   nyOppgave: () => void;
 }) {
+  useLanguage();
   return (
     <div className="mt-5 rounded-2xl bg-white px-6 py-14 text-center shadow-sm">
       <h3 className="text-2xl font-bold">
         {harOppgaver
-          ? "Ingen oppgaver i dette filteret"
-          : "Ingen vedlikeholdsoppgaver"}
+          ? uiText("Ingen oppgaver i dette filteret")
+          : uiText("Ingen vedlikeholdsoppgaver")}
       </h3>
 
       {!harOppgaver && (
@@ -1002,9 +972,7 @@ function TomTilstand({
           type="button"
           onClick={nyOppgave}
           className="mt-5 rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white"
-        >
-          Opprett første oppgave
-        </button>
+        ><UiText text="Opprett første oppgave"/></button>
       )}
     </div>
   );
@@ -1054,19 +1022,13 @@ function formaterDato(dato?: string) {
     return "Ikke satt";
   }
 
-  return new Intl.DateTimeFormat("nb-NO", {
+  return new Intl.DateTimeFormat(uiLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(new Date(`${dato}T00:00:00`));
 }
 
-function kroner(belop: number) {
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
-    maximumFractionDigits: 0,
-  }).format(Number.isFinite(belop) ? belop : 0);
-}
+function kroner(belop: number) { return formatMoney(parseNok(belop), false); }
 
 function gjentakelseTekst(verdi: Gjentakelse) { return { aldri: "Aldri", maanedlig: "Månedlig", kvartalsvis: "Hver 3. måned", halvaarlig: "Hver 6. måned", aarlig: "Årlig", toaarlig: "Hvert 2. år", egendefinert: "Egendefinert" }[verdi]; }

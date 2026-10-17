@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
+
 
 import {
   FormEvent,
@@ -13,6 +15,7 @@ import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade, startsideFor, type Bruksomrade } from "../lib/bruksomrade";
 
 export default function Konto() {
+  useLanguage();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -176,7 +179,7 @@ export default function Konto() {
     if (bekreftelse !== "SLETT") return;
 
     const godkjent = window.confirm(
-      "Dette sletter kontoen og alle tilknyttede data permanent. Fortsette?",
+      uiText("Dette sletter kontoen og alle tilknyttede data permanent. Fortsette?"),
     );
 
     if (!godkjent) return;
@@ -220,7 +223,7 @@ export default function Konto() {
     return (
       <main className="min-h-screen bg-slate-100">
         <Navigasjon />
-        <p className="p-12 text-center">Laster kontoen…</p>
+        <p className="p-12 text-center"><UiText text="Laster kontoen…"/></p>
       </main>
     );
   }
@@ -231,50 +234,50 @@ export default function Konto() {
 
       <header className="bg-slate-900 px-4 py-8 text-white">
         <div className="mx-auto max-w-4xl">
-          <p className="font-semibold text-emerald-400">MIN KONTO</p>
-          <h1 className="mt-2 text-3xl font-bold">Kontoinnstillinger</h1>
-          <p className="mt-2 text-slate-400">Innlogget som {epost}</p>
+          <p className="font-semibold text-emerald-400"><UiText text="MIN KONTO"/></p>
+          <h1 className="mt-2 text-3xl font-bold"><UiText text="Kontoinnstillinger"/></h1>
+          <p className="mt-2 text-slate-400"><UiText text="Innlogget som "/>{epost}</p>
         </div>
       </header>
 
       <div className="mx-auto max-w-4xl space-y-5 px-4 py-7">
         {melding && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
-            {melding}
+            <UiText text={String(melding ?? "")}/>
           </div>
         )}
 
         {feil && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {feil}
+            <UiText text={String(feil ?? "")}/>
           </div>
         )}
 
         <Kontokort
-          tittel="Profilopplysninger"
+          tittel={uiText("Profilopplysninger")}
           beskrivelse="Navn og mobilnummer er valgfritt."
         >
           <form onSubmit={lagreProfil} className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Felt label="Navn">
+            <Felt label={uiText("Navn")}>
               <input
                 type="text"
                 autoComplete="name"
                 value={navn}
                 onChange={(event) => setNavn(event.target.value)}
-                placeholder="Ditt navn"
+                placeholder={uiText("Ditt navn")}
                 maxLength={100}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
               />
             </Felt>
 
-            <Felt label="Mobilnummer">
+            <Felt label={uiText("Mobilnummer")}>
               <input
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel"
                 value={mobil}
                 onChange={(event) => setMobil(event.target.value)}
-                placeholder="For eksempel 999 99 999"
+                placeholder={uiText("For eksempel 999 99 999")}
                 maxLength={20}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
               />
@@ -285,13 +288,13 @@ export default function Konto() {
               disabled={arbeider}
               className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-600 disabled:opacity-60 sm:col-span-2 sm:justify-self-start"
             >
-              {arbeider ? "Lagrer…" : "Lagre profil"}
+              {arbeider ? uiText("Lagrer…") : uiText("Lagre profil")}
             </button>
           </form>
         </Kontokort>
 
         <Kontokort
-          tittel="Bruksområde"
+          tittel={uiText("Bruksområde")}
           beskrivelse="Tilpass startsiden og menyen. Du kan bytte når som helst uten at lagrede data slettes."
         >
           <form onSubmit={lagreBruksomrade} className="mt-4">
@@ -299,15 +302,15 @@ export default function Konto() {
               {([['utleie','Utleie','Portefølje, leietakere, økonomi og skatt'],['privat','Privat bolig','Boligmappe, oppussing og vedlikehold'],['begge','Begge deler','Tilgang til begge områdene']] as const).map(([id,tittel,tekst]) => (
                 <label key={id} className={`cursor-pointer rounded-xl border-2 p-4 ${bruksomrade===id?'border-emerald-500 bg-emerald-50':'border-slate-200'}`}>
                   <input type="radio" name="bruksomrade" value={id} checked={bruksomrade===id} onChange={() => setBruksomrade(id)} className="sr-only" />
-                  <span className="block font-bold">{tittel}</span><span className="mt-1 block text-xs leading-5 text-slate-500">{tekst}</span>
+                  <span className="block font-bold"><UiText text={String(tittel ?? "")}/></span><span className="mt-1 block text-xs leading-5 text-slate-500"><UiText text={String(tekst ?? "")}/></span>
                 </label>
               ))}
             </div>
-            <button type="submit" disabled={arbeider} className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60">Lagre bruksområde</button>
+            <button type="submit" disabled={arbeider} className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60"><UiText text="Lagre bruksområde"/></button>
           </form>
         </Kontokort>
 
-        <Kontokort tittel="Endre e-post">
+        <Kontokort tittel={uiText("Endre e-post")}>
           <form onSubmit={endreEpost} className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               type="email"
@@ -320,20 +323,18 @@ export default function Konto() {
               type="submit"
               disabled={arbeider}
               className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-60"
-            >
-              Lagre e-post
-            </button>
+            ><UiText text="Lagre e-post"/></button>
           </form>
         </Kontokort>
 
-        <Kontokort tittel="Endre passord">
+        <Kontokort tittel={uiText("Endre passord")}>
           <form onSubmit={endrePassord} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input
               type="password"
               autoComplete="new-password"
               value={nyttPassord}
               onChange={(event) => setNyttPassord(event.target.value)}
-              placeholder="Nytt passord"
+              placeholder={uiText("Nytt passord")}
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
             />
             <input
@@ -341,29 +342,22 @@ export default function Konto() {
               autoComplete="new-password"
               value={gjentaPassord}
               onChange={(event) => setGjentaPassord(event.target.value)}
-              placeholder="Gjenta passord"
+              placeholder={uiText("Gjenta passord")}
               className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500"
             />
             <button
               type="submit"
               disabled={arbeider}
               className="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60 sm:col-span-2"
-            >
-              Lagre passord
-            </button>
+            ><UiText text="Lagre passord"/></button>
           </form>
         </Kontokort>
 
         <section className="rounded-2xl border border-red-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-bold text-red-700">Slett konto</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            Dette sletter kontoen og alle tilknyttede data permanent. Handlingen
-            kan ikke angres.
-          </p>
+          <h2 className="text-xl font-bold text-red-700"><UiText text="Slett konto"/></h2>
+          <p className="mt-2 text-sm leading-6 text-slate-600"><UiText text="Dette sletter kontoen og alle tilknyttede data permanent. Handlingen kan ikke angres."/></p>
           <label className="mt-4 block">
-            <span className="mb-2 block text-sm font-medium">
-              Skriv SLETT for å bekrefte
-            </span>
+            <span className="mb-2 block text-sm font-medium"><UiText text="Skriv SLETT for å bekrefte"/></span>
             <input
               value={bekreftelse}
               onChange={(event) => setBekreftelse(event.target.value)}
@@ -375,9 +369,7 @@ export default function Konto() {
             onClick={slettKonto}
             disabled={arbeider || bekreftelse !== "SLETT"}
             className="mt-4 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Slett kontoen permanent
-          </button>
+          ><UiText text="Slett kontoen permanent"/></button>
         </section>
       </div>
     </main>
@@ -393,11 +385,12 @@ function Kontokort({
   beskrivelse?: string;
   children: ReactNode;
 }) {
+  useLanguage();
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-bold">{tittel}</h2>
+      <h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2>
       {beskrivelse && (
-        <p className="mt-1 text-sm text-slate-500">{beskrivelse}</p>
+        <p className="mt-1 text-sm text-slate-500"><UiText text={String(beskrivelse ?? "")}/></p>
       )}
       {children}
     </section>
@@ -405,9 +398,10 @@ function Kontokort({
 }
 
 function Felt({ label, children }: { label: string; children: ReactNode }) {
+  useLanguage();
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium">{label}</span>
+      <span className="mb-2 block text-sm font-medium"><UiText text={String(label ?? "")}/></span>
       {children}
     </label>
   );

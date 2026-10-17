@@ -8,8 +8,12 @@ export default function manifest(): MetadataRoute.Manifest {
       "Alt om eiendommene dine – samlet på ett sted.",
     start_url: "/",
     display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#10b981",
+    background_color: "#fffef8",
+    theme_color: "#172d23",
+    icons: [
+      { src: "/brand/icon-192-v76.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/brand/icon-512-v76.png", sizes: "512x512", type: "image/png", purpose: "any" },
+    ],
     lang: "nb",
   };
 }

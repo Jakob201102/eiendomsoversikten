@@ -1,9 +1,14 @@
 "use client";
+import { CurrencySettings, CurrencyNotice } from "../lib/currency";
+import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
+
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../lib/supabase/client";
+import BrandLogo from "./BrandLogo";
+import { LanguageSelector } from "../lib/language";
 import { lesBruksomrade, type Bruksomrade } from "../lib/bruksomrade";
 
 type Lenke = { navn: string; adresse: string };
@@ -23,6 +28,7 @@ const privat: Gruppe[] = [
 const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Priser", adresse: "/priser" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
 
 export default function Navigasjon() {
+  useLanguage();
   const pathname = usePathname() || "";
   const router = useRouter();
   const [apenGruppe, setApenGruppe] = useState("");
@@ -101,30 +107,32 @@ export default function Navigasjon() {
   const logoLenke = "/";
 
   return <>
-    <nav className="relative z-40 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-3 sm:px-6"><div className={`flex items-center justify-between gap-3 ${kompaktPrivatMobil ? "min-h-14 lg:min-h-16" : "min-h-16"}`}>
-      <Link href={logoLenke} className="flex shrink-0 items-center gap-2 text-base font-bold sm:text-lg xl:text-xl"><span>Eiendomsoversikten</span><span className="rounded-md bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-emerald-400 sm:px-2 sm:py-1 sm:text-[10px]">BETA</span></Link>
-      <div className="hidden items-center gap-1 lg:flex">
-        <Link href="/" className={erAktiv("/") ? aktivKlasse : vanligKlasse}>Forside</Link>
-        {!epost && <div className="mx-2 flex items-center gap-2"><Link href="/mitt-hjem?eksempel=1" className={demoModus === "privat" ? eksempelAktiv : eksempelVanlig}><span>Mitt hjem</span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></Link><Link href="/oversikt" className={demoModus === "utleie" ? eksempelAktiv : eksempelVanlig}><span>Utleieoversikten</span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400">EKSEMPEL</span></Link></div>}
-        {epost && modus !== "privat" && <Link href="/oversikt" className={erAktiv("/oversikt") ? aktivKlasse : vanligKlasse}>Oversikt</Link>}
-        {grupper.map((gruppe) => <div key={gruppe.navn} className="relative" onMouseEnter={() => setApenGruppe(gruppe.navn)} onMouseLeave={() => setApenGruppe("")}><button type="button" onClick={() => setApenGruppe(apenGruppe === gruppe.navn ? "" : gruppe.navn)} className={gruppeAktiv(gruppe.lenker) ? aktivKlasse : vanligKlasse}>{gruppe.navn} <span className="ml-1 text-xs">⌄</span></button>{apenGruppe === gruppe.navn && <div className="absolute left-0 top-full min-w-56 pt-2"><div className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? "block rounded-lg bg-emerald-400 px-4 py-3 font-semibold text-slate-950" : "block rounded-lg px-4 py-3 text-sm text-slate-200 hover:bg-slate-800"}>{lenke.navn}</Link>)}</div></div>}</div>)}
-        {epost ? <div className="ml-2 flex items-center gap-2"><Link href="/konto" className={erAktiv("/konto") ? aktivKlasse : vanligKlasse}>Min konto</Link><button onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold">{loggerUt ? "Logger ut…" : "Logg ut"}</button></div> : <Link href="/logg-inn" className="ml-2 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950">Logg inn</Link>}
+    <nav className="relative z-40 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-3 sm:px-6"><div className={`flex flex-nowrap items-center justify-between gap-1 py-2 sm:gap-2 ${kompaktPrivatMobil ? "min-h-14 lg:min-h-16" : "min-h-16"}`}>
+      <Link href={logoLenke} className="flex min-w-0 items-center gap-1 text-xs font-bold sm:text-lg xl:text-xl"><BrandLogo variant="mark" decorative className="h-6 w-6 shrink-0 rounded-full sm:h-9 sm:w-9" /><span className="truncate">Eiendomsoversikten</span></Link>
+      <div className="hidden items-center gap-1 2xl:flex">
+        <LanguageSelector /><details className="relative"><summary className="cursor-pointer list-none rounded-lg border border-slate-700 px-2 py-2 text-xs font-semibold">{uiText("Valuta")}</summary><div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-700 bg-slate-950 p-3 shadow-xl"><CurrencySettings /></div></details>
+        <Link href="/" className={erAktiv("/") ? aktivKlasse : vanligKlasse}><UiText text="Forside"/></Link>
+        {!epost && <div className="mx-2 flex items-center gap-2"><Link href="/mitt-hjem?eksempel=1" className={demoModus === "privat" ? eksempelAktiv : eksempelVanlig}><span><UiText text="Mitt hjem"/></span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400"><UiText text="EKSEMPEL"/></span></Link><Link href="/oversikt" className={demoModus === "utleie" ? eksempelAktiv : eksempelVanlig}><span><UiText text="Utleieoversikten"/></span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400"><UiText text="EKSEMPEL"/></span></Link></div>}
+        {epost && modus !== "privat" && <Link href="/oversikt" className={erAktiv("/oversikt") ? aktivKlasse : vanligKlasse}><UiText text="Oversikt"/></Link>}
+        {grupper.map((gruppe) => <div key={gruppe.navn} className="relative" onMouseEnter={() => setApenGruppe(gruppe.navn)} onMouseLeave={() => setApenGruppe("")}><button type="button" onClick={() => setApenGruppe(apenGruppe === gruppe.navn ? "" : gruppe.navn)} className={gruppeAktiv(gruppe.lenker) ? aktivKlasse : vanligKlasse}><UiText text={String(gruppe.navn ?? "")}/> <span className="ml-1 text-xs">⌄</span></button>{apenGruppe === gruppe.navn && <div className="absolute left-0 top-full min-w-56 pt-2"><div className="rounded-xl border border-slate-700 bg-slate-900 p-2 shadow-2xl">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? "block rounded-lg bg-emerald-400 px-4 py-3 font-semibold text-slate-950" : "block rounded-lg px-4 py-3 text-sm text-slate-200 hover:bg-slate-800"}><UiText text={String(lenke.navn ?? "")}/></Link>)}</div></div>}</div>)}
+        {epost ? <div className="ml-2 flex items-center gap-2"><Link href="/konto" className={erAktiv("/konto") ? aktivKlasse : vanligKlasse}><UiText text="Min konto"/></Link><button onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold">{loggerUt ? uiText("Logger ut…") : uiText("Logg ut")}</button></div> : <Link href="/logg-inn" className="ml-2 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-bold text-slate-950"><UiText text="Logg inn"/></Link>}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
-        {epost ? <button type="button" onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-slate-200 disabled:opacity-50">{loggerUt ? "Venter…" : "Logg ut"}</button> : <Link href="/logg-inn" className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-bold text-slate-950">Logg inn</Link>}
+      <div className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap 2xl:hidden">
+        <LanguageSelector />
+        {epost ? <button type="button" onClick={loggUt} disabled={loggerUt} className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs font-semibold text-slate-200 disabled:opacity-50">{loggerUt ? uiText("Venter…") : uiText("Logg ut")}</button> : <Link href="/logg-inn" className="rounded-lg bg-emerald-400 px-2.5 py-1.5 text-xs font-bold text-slate-950"><UiText text="Logg inn"/></Link>}
         <details className="group relative">
-          <summary className={`cursor-pointer list-none rounded-lg border border-slate-700 font-semibold ${kompaktPrivatMobil ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm"}`}>Meny</summary>
+          <summary className={`cursor-pointer list-none rounded-lg border border-slate-700 font-semibold ${kompaktPrivatMobil ? "px-2.5 py-1.5 text-sm" : "px-3 py-2 text-sm"}`}><UiText text="Meny"/></summary>
           <div className="absolute right-0 top-full z-50 mt-2 max-h-[calc(100vh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-2xl">
-            <Link href="/" className={mobilVanlig}>Forside</Link>
-            {!epost && <><Link href="/mitt-hjem?eksempel=1" className={mobilVanlig}>Mitt hjem <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link><Link href="/oversikt" className={mobilVanlig}>Utleieoversikten <span className="ml-2 text-[10px] font-bold text-emerald-400">EKSEMPEL</span></Link></>}
-            {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500">{gruppe.navn}</p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}>{lenke.navn}</Link>)}</div></section>)}
-            <div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}>Min konto</Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950">Logg inn / opprett konto</Link>}</div>
+            <Link href="/" className={mobilVanlig}><UiText text="Forside"/></Link>
+            {!epost && <><Link href="/mitt-hjem?eksempel=1" className={mobilVanlig}><UiText text="Mitt hjem "/><span className="ml-2 text-[10px] font-bold text-emerald-400"><UiText text="EKSEMPEL"/></span></Link><Link href="/oversikt" className={mobilVanlig}><UiText text="Utleieoversikten "/><span className="ml-2 text-[10px] font-bold text-emerald-400"><UiText text="EKSEMPEL"/></span></Link></>}
+            {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500"><UiText text={String(gruppe.navn ?? "")}/></p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}><UiText text={String(lenke.navn ?? "")}/></Link>)}</div></section>)}
+            <div className="mt-3 border-t border-slate-800 pt-3"><CurrencySettings /></div><div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}><UiText text="Min konto"/></Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950"><UiText text="Logg inn / opprett konto"/></Link>}</div>
           </div>
         </details>
       </div>
     </div>
-    </div></nav>
-    {!sjekker && !epost && pathname !== "/" && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5 text-slate-900"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 text-sm"><p className="min-w-0"><strong>Du ser eksempeldata.</strong> Egne opplysninger lagres når du har konto.</p><Link href="/logg-inn" className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 font-bold text-white">Opprett konto</Link></div></div>}
+    </div></nav><CurrencyNotice />
+    {!sjekker && !epost && pathname !== "/" && <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5 text-slate-900"><div className="mx-auto flex max-w-7xl items-center justify-between gap-3 text-sm"><p className="min-w-0"><strong><UiText text="Du ser eksempeldata."/></strong><UiText text=" Egne opplysninger lagres når du har konto."/></p><Link href="/logg-inn" className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 font-bold text-white"><UiText text="Opprett konto"/></Link></div></div>}
   </>;
 }
 

@@ -1,3 +1,5 @@
+
+import { UiText } from "../lib/language";
 import Link from "next/link";
 import Navigasjon from "../components/Navigasjon";
 
@@ -15,163 +17,94 @@ export default function Personvern() {
 
       <header className="bg-slate-950 px-4 py-16 text-white sm:px-6 sm:py-20">
         <div className="mx-auto max-w-4xl">
-          <p className="font-semibold text-emerald-400">
-            PERSONVERN
-          </p>
+          <p className="font-semibold text-emerald-400"><UiText text="PERSONVERN "/></p>
 
-          <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-            Personvernerklæring
-          </h1>
+          <h1 className="mt-3 text-4xl font-bold sm:text-5xl"><UiText text="Personvernerklæring"/></h1>
 
-          <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">
-            Her forklarer vi hvilke personopplysninger Eiendomsoversikten
-            behandler, hvorfor opplysningene er nødvendige, og hvilke valg og
-            rettigheter du har.
-          </p>
+          <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300"><UiText text="Her forklarer vi hvilke personopplysninger Eiendomsoversikten behandler, hvorfor opplysningene er nødvendige, og hvilke valg og rettigheter du har."/></p>
 
-          <p className="mt-5 text-sm text-slate-400">
-            Sist oppdatert: 15. august 2026
-          </p>
+          <p className="mt-5 text-sm text-slate-400"><UiText text="Sist oppdatert: 15. august 2026"/></p>
         </div>
       </header>
 
       <section className="px-4 py-10 sm:px-6 sm:py-14">
         <div className="mx-auto max-w-4xl space-y-5">
           <Personvernkort tittel="1. Hvem erklæringen gjelder for">
-            <p>
-              Denne personvernerklæringen gjelder for brukere av
-              Eiendomsoversikten. Tjenesten hjelper boligeiere og utleiere
-              med å samle boliginformasjon, dokumentasjon, vedlikehold og,
-              når det er relevant, leieforhold og økonomi.
-            </p>
+            <p><UiText text="Denne personvernerklæringen gjelder for brukere av Eiendomsoversikten. Tjenesten hjelper boligeiere og utleiere med å samle boliginformasjon, dokumentasjon, vedlikehold og, når det er relevant, leieforhold og økonomi."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="2. Opplysninger vi behandler">
-            <p>Avhengig av hvordan du bruker tjenesten, kan vi behandle:</p>
+            <p><UiText text="Avhengig av hvordan du bruker tjenesten, kan vi behandle:"/></p>
 
             <ul className="mt-4 list-disc space-y-2 pl-6">
-              <li>e-postadresse, navn og valgfritt mobilnummer</li>
-              <li>innloggings- og kontoinformasjon</li>
-              <li>opplysninger om eiendommer, lån, kostnader og leieinntekter</li>
-              <li>
-                leietakeropplysninger som navn, telefonnummer, e-postadresse,
-                leieperiode og depositumsstatus
-              </li>
-              <li>opplastede kontrakter, bilag og dokumenter med tilhørende filinformasjon</li>
-              <li>vedlikeholdsoppgaver, frister, kostnader og notater</li>
-              <li>
-                nødvendige tekniske opplysninger knyttet til sikkerhet, feil og
-                bruk av tjenesten
-              </li>
+              <li><UiText text="e-postadresse, navn og valgfritt mobilnummer"/></li>
+              <li><UiText text="innloggings- og kontoinformasjon"/></li>
+              <li><UiText text="opplysninger om eiendommer, lån, kostnader og leieinntekter"/></li>
+              <li><UiText text="leietakeropplysninger som navn, telefonnummer, e-postadresse, leieperiode og depositumsstatus"/></li>
+              <li><UiText text="opplastede kontrakter, bilag og dokumenter med tilhørende filinformasjon"/></li>
+              <li><UiText text="vedlikeholdsoppgaver, frister, kostnader og notater"/></li>
+              <li><UiText text="nødvendige tekniske opplysninger knyttet til sikkerhet, feil og bruk av tjenesten"/></li>
             </ul>
           </Personvernkort>
 
           <Personvernkort tittel="3. Hvorfor vi behandler opplysningene">
-            <p>Opplysningene brukes for å:</p>
+            <p><UiText text="Opplysningene brukes for å:"/></p>
 
             <ul className="mt-4 list-disc space-y-2 pl-6">
-              <li>opprette og sikre brukerkontoen din</li>
-              <li>lagre og vise opplysningene du registrerer</li>
-              <li>lage boligoversikter og beregne nøkkeltall for utleie</li>
-              <li>koble leietakere og vedlikehold til riktige eiendommer</li>
-              <li>lagre og gjøre leiekontrakter tilgjengelige for deg</li>
-              <li>forebygge misbruk og rette tekniske feil</li>
-              <li>motta og følge opp tilbakemeldinger du sender oss</li>
+              <li><UiText text="opprette og sikre brukerkontoen din"/></li>
+              <li><UiText text="lagre og vise opplysningene du registrerer"/></li>
+              <li><UiText text="lage boligoversikter og beregne nøkkeltall for utleie"/></li>
+              <li><UiText text="koble leietakere og vedlikehold til riktige eiendommer"/></li>
+              <li><UiText text="lagre og gjøre leiekontrakter tilgjengelige for deg"/></li>
+              <li><UiText text="forebygge misbruk og rette tekniske feil"/></li>
+              <li><UiText text="motta og følge opp tilbakemeldinger du sender oss"/></li>
             </ul>
 
-            <p className="mt-4">
-              Behandlingen er i hovedsak nødvendig for å levere tjenesten du
-              ber om. Enkelte opplysninger kan også behandles for å ivareta
-              sikkerhet og berettigede interesser knyttet til stabil og trygg
-              drift.
-            </p>
+            <p className="mt-4"><UiText text="Behandlingen er i hovedsak nødvendig for å levere tjenesten du ber om. Enkelte opplysninger kan også behandles for å ivareta sikkerhet og berettigede interesser knyttet til stabil og trygg drift."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="4. Opplysninger om leietakere">
-            <p>
-              Når du registrerer opplysninger om en leietaker, er du ansvarlig
-              for at du har lovlig grunnlag for å registrere og bruke
-              opplysningene. Du bør bare legge inn opplysninger som er
-              nødvendige for å administrere leieforholdet.
-            </p>
+            <p><UiText text="Når du registrerer opplysninger om en leietaker, er du ansvarlig for at du har lovlig grunnlag for å registrere og bruke opplysningene. Du bør bare legge inn opplysninger som er nødvendige for å administrere leieforholdet."/></p>
 
-            <p className="mt-4">
-              Ikke last opp fødselsnummer, helseopplysninger eller andre
-              særlige kategorier av personopplysninger med mindre det er
-              strengt nødvendig og du har et gyldig rettslig grunnlag.
-            </p>
+            <p className="mt-4"><UiText text="Ikke last opp fødselsnummer, helseopplysninger eller andre særlige kategorier av personopplysninger med mindre det er strengt nødvendig og du har et gyldig rettslig grunnlag."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="5. Lagring og leverandører">
-            <p>
-              Eiendomsoversikten bruker Supabase til blant annet innlogging,
-              database og lagring av kontrakter. Vercel brukes til drift og
-              publisering av nettstedet. Disse leverandørene kan behandle
-              tekniske data og lagrede opplysninger på våre vegne for å levere
-              tjenesten.
-            </p>
+            <p><UiText text="Eiendomsoversikten bruker Supabase til blant annet innlogging, database og lagring av kontrakter. Vercel brukes til drift og publisering av nettstedet. Disse leverandørene kan behandle tekniske data og lagrede opplysninger på våre vegne for å levere tjenesten."/></p>
 
-            <p className="mt-4">
-              Opplastede dokumenter lagres i private lagringsområder og skal bare være
-              tilgjengelige for brukeren som lastet dem opp. Tilgang styres med
-              innlogging og tilgangsregler i databasen og lagringstjenesten.
-            </p>
+            <p className="mt-4"><UiText text="Opplastede dokumenter lagres i private lagringsområder og skal bare være tilgjengelige for brukeren som lastet dem opp. Tilgang styres med innlogging og tilgangsregler i databasen og lagringstjenesten."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="6. Hvor lenge opplysningene lagres">
-            <p>
-              Opplysningene lagres så lenge kontoen din er aktiv eller så lenge
-              de er nødvendige for å levere tjenesten. Du kan redigere eller
-              slette registrerte opplysninger inne i tjenesten. Når du sletter
-              kontoen, blir kontoen og tilknyttede brukerdata slettet, med
-              forbehold om opplysninger vi eventuelt må beholde i en begrenset
-              periode på grunn av lovkrav, sikkerhet eller teknisk
-              sikkerhetskopiering.
-            </p>
+            <p><UiText text="Opplysningene lagres så lenge kontoen din er aktiv eller så lenge de er nødvendige for å levere tjenesten. Du kan redigere eller slette registrerte opplysninger inne i tjenesten. Når du sletter kontoen, blir kontoen og tilknyttede brukerdata slettet, med forbehold om opplysninger vi eventuelt må beholde i en begrenset periode på grunn av lovkrav, sikkerhet eller teknisk sikkerhetskopiering."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="7. Deling av opplysninger">
-            <p>
-              Vi selger ikke personopplysninger. Opplysninger deles bare med
-              leverandører som er nødvendige for å drive tjenesten, når du selv
-              ber om det, eller når deling følger av lov eller gyldig pålegg fra
-              offentlig myndighet.
-            </p>
-            <p className="mt-4">Ved digital boligoverlevering deler vi bare opplysningene og dokumentene du uttrykkelig velger, med kontoen som bruker mottakeradressen du oppgir. Invitasjonen utløper etter 30 dager. Kontroller alltid adressen og innholdet før du oppretter lenken.</p>
+            <p><UiText text="Vi selger ikke personopplysninger. Opplysninger deles bare med leverandører som er nødvendige for å drive tjenesten, når du selv ber om det, eller når deling følger av lov eller gyldig pålegg fra offentlig myndighet."/></p>
+            <p className="mt-4"><UiText text="Ved digital boligoverlevering deler vi bare opplysningene og dokumentene du uttrykkelig velger, med kontoen som bruker mottakeradressen du oppgir. Invitasjonen utløper etter 30 dager. Kontroller alltid adressen og innholdet før du oppretter lenken."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="8. Dine rettigheter">
-            <p>Etter personvernregelverket kan du blant annet ha rett til å:</p>
+            <p><UiText text="Etter personvernregelverket kan du blant annet ha rett til å:"/></p>
 
             <ul className="mt-4 list-disc space-y-2 pl-6">
-              <li>be om innsyn i opplysninger om deg</li>
-              <li>rette uriktige eller ufullstendige opplysninger</li>
-              <li>be om sletting eller begrensning av behandlingen</li>
-              <li>protestere mot enkelte former for behandling</li>
-              <li>be om å få utlevert opplysninger der vilkårene er oppfylt</li>
-              <li>klage til Datatilsynet</li>
+              <li><UiText text="be om innsyn i opplysninger om deg"/></li>
+              <li><UiText text="rette uriktige eller ufullstendige opplysninger"/></li>
+              <li><UiText text="be om sletting eller begrensning av behandlingen"/></li>
+              <li><UiText text="protestere mot enkelte former for behandling"/></li>
+              <li><UiText text="be om å få utlevert opplysninger der vilkårene er oppfylt"/></li>
+              <li><UiText text="klage til Datatilsynet"/></li>
             </ul>
 
-            <p className="mt-4">
-              Du kan endre flere av opplysningene dine og slette kontoen under
-              Min konto.
-            </p>
+            <p className="mt-4"><UiText text="Du kan endre flere av opplysningene dine og slette kontoen under Min konto."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="9. Informasjonskapsler og lokal lagring">
-            <p>
-              Tjenesten kan bruke nødvendige informasjonskapsler eller lokal
-              lagring for innlogging, sikkerhet og grunnleggende funksjonalitet.
-              Dersom vi senere tar i bruk analyse, markedsføring eller andre
-              ikke-nødvendige sporingsverktøy, vil erklæringen bli oppdatert og
-              samtykke innhentet når det er påkrevd.
-            </p>
+            <p><UiText text="Tjenesten kan bruke nødvendige informasjonskapsler eller lokal lagring for innlogging, sikkerhet og grunnleggende funksjonalitet. Dersom vi senere tar i bruk analyse, markedsføring eller andre ikke-nødvendige sporingsverktøy, vil erklæringen bli oppdatert og samtykke innhentet når det er påkrevd."/></p>
           </Personvernkort>
 
           <Personvernkort tittel="10. Kontakt">
-            <p>
-              Ved spørsmål om personvern eller behandling av personopplysninger
-              kan du kontakte oss på{" "}
+            <p><UiText text="Ved spørsmål om personvern eller behandling av personopplysninger kan du kontakte oss på"/>{" "}
               <a
                 href="mailto:eiendomsoversikten@gmail.com"
                 className="font-semibold text-emerald-700 hover:text-emerald-800"
@@ -183,27 +116,19 @@ export default function Personvern() {
           </Personvernkort>
 
           <Personvernkort tittel="11. Endringer i erklæringen">
-            <p>
-              Erklæringen kan bli oppdatert dersom tjenesten, leverandørene eller
-              regelverket endres. Datoen øverst på siden viser når erklæringen
-              sist ble oppdatert.
-            </p>
+            <p><UiText text="Erklæringen kan bli oppdatert dersom tjenesten, leverandørene eller regelverket endres. Datoen øverst på siden viser når erklæringen sist ble oppdatert."/></p>
           </Personvernkort>
 
           <div className="flex flex-col gap-3 pt-3 sm:flex-row">
             <Link
               href="/konto"
               className="rounded-xl bg-emerald-500 px-6 py-3 text-center font-semibold text-white hover:bg-emerald-600"
-            >
-              Gå til Min konto
-            </Link>
+            ><UiText text="Gå til Min konto"/></Link>
 
             <Link
               href="/"
               className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-center font-semibold hover:border-slate-400"
-            >
-              Tilbake til forsiden
-            </Link>
+            ><UiText text="Tilbake til forsiden"/></Link>
           </div>
         </div>
       </section>
@@ -220,7 +145,7 @@ function Personvernkort({
 }) {
   return (
     <article className="rounded-2xl bg-white p-6 leading-7 text-slate-600 shadow-sm sm:p-8">
-      <h2 className="text-xl font-bold text-slate-900">{tittel}</h2>
+      <h2 className="text-xl font-bold text-slate-900"><UiText text={String(tittel ?? "")}/></h2>
       <div className="mt-4">{children}</div>
     </article>
   );

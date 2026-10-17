@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
+
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,6 +47,7 @@ type DiagramRad = {
 const ANTALL_PER_SIDE = 12;
 
 export default function Boliger() {
+  useLanguage();
   const router = useRouter();
   const [boliger, setBoliger] = useState<Bolig[]>([]);
   const [laster, setLaster] = useState(true);
@@ -191,7 +195,7 @@ export default function Boliger() {
 
     if (
       !window.confirm(
-        `Vil du slette ${bolig?.adresse || "denne boligen"}?\n\nAlle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.`,
+        uiFormat("Vil du slette {0}?\n\nAlle tilknyttede bilder og dokumenter slettes permanent. Dette kan ikke angres.", [bolig?.adresse || "denne boligen"]),
       )
     ) {
       return;
@@ -223,59 +227,50 @@ export default function Boliger() {
       <header className="bg-slate-900 px-4 py-7 text-white sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-emerald-400">
-              PORTEFØLJE
-            </p>
+            <p className="text-sm font-semibold text-emerald-400"><UiText text="PORTEFØLJE"/></p>
 
-            <h1 className="mt-1 text-3xl font-bold">
-              Mine boliger
-            </h1>
+            <h1 className="mt-1 text-3xl font-bold"><UiText text="Mine boliger"/></h1>
 
             <p className="mt-1 text-sm text-slate-400">
-              {boliger.length} registrerte boliger
-            </p>
+              {boliger.length}<UiText text=" registrerte boliger"/></p>
           </div>
 
           <Link
             href="/kalkulator"
             className="rounded-xl bg-emerald-400 px-5 py-3 text-center font-semibold text-slate-950"
-          >
-            + Ny bolig
-          </Link>
+          ><UiText text="+ Ny bolig"/></Link>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         {feilmelding && (
           <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {feilmelding}
+            <UiText text={feilmelding}/>
           </div>
         )}
 
         {laster ? (
-          <div className="rounded-2xl bg-white px-6 py-14 text-center">
-            Laster boligene…
-          </div>
+          <div className="rounded-2xl bg-white px-6 py-14 text-center"><UiText text="Laster boligene…"/></div>
         ) : (
           <>
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Nokkeltall
-            label="Markedsverdi"
+            label={uiText("Markedsverdi")}
             value={kortKroner(totalVerdi)}
           />
 
           <Nokkeltall
-            label="Restlån"
+            label={uiText("Restlån")}
             value={kortKroner(totalGjeld)}
           />
 
           <Nokkeltall
-            label="Egenkapital"
+            label={uiText("Egenkapital")}
             value={kortKroner(totalVerdi - totalGjeld)}
           />
 
           <Nokkeltall
-            label="Kontantstrøm"
+            label={uiText("Kontantstrøm")}
             value={`${kortKroner(totalKontantstrom)}/mnd.`}
           />
         </section>
@@ -289,7 +284,7 @@ export default function Boliger() {
                 setSok(event.target.value);
                 setSide(1);
               }}
-              placeholder="Søk etter adresse eller boligtype"
+              placeholder={uiText("Søk etter adresse eller boligtype")}
               className="rounded-xl border border-slate-300 px-4 py-2.5 outline-none focus:border-emerald-500"
             />
 
@@ -299,16 +294,14 @@ export default function Boliger() {
                 setFilter(event.target.value);
                 setSide(1);
               }}
-              aria-label="Filtrer boligtype"
+              aria-label={uiText("Filtrer boligtype")}
               className="rounded-xl border border-slate-300 bg-white px-3 py-2.5"
             >
-              <option value="alle">
-                Alle boligtyper
-              </option>
+              <option value="alle"><UiText text="Alle boligtyper"/></option>
 
               {boligtyper.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  <UiText text={String(type ?? "")}/>
                 </option>
               ))}
             </select>
@@ -319,49 +312,35 @@ export default function Boliger() {
                 setSortering(event.target.value);
                 setSide(1);
               }}
-              aria-label="Sorter boliger"
+              aria-label={uiText("Sorter boliger")}
               className="rounded-xl border border-slate-300 bg-white px-3 py-2.5"
             >
-              <option value="bruttoyield">
-                Høyest yield
-              </option>
+              <option value="bruttoyield"><UiText text="Høyest yield"/></option>
 
-              <option value="kontantstrom">
-                Høyest kontantstrøm
-              </option>
+              <option value="kontantstrom"><UiText text="Høyest kontantstrøm"/></option>
 
-              <option value="markedsverdi">
-                Høyest verdi
-              </option>
+              <option value="markedsverdi"><UiText text="Høyest verdi"/></option>
 
-              <option value="egenkapital">
-                Høyest egenkapital
-              </option>
+              <option value="egenkapital"><UiText text="Høyest egenkapital"/></option>
 
-              <option value="adresse">
-                Adresse A–Å
-              </option>
+              <option value="adresse"><UiText text="Adresse A–Å"/></option>
             </select>
 
             <button
               type="button"
               onClick={nullstill}
               className="rounded-xl border border-slate-300 px-4 py-2.5 font-semibold hover:bg-slate-50"
-            >
-              Nullstill
-            </button>
+            ><UiText text="Nullstill"/></button>
           </div>
         </section>
 
         <div className="mt-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">
-            Boligportefølje
-          </h2>
+          <h2 className="text-xl font-bold"><UiText text="Boligportefølje"/></h2>
 
           <p className="text-sm text-slate-500">
             {filtrerteBoliger.length === 0
-              ? "Ingen treff"
-              : `${start + 1}–${slutt} av ${filtrerteBoliger.length}`}
+              ? uiText("Ingen treff")
+              : uiFormat("{0}–{1} av {2}", [start + 1, slutt, filtrerteBoliger.length])}
           </p>
         </div>
 
@@ -397,7 +376,7 @@ export default function Boliger() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs text-slate-500">
-                            {bolig.boligtype || "Bolig"}
+                            {bolig.boligtype || uiText("Bolig")}
                           </p>
 
                           <h3 className="mt-1 truncate text-lg font-bold">
@@ -406,36 +385,34 @@ export default function Boliger() {
                         </div>
 
                         {start + indeks === 0 && (
-                          <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                            Nr. 1
-                          </span>
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700"><UiText text="Nr. 1"/></span>
                         )}
                       </div>
 
                       <div className="mt-4 grid grid-cols-2 gap-2">
                         <KortTall
-                          label="Markedsverdi"
+                          label={uiText("Markedsverdi")}
                           value={kortKroner(
                             tall(bolig.markedsverdi),
                           )}
                         />
 
                         <KortTall
-                          label="Restlån"
+                          label={uiText("Restlån")}
                           value={kortKroner(
                             tall(bolig.restlaan),
                           )}
                         />
 
                         <KortTall
-                          label="Egenkapital"
+                          label={uiText("Egenkapital")}
                           value={kortKroner(
                             egenkapital,
                           )}
                         />
 
                         <KortTall
-                          label="Bruttoyield"
+                          label={uiText("Bruttoyield")}
                           value={`${beregnBruttoyield(bolig).toFixed(2)} %`}
                         />
                       </div>
@@ -447,9 +424,7 @@ export default function Boliger() {
                             : "mt-3 flex items-center justify-between rounded-xl bg-red-50 px-3 py-2.5"
                         }
                       >
-                        <span className="text-xs text-slate-600">
-                          Kontantstrøm
-                        </span>
+                        <span className="text-xs text-slate-600"><UiText text="Kontantstrøm"/></span>
 
                         <strong
                           className={
@@ -471,23 +446,17 @@ export default function Boliger() {
                             setValgtBolig(bolig)
                           }
                           className="rounded-lg bg-emerald-100 px-2 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-200"
-                        >
-                          Oversikt
-                        </button>
+                        ><UiText text="Oversikt"/></button>
 
                         <Link
                           href={`/kalkulator?id=${bolig.id}`}
                           className="rounded-lg bg-slate-900 px-2 py-2 text-center text-sm font-semibold text-white"
-                        >
-                          Rediger
-                        </Link>
+                        ><UiText text="Rediger"/></Link>
 
                         <Link
                           href={`/alt-om-boligen?bolig=${bolig.id}`}
                           className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-center text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
-                        >
-                          Alt om boligen
-                        </Link>
+                        ><UiText text="Alt om boligen"/></Link>
 
                         <button
                           type="button"
@@ -495,9 +464,7 @@ export default function Boliger() {
                             slettBolig(bolig.id)
                           }
                           className="rounded-lg border border-red-200 px-2 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                        >
-                          Slett
-                        </button>
+                        ><UiText text="Slett"/></button>
                       </div>
                     </div>
                   </article>
@@ -516,12 +483,9 @@ export default function Boliger() {
                     )
                   }
                   className="rounded-xl border bg-white px-5 py-2.5 font-semibold disabled:opacity-40"
-                >
-                  Forrige
-                </button>
+                ><UiText text="Forrige"/></button>
 
-                <span className="text-sm font-medium">
-                  Side {aktivSide} av {antallSider}
+                <span className="text-sm font-medium"><UiText text="Side "/>{aktivSide}<UiText text=" av "/>{antallSider}
                 </span>
 
                 <button
@@ -536,9 +500,7 @@ export default function Boliger() {
                     )
                   }
                   className="rounded-xl border bg-white px-5 py-2.5 font-semibold disabled:opacity-40"
-                >
-                  Neste
-                </button>
+                ><UiText text="Neste"/></button>
               </div>
             )}
           </>
@@ -564,6 +526,7 @@ function Boligvindu({
   bolig: Bolig;
   lukk: () => void;
 }) {
+  useLanguage();
   const rader = beregnKontantstrom(bolig);
 
   const storsteBelop = Math.max(
@@ -583,7 +546,7 @@ function Boligvindu({
         <header className="sticky top-0 flex items-start justify-between gap-4 border-b bg-white p-5 sm:p-6">
           <div>
             <p className="text-sm text-slate-500">
-              {bolig.boligtype || "Bolig"}
+              {bolig.boligtype || uiText("Bolig")}
             </p>
 
             <h2 className="mt-1 text-2xl font-bold">
@@ -595,56 +558,52 @@ function Boligvindu({
             type="button"
             onClick={lukk}
             className="rounded-xl bg-slate-100 px-4 py-2 font-semibold"
-          >
-            Lukk
-          </button>
+          ><UiText text="Lukk"/></button>
         </header>
 
         <div className="grid gap-5 p-5 sm:p-6 lg:grid-cols-[300px_1fr]">
           <section className="rounded-2xl bg-slate-50 p-4">
-            <h3 className="font-bold">
-              Boligoversikt
-            </h3>
+            <h3 className="font-bold"><UiText text="Boligoversikt"/></h3>
 
             <div className="mt-4 space-y-3">
               <Detaljrad
-                label="Markedsverdi"
+                label={uiText("Markedsverdi")}
                 value={kroner(bolig.markedsverdi)}
               />
 
               <Detaljrad
-                label="Restlån"
+                label={uiText("Restlån")}
                 value={kroner(bolig.restlaan)}
               />
 
               <Detaljrad
-                label="Egenkapital"
+                label={uiText("Egenkapital")}
                 value={kroner(
                   beregnEgenkapital(bolig),
                 )}
               />
 
               <Detaljrad
-                label="Belåningsgrad"
+                label={uiText("Belåningsgrad")}
                 value={`${beregnBelaningsgrad(
                   bolig,
                 ).toFixed(1)} %`}
               />
 
               <Detaljrad
-                label="Verdistigning"
+                label={uiText("Verdistigning")}
                 value={kroner(
                   tall(bolig.verdistigning),
                 )}
               />
 
               <Detaljrad
-                label="Månedlig leie"
+                label={uiText("Månedlig leie")}
                 value={kroner(bolig.manedsleie)}
               />
 
               <Detaljrad
-                label="Bruttoyield av kjøpesum"
+                label={uiText("Bruttoyield av kjøpesum")}
                 value={`${beregnBruttoyield(bolig).toFixed(2)} %`}
               />
             </div>
@@ -652,26 +611,18 @@ function Boligvindu({
             <Link
               href={`/kalkulator?id=${bolig.id}`}
               className="mt-5 block rounded-xl bg-slate-900 px-4 py-3 text-center font-semibold text-white"
-            >
-              Rediger bolig
-            </Link>
+            ><UiText text="Rediger bolig"/></Link>
 
             <Link
               href={`/alt-om-boligen?bolig=${bolig.id}`}
               className="mt-3 block rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-center font-semibold text-emerald-800"
-            >
-              Alt om boligen
-            </Link>
+            ><UiText text="Alt om boligen"/></Link>
           </section>
 
           <section className="rounded-2xl bg-slate-950 p-4 text-white sm:p-5">
-            <p className="text-sm font-semibold text-emerald-400">
-              MÅNEDLIG OVERSIKT
-            </p>
+            <p className="text-sm font-semibold text-emerald-400"><UiText text="MÅNEDLIG OVERSIKT"/></p>
 
-            <h3 className="mt-1 text-xl font-bold">
-              Kontantstrøm
-            </h3>
+            <h3 className="mt-1 text-xl font-bold"><UiText text="Kontantstrøm"/></h3>
 
             <div className="mt-5 space-y-3">
               {rader.map((rad) => (
@@ -696,6 +647,7 @@ function Diagramlinje({
   rad: DiagramRad;
   storsteBelop: number;
 }) {
+  useLanguage();
   const positiv = rad.belop >= 0;
 
   const bredde = Math.max(
@@ -719,7 +671,7 @@ function Diagramlinje({
               : "text-slate-300"
           }
         >
-          {rad.navn}
+          <UiText text={String(rad.navn ?? "")}/>
         </span>
 
         <span
@@ -872,9 +824,10 @@ function Nokkeltall({
   label: string;
   value: string;
 }) {
+  useLanguage();
   return (
     <div className="rounded-xl bg-white p-4 shadow-sm">
-      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-xs text-slate-500"><UiText text={String(label ?? "")}/></p>
       <p className="mt-1 text-lg font-bold sm:text-xl">
         {value}
       </p>
@@ -889,10 +842,11 @@ function KortTall({
   label: string;
   value: string;
 }) {
+  useLanguage();
   return (
     <div className="rounded-lg bg-slate-50 p-2.5">
       <p className="text-[11px] text-slate-500">
-        {label}
+        <UiText text={String(label ?? "")}/>
       </p>
 
       <p className="mt-0.5 text-sm font-bold">
@@ -909,9 +863,10 @@ function Detaljrad({
   label: string;
   value: string;
 }) {
+  useLanguage();
   return (
     <div className="flex justify-between gap-4 text-sm">
-      <span className="text-slate-500">{label}</span>
+      <span className="text-slate-500"><UiText text={String(label ?? "")}/></span>
       <span className="text-right font-semibold">
         {value}
       </span>
@@ -926,12 +881,13 @@ function TomTilstand({
   harBoliger: boolean;
   nullstill: () => void;
 }) {
+  useLanguage();
   return (
     <div className="mt-5 rounded-2xl bg-white px-6 py-14 text-center">
       <h2 className="text-2xl font-bold">
         {harBoliger
-          ? "Ingen boliger ble funnet"
-          : "Ingen boliger registrert"}
+          ? uiText("Ingen boliger ble funnet")
+          : uiText("Ingen boliger registrert")}
       </h2>
 
       {harBoliger ? (
@@ -939,16 +895,12 @@ function TomTilstand({
           type="button"
           onClick={nullstill}
           className="mt-5 rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white"
-        >
-          Nullstill søk
-        </button>
+        ><UiText text="Nullstill søk"/></button>
       ) : (
         <Link
           href="/kalkulator"
           className="mt-5 inline-block rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white"
-        >
-          Registrer bolig
-        </Link>
+        ><UiText text="Registrer bolig"/></Link>
       )}
     </div>
   );
@@ -982,20 +934,6 @@ function tall(verdi: unknown) {
   return Number.isFinite(resultat) ? resultat : 0;
 }
 
-function kroner(belop: number) {
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
-    maximumFractionDigits: 0,
-  }).format(tall(belop));
-}
+function kroner(belop: number) { return formatMoney(parseNok(belop), false); }
 
-function kortKroner(belop: number) {
-  if (Math.abs(belop) >= 1_000_000) {
-    return `${(belop / 1_000_000)
-      .toFixed(1)
-      .replace(".", ",")} mill. kr`;
-  }
-
-  return kroner(belop);
-}
+function kortKroner(belop: number) { return formatMoney(parseNok(belop), true); }

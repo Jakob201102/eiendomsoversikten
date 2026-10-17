@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok, formatMoneyRange } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText  } from "../lib/language";
+
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -136,7 +139,8 @@ export default function MittHjemDashboard({
   demo?: boolean;
   startVisning?: "valg" | null;
 }) {
-  const data = lesAltOmBoligen(bolig);
+  useLanguage();
+  const data = uiDemoData(lesAltOmBoligen(bolig), String(bolig.id));
   const kanRedigere = !demo && String(bolig.tilgang || "eier") !== "leser";
   const erEier = !demo && String(bolig.tilgang || "eier") === "eier";
   const [visning, setVisning] = useState<Visning>(startVisning);
@@ -519,7 +523,7 @@ export default function MittHjemDashboard({
   async function slettOppgave(oppgave: Vedlikeholdsdata) {
     if (
       !confirm(
-        `Slett «${String(oppgave.tittel || oppgave.navn || "oppgaven")}»?`,
+        uiFormat("Slett «{0}»?", [String(oppgave.tittel || oppgave.navn || "oppgaven")]),
       )
     )
       return;
@@ -684,9 +688,7 @@ export default function MittHjemDashboard({
         <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-300" : "text-emerald-700"}`}>
-              Privat bolig
-            </p>
+            <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-300" : "text-emerald-700"}`}><UiText text="Privat bolig"/></p>
             {boliger.length > 1 ? (
               <select
                 value={String(bolig.id)}
@@ -695,13 +697,13 @@ export default function MittHjemDashboard({
               >
                 {boliger.map((verdi) => (
                   <option key={verdi.id} value={verdi.id}>
-                    {String(verdi.adresse || "Privat bolig")}
+                    {String(verdi.adresse || uiText("Privat bolig"))}
                   </option>
                 ))}
               </select>
             ) : (
               <h1 className="mt-1 truncate text-2xl font-bold sm:text-3xl">
-                {String(bolig.adresse || "Mitt hjem")}
+                {String(bolig.adresse || uiText("Mitt hjem"))}
               </h1>
             )}
             <p className={`mt-2 text-sm ${forsidebildeUrl ? "text-slate-200" : "text-slate-500"}`}>
@@ -710,7 +712,7 @@ export default function MittHjemDashboard({
                   bolig.boligtype || data.generell.boligtype || "Privat bolig",
                 ),
                 data.generell.totalareal && `${data.generell.totalareal} m²`,
-                data.generell.byggeaar && `Byggeår ${data.generell.byggeaar}`,
+                data.generell.byggeaar && uiFormat("Byggeår {0}", [data.generell.byggeaar]),
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -720,7 +722,7 @@ export default function MittHjemDashboard({
             <button
               type="button"
               onClick={() => setMenyApen(!menyApen)}
-              aria-label="Boligvalg"
+              aria-label={uiText("Boligvalg")}
               className="flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 text-xl font-bold"
             >
               •••
@@ -735,14 +737,10 @@ export default function MittHjemDashboard({
                       aapne("boliginfo");
                     }}
                     className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50"
-                  >
-                    Rediger boliginformasjon
-                  </button>
+                  ><UiText text="Rediger boliginformasjon"/></button>
                 )}
                 {kanRedigere && bilderIAarkiv.length > 0 && (
-                  <button type="button" onClick={() => { setMenyApen(false); setVisBildevalg(true); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50">
-                    Endre toppbilde
-                  </button>
+                  <button type="button" onClick={() => { setMenyApen(false); setVisBildevalg(true); }} className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50"><UiText text="Endre toppbilde"/></button>
                 )}
                 <button
                   type="button"
@@ -751,15 +749,11 @@ export default function MittHjemDashboard({
                     onLeggTilBolig();
                   }}
                   className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-stone-50"
-                >
-                  + Legg til en annen bolig
-                </button>
+                ><UiText text="+ Legg til en annen bolig"/></button>
                 <Link
                   href={`/alt-om-boligen?bolig=${bolig.id}`}
                   className="block rounded-lg px-3 py-2 text-sm font-semibold hover:bg-stone-50"
-                >
-                  Se alle boligdetaljer
-                </Link>
+                ><UiText text="Se alle boligdetaljer"/></Link>
                 {erEier && (
                   <>
                     <div className="my-1 border-t border-stone-100" />
@@ -770,9 +764,7 @@ export default function MittHjemDashboard({
                         void onSlettBolig();
                       }}
                       className="block w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      Slett bolig
-                    </button>
+                    ><UiText text="Slett bolig"/></button>
                   </>
                 )}
               </div>
@@ -787,25 +779,23 @@ export default function MittHjemDashboard({
             type="button"
             onClick={() => aapne("valg")}
             className="mt-6 flex min-h-14 w-full items-center justify-center rounded-2xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white shadow-sm hover:bg-emerald-600"
-          >
-            + Legg til
-          </button>
+          ><UiText text="+ Legg til"/></button>
         )}
         </div>
       </section>
 
-      {visBildevalg && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4"><div className="mx-auto mt-10 max-w-2xl rounded-3xl bg-white p-6 text-slate-900 shadow-2xl"><div className="flex items-center justify-between gap-4"><div><h2 className="text-2xl font-bold">Velg toppbilde</h2><p className="mt-1 text-sm text-slate-500">Velg et bilde fra boligarkivet.</p></div><button type="button" onClick={() => setVisBildevalg(false)} className="text-sm font-bold text-slate-500">Lukk</button></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{bilderIAarkiv.map((dokument) => <button key={dokument.id} type="button" disabled={jobber || !bildeLenker[dokument.id]} onClick={() => void velgForsidebilde(dokument.id)} className={`overflow-hidden rounded-xl border-2 text-left ${data.forsidebildeId === dokument.id || (!data.forsidebildeId && valgtForsidebilde?.id === dokument.id) ? "border-emerald-500" : "border-stone-200"}`}>{bildeLenker[dokument.id] ? <img src={bildeLenker[dokument.id]} alt={dokument.navn} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-xs text-slate-500">Laster…</div>}<span className="block truncate p-2 text-xs font-bold">{dokument.navn}</span></button>)}</div></div></div>}
+      {visBildevalg && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4"><div className="mx-auto mt-10 max-w-2xl rounded-3xl bg-white p-6 text-slate-900 shadow-2xl"><div className="flex items-center justify-between gap-4"><div><h2 className="text-2xl font-bold"><UiText text="Velg toppbilde"/></h2><p className="mt-1 text-sm text-slate-500"><UiText text="Velg et bilde fra boligarkivet."/></p></div><button type="button" onClick={() => setVisBildevalg(false)} className="text-sm font-bold text-slate-500"><UiText text="Lukk"/></button></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{bilderIAarkiv.map((dokument) => <button key={dokument.id} type="button" disabled={jobber || !bildeLenker[dokument.id]} onClick={() => void velgForsidebilde(dokument.id)} className={`overflow-hidden rounded-xl border-2 text-left ${data.forsidebildeId === dokument.id || (!data.forsidebildeId && valgtForsidebilde?.id === dokument.id) ? "border-emerald-500" : "border-stone-200"}`}>{bildeLenker[dokument.id] ? <img src={bildeLenker[dokument.id]} alt={dokument.navn} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-xs text-slate-500"><UiText text="Laster…"/></div>}<span className="block truncate p-2 text-xs font-bold">{uiDemoText(dokument.navn, dokument.id)}</span></button>)}</div></div></div>}
 
       {feil && (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-          {feil}
+          <UiText text={String(feil ?? "")}/>
         </p>
       )}
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Dashboardkort
           ikon="🔨"
-          tittel="Boligens historikk"
+          tittel={uiText("Boligens historikk")}
           lenke={`/bolighistorikk?bolig=${bolig.id}`}
           lenketekst="Åpne historikkarkivet"
         >
@@ -836,7 +826,7 @@ export default function MittHjemDashboard({
         </Dashboardkort>
         <Dashboardkort
           ikon="📅"
-          tittel="Kommende vedlikehold"
+          tittel={uiText("Kommende vedlikehold")}
           lenke={`/vedlikehold?bolig=${bolig.id}`}
           lenketekst="Se hele planen"
         >
@@ -851,13 +841,13 @@ export default function MittHjemDashboard({
                     <div>
                       <h3 className="font-bold">
                         {String(
-                          oppgave.tittel || oppgave.navn || "Vedlikehold",
+                          oppgave.tittel || oppgave.navn || uiText("Vedlikehold"),
                         )}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
                         {oppgave.frist
                           ? formatDato(String(oppgave.frist))
-                          : "Ingen dato"}
+                          : uiText("Ingen dato")}
                         {oppgave.omrade ? ` · ${String(oppgave.omrade)}` : ""}
                       </p>
                     </div>
@@ -868,23 +858,17 @@ export default function MittHjemDashboard({
                         type="button"
                         onClick={() => startFullforing(oppgave)}
                         className="text-emerald-700"
-                      >
-                        Marker som utført
-                      </button>
+                      ><UiText text="Marker som utført"/></button>
                       <button
                         type="button"
                         onClick={() => redigerOppgave(oppgave)}
                         className="text-slate-600"
-                      >
-                        Rediger
-                      </button>
+                      ><UiText text="Rediger"/></button>
                       <button
                         type="button"
                         onClick={() => slettOppgave(oppgave)}
                         className="text-red-600"
-                      >
-                        Slett
-                      </button>
+                      ><UiText text="Slett"/></button>
                     </div>
                   )}
                 </article>
@@ -901,7 +885,7 @@ export default function MittHjemDashboard({
         </Dashboardkort>
         <Dashboardkort
           ikon="📁"
-          tittel="Dokumenter"
+          tittel={uiText("Dokumenter")}
           lenke={`/dokumentarkiv?bolig=${bolig.id}`}
           lenketekst="Åpne dokumentarkivet"
         >
@@ -915,14 +899,12 @@ export default function MittHjemDashboard({
               type="button"
               onClick={() => aapne("dokument")}
               className="mt-4 text-sm font-bold text-emerald-700"
-            >
-              + Legg til dokument
-            </button>
+            ><UiText text="+ Legg til dokument"/></button>
           )}
         </Dashboardkort>
         <Dashboardkort
           ikon="📸"
-          tittel="Bilder"
+          tittel={uiText("Bilder")}
           lenke={`/alt-om-boligen?bolig=${bolig.id}`}
           lenketekst="Se boligdetaljer"
         >
@@ -936,9 +918,7 @@ export default function MittHjemDashboard({
               type="button"
               onClick={() => aapne("bilder")}
               className="mt-4 text-sm font-bold text-emerald-700"
-            >
-              + Legg til bilder
-            </button>
+            ><UiText text="+ Legg til bilder"/></button>
           )}
         </Dashboardkort>
       </div>
@@ -946,43 +926,43 @@ export default function MittHjemDashboard({
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="text-2xl">💡</p><h2 className="mt-2 text-xl font-bold">Anbefalinger til boligen</h2></div>
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">Forslag</span>
+            <div><p className="text-2xl">💡</p><h2 className="mt-2 text-xl font-bold"><UiText text="Anbefalinger til boligen"/></h2></div>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800"><UiText text="Forslag"/></span>
           </div>
-          <p className="mt-2 text-sm text-slate-500">Vanlige intervaller – vurder alltid tilstand, produkt og lokale forhold.</p>
+          <p className="mt-2 text-sm text-slate-500"><UiText text="Vanlige intervaller – vurder alltid tilstand, produkt og lokale forhold."/></p>
           <div className="mt-4 space-y-3">
             {visteAnbefalinger.map((anbefaling) => {
               const anbefalingId = anbefaling.tittel.trim().toLocaleLowerCase("nb-NO");
               const registrertOppgave = boligOppgaver.find((oppgave) => String(oppgave.anbefalingId || "").trim().toLocaleLowerCase("nb-NO") === anbefalingId || String(oppgave.tittel || "").trim().toLocaleLowerCase("nb-NO") === anbefalingId);
               return <article key={anbefaling.tittel} className="rounded-xl border border-stone-200 p-4">
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-bold">{anbefaling.ikon} {anbefaling.tittel}</h3><p className="mt-1 text-sm text-slate-500">{anbefaling.intervall} · ca. {anbefaling.pris}</p></div></div>
-                {Boolean(registrertOppgave?.frist) && <p className="mt-2 text-xs text-slate-500">Neste dato: {formatDato(String(registrertOppgave?.frist || ""))}</p>}
-                {kanRedigere && <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold">{registrertOppgave ? <><span className="text-emerald-700">✓ Lagt til i vedlikeholdsplan</span><Link href={`/vedlikehold?modus=privat&bolig=${bolig.id}`} className="text-slate-700">Åpne i vedlikeholdsplan →</Link></> : <><Link href={`/vedlikehold?modus=privat&ny=1&bolig=${bolig.id}&tittel=${encodeURIComponent(anbefaling.tittel)}&gjentakelse=${anbefaling.gjentakelse}&anbefaling=${encodeURIComponent(anbefalingId)}`} className="text-emerald-700">Legg til i vedlikeholdsplan →</Link><button type="button" onClick={() => void skjulAnbefaling(anbefaling.tittel)} className="text-slate-500">Ikke relevant</button></>}</div>}
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-bold">{anbefaling.ikon} <UiText text={String(anbefaling.tittel ?? "")}/></h3><p className="mt-1 text-sm text-slate-500"><UiText text={String(anbefaling.intervall ?? "")}/><UiText text=" · ca. "/>{formatMoneyRange(anbefaling.pris)}</p></div></div>
+                {Boolean(registrertOppgave?.frist) && <p className="mt-2 text-xs text-slate-500"><UiText text="Neste dato: "/>{formatDato(String(registrertOppgave?.frist || ""))}</p>}
+                {kanRedigere && <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold">{registrertOppgave ? <><span className="text-emerald-700"><UiText text="✓ Lagt til i vedlikeholdsplan"/></span><Link href={`/vedlikehold?modus=privat&bolig=${bolig.id}`} className="text-slate-700"><UiText text="Åpne i vedlikeholdsplan →"/></Link></> : <><Link href={`/vedlikehold?modus=privat&ny=1&bolig=${bolig.id}&tittel=${encodeURIComponent(anbefaling.tittel)}&gjentakelse=${anbefaling.gjentakelse}&anbefaling=${encodeURIComponent(anbefalingId)}`} className="text-emerald-700"><UiText text="Legg til i vedlikeholdsplan →"/></Link><button type="button" onClick={() => void skjulAnbefaling(anbefaling.tittel)} className="text-slate-500"><UiText text="Ikke relevant"/></button></>}</div>}
               </article>
             })}
           </div>
           <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold">
-            {synligeAnbefalinger.length > 3 && <button type="button" onClick={() => setVisAlleAnbefalinger((verdi) => !verdi)} className="text-emerald-700">{visAlleAnbefalinger ? "Vis færre" : `Vis flere (${synligeAnbefalinger.length - 3})`}</button>}
-            {kanRedigere && data.avvisteAnbefalinger.length > 0 && <button type="button" onClick={() => void gjenopprettAnbefalinger()} className="text-slate-500">Gjenopprett skjulte forslag ({data.avvisteAnbefalinger.length})</button>}
+            {synligeAnbefalinger.length > 3 && <button type="button" onClick={() => setVisAlleAnbefalinger((verdi) => !verdi)} className="text-emerald-700">{visAlleAnbefalinger ? uiText("Vis færre") : uiFormat("Vis flere ({0})", [synligeAnbefalinger.length - 3])}</button>}
+            {kanRedigere && data.avvisteAnbefalinger.length > 0 && <button type="button" onClick={() => void gjenopprettAnbefalinger()} className="text-slate-500"><UiText text="Gjenopprett skjulte forslag ("/>{data.avvisteAnbefalinger.length})</button>}
           </div>
-          <p className="mt-4 text-xs leading-5 text-slate-400">Prisene er grove eksempler og kan variere mye med størrelse, tilstand, sted og hvem som utfører arbeidet.</p>
+          <p className="mt-4 text-xs leading-5 text-slate-400"><UiText text="Prisene er grove eksempler og kan variere mye med størrelse, tilstand, sted og hvem som utfører arbeidet."/></p>
         </section>
 
         <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-2xl">🛒</p><h2 className="mt-2 text-xl font-bold">Handleliste</h2>
-          <p className="mt-2 text-sm text-slate-500">En enkel liste for ting boligen trenger.</p>
-          {canRenderList(data.handleliste) ? <div className="mt-4 divide-y divide-stone-100">{data.handleliste.map((punkt) => <div key={punkt.id} className="flex min-w-0 items-center gap-3 py-3"><input type="checkbox" checked={punkt.ferdig} disabled={!kanRedigere || jobber} onChange={() => void lagreHandleliste(data.handleliste.map((verdi) => verdi.id === punkt.id ? { ...verdi, ferdig: !verdi.ferdig } : verdi))} className="h-5 w-5 shrink-0 accent-emerald-500" /><span className={`min-w-0 flex-1 break-words text-sm ${punkt.ferdig ? "text-slate-400 line-through" : ""}`}>{punkt.tekst}</span>{kanRedigere && <button type="button" onClick={() => void lagreHandleliste(data.handleliste.filter((verdi) => verdi.id !== punkt.id))} className="shrink-0 text-xs font-bold text-red-600">Fjern</button>}</div>)}</div> : <p className="mt-4 rounded-xl bg-stone-50 p-4 text-sm text-slate-500">Listen er tom.</p>}
-          {kanRedigere && <form onSubmit={(event) => { event.preventDefault(); const tekst = nyttHandlepunkt.trim(); if (tekst) void lagreHandleliste([...data.handleliste, { id: crypto.randomUUID(), tekst, ferdig: false }]); }} className="mt-4 flex gap-2"><input value={nyttHandlepunkt} onChange={(event) => setNyttHandlepunkt(event.target.value)} placeholder="For eksempel røykvarslerbatteri" className="felt min-w-0 flex-1" /><button disabled={jobber} className="shrink-0 rounded-xl bg-emerald-500 px-4 font-bold text-white">Legg til</button></form>}
+          <p className="text-2xl">🛒</p><h2 className="mt-2 text-xl font-bold"><UiText text="Handleliste"/></h2>
+          <p className="mt-2 text-sm text-slate-500"><UiText text="En enkel liste for ting boligen trenger."/></p>
+          {canRenderList(data.handleliste) ? <div className="mt-4 divide-y divide-stone-100">{data.handleliste.map((punkt) => <div key={punkt.id} className="flex min-w-0 items-center gap-3 py-3"><input type="checkbox" checked={punkt.ferdig} disabled={!kanRedigere || jobber} onChange={() => void lagreHandleliste(data.handleliste.map((verdi) => verdi.id === punkt.id ? { ...verdi, ferdig: !verdi.ferdig } : verdi))} className="h-5 w-5 shrink-0 accent-emerald-500" /><span className={`min-w-0 flex-1 break-words text-sm ${punkt.ferdig ? "text-slate-400 line-through" : ""}`}><UiText text={String(punkt.tekst ?? "")}/></span>{kanRedigere && <button type="button" onClick={() => void lagreHandleliste(data.handleliste.filter((verdi) => verdi.id !== punkt.id))} className="shrink-0 text-xs font-bold text-red-600"><UiText text="Fjern"/></button>}</div>)}</div> : <p className="mt-4 rounded-xl bg-stone-50 p-4 text-sm text-slate-500"><UiText text="Listen er tom."/></p>}
+          {kanRedigere && <form onSubmit={(event) => { event.preventDefault(); const tekst = nyttHandlepunkt.trim(); if (tekst) void lagreHandleliste([...data.handleliste, { id: crypto.randomUUID(), tekst, ferdig: false }]); }} className="mt-4 flex gap-2"><input value={nyttHandlepunkt} onChange={(event) => setNyttHandlepunkt(event.target.value)} placeholder={uiText("For eksempel røykvarslerbatteri")} className="felt min-w-0 flex-1" /><button disabled={jobber} className="shrink-0 rounded-xl bg-emerald-500 px-4 font-bold text-white"><UiText text="Legg til"/></button></form>}
         </section>
       </div>
 
       {visning && (
         <Modal
-          tittel={modaltittel(
+          tittel={uiText(modaltittel(
             visning,
             Boolean(fullforer),
             Boolean(redigererOppgaveId),
-          )}
+          ))}
           onLukk={() => {
             setVisning(null);
             setFullforer(null);
@@ -993,14 +973,14 @@ export default function MittHjemDashboard({
         >
           {feil && (
             <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              {feil}
+              <UiText text={String(feil ?? "")}/>
             </p>
           )}
           {visning === "valg" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Valg
                 ikon="⚠️"
-                tittel="Skade eller avvik"
+                tittel={uiText("Skade eller avvik")}
                 tekst="Registrer det som har skjedd og ta bilder"
                 onClick={() =>
                   window.location.assign(
@@ -1010,31 +990,31 @@ export default function MittHjemDashboard({
               />
               <Valg
                 ikon="🔨"
-                tittel="Utført arbeid"
+                tittel={uiText("Utført arbeid")}
                 tekst="Oppussing, bytte eller reparasjon utført av deg eller en håndverker"
                 onClick={() => setVisning("historikk")}
               />
               <Valg
                 ikon="📅"
-                tittel="Fremtidig vedlikehold"
+                tittel={uiText("Fremtidig vedlikehold")}
                 tekst="Noe som skal gjøres senere"
                 onClick={() => setVisning("vedlikehold")}
               />
               <Valg
                 ikon="📄"
-                tittel="Dokument"
+                tittel={uiText("Dokument")}
                 tekst="Faktura, kvittering, samsvarserklæring eller rapport"
                 onClick={() => setVisning("dokument")}
               />
               <Valg
                 ikon="📸"
-                tittel="Bilder"
+                tittel={uiText("Bilder")}
                 tekst="Ta eller last opp bilder"
                 onClick={() => setVisning("bilder")}
               />
               <Valg
                 ikon="👷"
-                tittel="Håndverker"
+                tittel={uiText("Håndverker")}
                 tekst="Lagre en håndverker eller annen kontakt"
                 onClick={() => window.location.assign(`/kontakter?bolig=${bolig.id}`)}
               />
@@ -1084,17 +1064,17 @@ export default function MittHjemDashboard({
               />
             </>
           )}
-          {visning === "dokument" && (
+          {visning === uiText("dokument") && (
             <>
               <div className="space-y-4">
-                <Felt label="Navn (valgfritt)">
+                <Felt label={uiText("Navn (valgfritt)")}>
                   <input
                     value={dokumentnavn}
                     onChange={(event) => setDokumentnavn(event.target.value)}
                     className="felt"
                   />
                 </Felt>
-                <Felt label="Kategori">
+                <Felt label={uiText("Kategori")}>
                   <select
                     value={dokumentkategori}
                     onChange={(event) =>
@@ -1102,31 +1082,31 @@ export default function MittHjemDashboard({
                     }
                     className="felt"
                   >
-                    <option value="kvittering">Kvittering</option>
-                    <option value="faktura">Faktura</option>
-                    <option value="garanti">Garanti</option>
-                    <option value="samsvarserklaring">Samsvarserklæring</option>
-                    <option value="plantegning">Tegning</option>
-                    <option value="takst">Rapport/takst</option>
-                    <option value="annet">Annet</option>
+                    <option value="kvittering"><UiText text="Kvittering"/></option>
+                    <option value="faktura"><UiText text="Faktura"/></option>
+                    <option value="garanti"><UiText text="Garanti"/></option>
+                    <option value="samsvarserklaring"><UiText text="Samsvarserklæring"/></option>
+                    <option value="plantegning"><UiText text="Tegning"/></option>
+                    <option value="takst"><UiText text="Rapport/takst"/></option>
+                    <option value="annet"><UiText text="Annet"/></option>
                   </select>
                 </Felt>
-                <Felt label="Hva gjelder dokumentet? (valgfritt)">
+                <Felt label={uiText("Hva gjelder dokumentet? (valgfritt)")}>
                   <select
                     value={dokumentGjelder}
                     onChange={(event) => setDokumentGjelder(event.target.value)}
                     className="felt"
                   >
-                    <option value="">Ikke valgt</option>
-                    <option value="Hele boligen">Hele boligen</option>
+                    <option value=""><UiText text="Ikke valgt"/></option>
+                    <option value="Hele boligen"><UiText text="Hele boligen"/></option>
                     {data.rom.map((rom) => (
                       <option key={rom.id} value={rom.navn}>
-                        {rom.navn}
+                        {uiDemoText(rom.navn, rom.id)}
                       </option>
                     ))}
                   </select>
                 </Felt>
-                <Felt label="Velg fil(er)">
+                <Felt label={uiText("Velg fil(er)")}>
                   <input
                     type="file"
                     multiple
@@ -1150,10 +1130,8 @@ export default function MittHjemDashboard({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center">
                   <span className="text-3xl">📷</span>
-                  <span className="mt-2 block font-bold">Ta nye bilder</span>
-                  <span className="mt-1 block text-xs text-slate-500">
-                    Åpner kameraet på mobilen
-                  </span>
+                  <span className="mt-2 block font-bold"><UiText text="Ta nye bilder"/></span>
+                  <span className="mt-1 block text-xs text-slate-500"><UiText text="Åpner kameraet på mobilen"/></span>
                   <input
                     type="file"
                     multiple
@@ -1170,12 +1148,8 @@ export default function MittHjemDashboard({
                 </label>
                 <label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center">
                   <span className="text-3xl">📁</span>
-                  <span className="mt-2 block font-bold">
-                    Last opp fra Bilder eller Filer
-                  </span>
-                  <span className="mt-1 block text-xs text-slate-500">
-                    Velg eksisterende bildefiler
-                  </span>
+                  <span className="mt-2 block font-bold"><UiText text="Last opp fra Bilder eller Filer"/></span>
+                  <span className="mt-1 block text-xs text-slate-500"><UiText text="Velg eksisterende bildefiler"/></span>
                   <input
                     type="file"
                     multiple
@@ -1192,8 +1166,7 @@ export default function MittHjemDashboard({
               </div>
               {bilder.length > 0 && (
                 <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">
-                  {bilder.length} bilde{bilder.length === 1 ? "" : "r"} valgt
-                </p>
+                  {uiFormat(bilder.length === 1 ? "{0} bilde valgt" : "{0} bilder valgt", [bilder.length])}</p>
               )}
               <Lagre
                 onClick={() => lagreDokumenter(true)}
@@ -1213,21 +1186,16 @@ export default function MittHjemDashboard({
               <Link
                 href={`/alt-om-boligen?bolig=${bolig.id}&rediger=1`}
                 className="mt-4 block text-center text-sm font-semibold text-slate-500"
-              >
-                Åpne alle boligdetaljer
-              </Link>
+              ><UiText text="Åpne alle boligdetaljer"/></Link>
             </>
           )}
           {visning === "dokumentasjon" && dokumentasjonHendelse && (
             <>
               <p className="mb-4 rounded-xl bg-stone-50 p-4 text-sm">
                 <strong>{dokumentasjonHendelse.tittel}</strong>
-                <span className="mt-1 block text-slate-500">
-                  Dokumentasjonssjekken er frivillig. Velg «Ingen
-                  dokumentasjonssjekk» dersom du ikke ønsker varsel.
-                </span>
+                <span className="mt-1 block text-slate-500"><UiText text="Dokumentasjonssjekken er frivillig. Velg «Ingen dokumentasjonssjekk» dersom du ikke ønsker varsel."/></span>
               </p>
-              <Felt label="Dokumentasjonssjekk">
+              <Felt label={uiText("Dokumentasjonssjekk")}>
                 <select
                   value={dokumentasjonHendelse.arbeidstype || ""}
                   onChange={(event) =>
@@ -1241,7 +1209,7 @@ export default function MittHjemDashboard({
                 >
                   {dokumentasjonstyper.map((valg) => (
                     <option key={valg.verdi} value={valg.verdi}>
-                      {valg.navn}
+                      <UiText text={String(valg.navn ?? "")}/>
                     </option>
                   ))}
                 </select>
@@ -1262,7 +1230,7 @@ export default function MittHjemDashboard({
               )}
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Felt
-                  label={`Nye bilder${bilder.length ? ` (${bilder.length})` : ""}`}
+                  label={uiText(uiFormat("Nye bilder{0}", [bilder.length ? ` (${bilder.length})` : ""]))}
                 >
                   <input
                     type="file"
@@ -1275,7 +1243,7 @@ export default function MittHjemDashboard({
                   />
                 </Felt>
                 <Felt
-                  label={`Nye dokumenter${filer.length ? ` (${filer.length})` : ""}`}
+                  label={uiText(`Nye dokumenter${filer.length ? ` (${filer.length})` : ""}`)}
                 >
                   <input
                     type="file"
@@ -1320,6 +1288,7 @@ function Historikkskjema({
   setBilder: (filer: File[]) => void;
   setFiler: (filer: File[]) => void;
 }) {
+  useLanguage();
   const valgtOmrade = verdi.romId ? `rom:${verdi.romId}` : verdi.omrade;
   const erTidligereOmrade = Boolean(
     verdi.omrade &&
@@ -1337,18 +1306,18 @@ function Historikkskjema({
   }
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Felt label="Hva ble gjort? *">
+      <Felt label={uiText("Hva ble gjort? *")}>
         <input
           autoFocus
           value={verdi.tittel}
           onChange={(event) =>
             onEndre({ ...verdi, tittel: event.target.value })
           }
-          placeholder="For eksempel byttet varmtvannsbereder"
+          placeholder={uiText("For eksempel byttet varmtvannsbereder")}
           className="felt"
         />
       </Felt>
-      <Felt label="Når?">
+      <Felt label={uiText("Når?")}>
         <input
           type="date"
           value={verdi.dato}
@@ -1356,27 +1325,26 @@ function Historikkskjema({
           className="felt"
         />
       </Felt>
-      <Felt label="Hvor på boligen?">
+      <Felt label={uiText("Hvor på boligen?")}>
         <select
           value={valgtOmrade}
           onChange={(event) => velgOmrade(event.target.value)}
           className="felt"
         >
-          <option value="">Velg rom</option>
+          <option value=""><UiText text="Velg rom"/></option>
           {rom.map((romverdi) => (
             <option key={romverdi.id} value={`rom:${romverdi.id}`}>
-              {romverdi.navn}
+              {uiDemoText(romverdi.navn, romverdi.id)}
             </option>
           ))}
-          <option value="Annet">Annet</option>
+          <option value="Annet"><UiText text="Annet"/></option>
           {erTidligereOmrade && (
             <option value={verdi.omrade}>
-              {verdi.omrade} (tidligere valg)
-            </option>
+              {verdi.omrade}<UiText text=" (tidligere valg)"/></option>
           )}
         </select>
       </Felt>
-      <Felt label="Kostnad (valgfritt)">
+      <Felt label={uiText("Kostnad (valgfritt)")}>
         <input
           inputMode="numeric"
           value={verdi.kostnad}
@@ -1386,7 +1354,7 @@ function Historikkskjema({
           className="felt"
         />
       </Felt>
-      <Felt label="Utført av">
+      <Felt label={uiText("Utført av")}>
         <select
           value={verdi.utfortAv}
           onChange={(event) =>
@@ -1400,14 +1368,14 @@ function Historikkskjema({
           }
           className="felt"
         >
-          <option value="selv">Meg selv</option>
-          <option value="firma">Firma/håndverker</option>
-          <option value="tidligere-eier">Tidligere eier</option>
+          <option value="selv"><UiText text="Meg selv"/></option>
+          <option value="firma"><UiText text="Firma/håndverker"/></option>
+          <option value="tidligere-eier"><UiText text="Tidligere eier"/></option>
         </select>
       </Felt>
       {verdi.utfortAv === "firma" && (
         <>
-          <Felt label="Håndverker">
+          <Felt label={uiText("Håndverker")}>
             <select
               value={verdi.handverkerId}
               onChange={(event) =>
@@ -1415,17 +1383,17 @@ function Historikkskjema({
               }
               className="felt"
             >
-              <option value="">Skriv firmanavn selv</option>
+              <option value=""><UiText text="Skriv firmanavn selv"/></option>
               {kontakter.map((kontakt) => (
                 <option key={kontakt.id} value={kontakt.id}>
-                  {kontakt.navn} · {kontakt.kategori}
+                  {kontakt.navn} · <UiText text={kontakt.kategori}/>
                 </option>
               ))}
-              <option value="ny">+ Opprett ny håndverker</option>
+              <option value="ny"><UiText text="+ Opprett ny håndverker"/></option>
             </select>
           </Felt>
           {verdi.handverkerId === "ny" ? (
-            <Felt label="Navn på ny håndverker">
+            <Felt label={uiText("Navn på ny håndverker")}>
               <input
                 value={verdi.nyHandverkerNavn}
                 onChange={(event) =>
@@ -1436,7 +1404,7 @@ function Historikkskjema({
             </Felt>
           ) : (
             !verdi.handverkerId && (
-              <Felt label="Firma (valgfritt)">
+              <Felt label={uiText("Firma (valgfritt)")}>
                 <input
                   value={verdi.firma}
                   onChange={(event) =>
@@ -1449,9 +1417,7 @@ function Historikkskjema({
           )}
         </>
       )}
-      <label className="text-sm font-semibold sm:col-span-2">
-        Notat
-        <textarea
+      <label className="text-sm font-semibold sm:col-span-2"><UiText text="Notat"/><textarea
           rows={3}
           value={verdi.beskrivelse}
           onChange={(event) =>
@@ -1460,7 +1426,7 @@ function Historikkskjema({
           className="felt mt-2"
         />
       </label>
-      <Felt label={`Bilder${bilder.length ? ` (${bilder.length})` : ""}`}>
+      <Felt label={uiText(`Bilder${bilder.length ? ` (${bilder.length})` : ""}`)}>
         <input
           type="file"
           multiple
@@ -1471,7 +1437,7 @@ function Historikkskjema({
         />
       </Felt>
       <Felt
-        label={`Faktura/dokumentasjon${filer.length ? ` (${filer.length})` : ""}`}
+        label={uiText(`Faktura/dokumentasjon${filer.length ? ` (${filer.length})` : ""}`)}
       >
         <input
           type="file"
@@ -1492,16 +1458,12 @@ function Dokumentasjonsoppsett({
   verdi: HistorikkSkjema;
   onEndre: (verdi: HistorikkSkjema) => void;
 }) {
+  useLanguage();
   return (
     <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
-      <p className="font-bold">Har du riktig dokumentasjon?</p>
-      <p className="mt-1 text-sm text-slate-600">
-        Velg type arbeid for å få en enkel sjekkliste. Dette er valgfritt og kan
-        fylles ut senere.
-      </p>
-      <label className="mt-4 block text-sm font-semibold">
-        Type arbeid
-        <select
+      <p className="font-bold"><UiText text="Har du riktig dokumentasjon?"/></p>
+      <p className="mt-1 text-sm text-slate-600"><UiText text="Velg type arbeid for å få en enkel sjekkliste. Dette er valgfritt og kan fylles ut senere."/></p>
+      <label className="mt-4 block text-sm font-semibold"><UiText text="Type arbeid"/><select
           value={verdi.arbeidstype}
           onChange={(event) =>
             onEndre({
@@ -1514,7 +1476,7 @@ function Dokumentasjonsoppsett({
         >
           {dokumentasjonstyper.map((valg) => (
             <option key={valg.verdi} value={valg.verdi}>
-              {valg.navn}
+              <UiText text={String(valg.navn ?? "")}/>
             </option>
           ))}
         </select>
@@ -1543,12 +1505,11 @@ function Dokumentasjonssjekk({
   valgte: string[];
   onEndre: (valgte: string[]) => void;
 }) {
+  useLanguage();
   const krav = kravForArbeidstype(type);
   return (
     <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-800">
-        Anbefalt dokumentasjon
-      </p>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-amber-800"><UiText text="Anbefalt dokumentasjon"/></p>
       <div className="space-y-2">
         {krav.map((punkt) => (
           <label
@@ -1567,14 +1528,11 @@ function Dokumentasjonssjekk({
               }
               className="mt-0.5 h-5 w-5 rounded border-stone-300 text-emerald-600"
             />
-            <span>{punkt.navn}</span>
+            <span><UiText text={String(punkt.navn ?? "")}/></span>
           </label>
         ))}
       </div>
-      <p className="mt-3 text-xs leading-5 text-slate-500">
-        Listen er veiledende. Hva som kreves avhenger av arbeidet og gjeldende
-        regler.
-      </p>
+      <p className="mt-3 text-xs leading-5 text-slate-500"><UiText text="Listen er veiledende. Hva som kreves avhenger av arbeidet og gjeldende regler."/></p>
     </div>
   );
 }
@@ -1586,20 +1544,21 @@ function Vedlikeholdsskjema({
   verdi: VedlikeholdSkjema;
   onEndre: (verdi: VedlikeholdSkjema) => void;
 }) {
+  useLanguage();
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Felt label="Hva skal gjøres? *">
+      <Felt label={uiText("Hva skal gjøres? *")}>
         <input
           autoFocus
           value={verdi.tittel}
           onChange={(event) =>
             onEndre({ ...verdi, tittel: event.target.value })
           }
-          placeholder="For eksempel rense takrenner"
+          placeholder={uiText("For eksempel rense takrenner")}
           className="felt"
         />
       </Felt>
-      <Felt label="Når?">
+      <Felt label={uiText("Når?")}>
         <input
           type="date"
           value={verdi.frist}
@@ -1607,7 +1566,7 @@ function Vedlikeholdsskjema({
           className="felt"
         />
       </Felt>
-      <Felt label="Område">
+      <Felt label={uiText("Område")}>
         <select
           value={verdi.omrade}
           onChange={(event) =>
@@ -1615,13 +1574,13 @@ function Vedlikeholdsskjema({
           }
           className="felt"
         >
-          <option value="">Velg område</option>
+          <option value=""><UiText text="Velg område"/></option>
           {vedlikeholdsomrader.map((omrade) => (
-            <option key={omrade}>{omrade}</option>
+            <option key={omrade} value={omrade}>{omrade}</option>
           ))}
         </select>
       </Felt>
-      <Felt label="Estimert kostnad">
+      <Felt label={uiText("Estimert kostnad")}>
         <input
           inputMode="numeric"
           value={verdi.kostnad}
@@ -1631,9 +1590,7 @@ function Vedlikeholdsskjema({
           className="felt"
         />
       </Felt>
-      <label className="text-sm font-semibold sm:col-span-2">
-        Notat
-        <textarea
+      <label className="text-sm font-semibold sm:col-span-2"><UiText text="Notat"/><textarea
           rows={3}
           value={verdi.notat}
           onChange={(event) => onEndre({ ...verdi, notat: event.target.value })}
@@ -1651,6 +1608,7 @@ function Boliginfoskjema({
   verdi: BoliginfoSkjema;
   onEndre: (verdi: BoliginfoSkjema) => void;
 }) {
+  useLanguage();
   const felt = [
     ["Adresse", "adresse"],
     ["Boligtype", "boligtype"],
@@ -1669,13 +1627,13 @@ function Boliginfoskjema({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {felt.map(([label, key]) => (
-        <Felt key={key} label={label}>
+        <Felt key={key} label={uiText(label)}>
           <input
             value={verdi[key] || ""}
             onChange={(event) =>
               onEndre({ ...verdi, [key]: event.target.value })
             }
-            placeholder="Ikke registrert"
+            placeholder={uiText("Ikke registrert")}
             className="felt"
           />
         </Felt>
@@ -1697,6 +1655,7 @@ function Historikkrad({
   onDokumentasjon: () => void;
   kanOppdatere: boolean;
 }) {
+  useLanguage();
   const vedlegg = [...hendelse.dokumentIder, ...hendelse.bildeIder]
     .map((id) => dokumenter.find((dokument) => dokument.id === id))
     .filter(Boolean) as Dokument[];
@@ -1709,23 +1668,23 @@ function Historikkrad({
       <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
         {maanedAar(hendelse.dato)}
       </p>
-      <h3 className="mt-1 text-lg font-bold">{hendelse.tittel}</h3>
+      <h3 className="mt-1 text-lg font-bold">{uiDemoText(hendelse.tittel, hendelse.id)}</h3>
       <p className="mt-1 text-sm text-slate-500">
         {[
-          hendelse.omrade,
+          uiDemoText(hendelse.omrade, hendelse.id),
           hendelse.kostnad ? kroner(hendelse.kostnad) : "",
           hendelse.firma ||
             (hendelse.utfortAv === "selv"
-              ? "Gjort selv"
+              ? uiText("Gjort selv")
               : hendelse.utfortAv === "tidligere-eier" || !hendelse.utfortAv
-                ? "Tidligere eier"
+                ? uiText("Tidligere eier")
                 : ""),
         ]
           .filter(Boolean)
           .join(" · ")}
       </p>
       {hendelse.beskrivelse && (
-        <p className="mt-2 text-sm text-slate-600">{hendelse.beskrivelse}</p>
+        <p className="mt-2 text-sm text-slate-600">{uiDemoText(hendelse.beskrivelse, hendelse.id)}</p>
       )}
       {krav.length > 0 && (
         <div
@@ -1734,16 +1693,15 @@ function Historikkrad({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <strong>
               {komplett
-                ? "✓ Dokumentasjonen er komplett"
-                : `Dokumentasjon ${bekreftet.filter((id) => krav.some((punkt) => punkt.id === id)).length} av ${krav.length}`}
+                ? uiText("✓ Dokumentasjonen er komplett")
+                : uiFormat("Dokumentasjon {0} av {1}", [bekreftet.filter((id) => krav.some((punkt) => punkt.id === id)).length, krav.length])}
             </strong>
             <span className="text-xs font-semibold">
-              {navnPaArbeidstype(hendelse.arbeidstype)}
+              <UiText text={String(navnPaArbeidstype(hendelse.arbeidstype) ?? "")}/>
             </span>
           </div>
           {mangler.length > 0 && (
-            <p className="mt-1 text-xs">
-              Mangler: {mangler.map((punkt) => punkt.navn).join(", ")}
+            <p className="mt-1 text-xs"><UiText text="Mangler: "/>{mangler.map((punkt) => uiText(punkt.navn)).join(", ")}
             </p>
           )}
           {kanOppdatere && (
@@ -1751,9 +1709,7 @@ function Historikkrad({
               type="button"
               onClick={onDokumentasjon}
               className="mt-2 text-xs font-bold underline"
-            >
-              Oppdater dokumentasjon
-            </button>
+            ><UiText text="Oppdater dokumentasjon"/></button>
           )}
         </div>
       )}
@@ -1767,7 +1723,7 @@ function Historikkrad({
               className="text-sm font-semibold text-emerald-700"
             >
               {dokument.filtype.startsWith("image/") ? "📸" : "📄"}{" "}
-              {dokument.navn}
+              {uiDemoText(dokument.navn, dokument.id)}
             </button>
           ))}
         </div>
@@ -1777,9 +1733,7 @@ function Historikkrad({
           type="button"
           onClick={onDokumentasjon}
           className="mt-3 text-xs font-bold text-amber-700"
-        >
-          + Legg til dokumentasjonssjekk
-        </button>
+        ><UiText text="+ Legg til dokumentasjonssjekk"/></button>
       )}
     </article>
   );
@@ -1794,6 +1748,7 @@ function Filrader({
   onAapne: (dokument: Dokument) => void;
   tomtekst: string;
 }) {
+  useLanguage();
   return filer.length ? (
     <div className="space-y-2">
       {filer.map((fil) => (
@@ -1805,7 +1760,7 @@ function Filrader({
         >
           <span>{fil.filtype.startsWith("image/") ? "📸" : "📄"}</span>
           <span className="min-w-0">
-            <strong className="block truncate text-sm">{fil.navn}</strong>
+            <strong className="block truncate text-sm">{uiDemoText(fil.navn, fil.id)}</strong>
             <span className="text-xs text-slate-500">
               {fil.dokumentdato ? formatDato(fil.dokumentdato) : fil.ar}
             </span>
@@ -1814,7 +1769,7 @@ function Filrader({
       ))}
     </div>
   ) : (
-    <p className="text-sm text-slate-500">{tomtekst}</p>
+    <p className="text-sm text-slate-500"><UiText text={String(tomtekst ?? "")}/></p>
   );
 }
 function Dashboardkort({
@@ -1830,16 +1785,17 @@ function Dashboardkort({
   lenketekst?: string;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5 flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold">
           <span className="mr-2">{ikon}</span>
-          {tittel}
+          <UiText text={String(tittel ?? "")}/>
         </h2>
         {lenke && lenketekst && (
           <Link href={lenke} className="text-xs font-semibold text-slate-500">
-            {lenketekst} →
+            <UiText text={String(lenketekst ?? "")}/> →
           </Link>
         )}
       </div>
@@ -1858,16 +1814,17 @@ function Tom({
   onClick: () => void;
   visKnapp?: boolean;
 }) {
+  useLanguage();
   return (
     <div className="rounded-2xl border border-dashed border-stone-300 p-5 text-center">
-      <p className="text-sm text-slate-500">{tekst}</p>
+      <p className="text-sm text-slate-500"><UiText text={String(tekst ?? "")}/></p>
       {visKnapp && (
         <button
           type="button"
           onClick={onClick}
           className="mt-3 text-sm font-bold text-emerald-700"
         >
-          {knapp}
+          <UiText text={String(knapp ?? "")}/>
         </button>
       )}
     </div>
@@ -1884,6 +1841,7 @@ function Valg({
   tekst: string;
   onClick: () => void;
 }) {
+  useLanguage();
   return (
     <button
       type="button"
@@ -1891,8 +1849,8 @@ function Valg({
       className="min-h-28 rounded-2xl border border-stone-200 p-5 text-left hover:border-emerald-300 hover:bg-emerald-50"
     >
       <span className="text-2xl">{ikon}</span>
-      <strong className="mt-2 block">{tittel}</strong>
-      <span className="mt-1 block text-sm text-slate-500">{tekst}</span>
+      <strong className="mt-2 block"><UiText text={String(tittel ?? "")}/></strong>
+      <span className="mt-1 block text-sm text-slate-500"><UiText text={String(tekst ?? "")}/></span>
     </button>
   );
 }
@@ -1905,6 +1863,7 @@ function Modal({
   onLukk: () => void;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-3 sm:p-5"
@@ -1913,14 +1872,12 @@ function Modal({
     >
       <div className="mx-auto my-3 max-w-2xl rounded-3xl bg-white p-5 shadow-2xl sm:my-10 sm:p-7">
         <div className="mb-6 flex items-start justify-between gap-4">
-          <h2 className="text-2xl font-bold">{tittel}</h2>
+          <h2 className="text-2xl font-bold"><UiText text={String(tittel ?? "")}/></h2>
           <button
             type="button"
             onClick={onLukk}
             className="min-h-11 rounded-lg px-3 text-sm font-semibold text-slate-500"
-          >
-            Lukk
-          </button>
+          ><UiText text="Lukk"/></button>
         </div>
         {children}
       </div>
@@ -1936,6 +1893,7 @@ function Lagre({
   jobber: boolean;
   tekst: string;
 }) {
+  useLanguage();
   return (
     <button
       type="button"
@@ -1943,7 +1901,7 @@ function Lagre({
       disabled={jobber}
       className="mt-6 min-h-12 w-full rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-50"
     >
-      {jobber ? "Lagrer…" : tekst}
+      {jobber ? uiText("Lagrer…") : uiText(tekst)}
     </button>
   );
 }
@@ -1954,15 +1912,16 @@ function Felt({
   label: string;
   children: React.ReactNode;
 }) {
+  useLanguage();
   return (
     <label className="block text-sm font-semibold">
-      <span className="mb-2 block">{label}</span>
+      <span className="mb-2 block"><UiText text={String(label ?? "")}/></span>
       {children}
     </label>
   );
 }
 function formatDato(verdi: string) {
-  return new Intl.DateTimeFormat("nb-NO", {
+  return new Intl.DateTimeFormat(uiLocale(), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -1970,19 +1929,13 @@ function formatDato(verdi: string) {
 }
 function maanedAar(verdi: string) {
   return verdi
-    ? new Intl.DateTimeFormat("nb-NO", {
+    ? new Intl.DateTimeFormat(uiLocale(), {
         month: "long",
         year: "numeric",
       }).format(new Date(`${verdi}T12:00:00`))
-    : "Ukjent dato";
+    : uiText("Ukjent dato");
 }
-function kroner(verdi: number) {
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
-    maximumFractionDigits: 0,
-  }).format(verdi);
-}
+function kroner(verdi: number) { return formatMoney(parseNok(verdi), false); }
 function canRenderList<T>(liste: T[]) {
   return liste.length > 0;
 }

@@ -1,4 +1,6 @@
 "use client";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
+
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -41,6 +43,7 @@ const TYPEINFO: Record<Hendelsestype, { navn: string; prikk: string; merke: stri
 };
 
 export default function Kalender() {
+  useLanguage();
   const search = useSearchParams();
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [leietakere, setLeietakere] = useState<Leietaker[]>([]);
@@ -154,7 +157,7 @@ export default function Kalender() {
   }
 
   async function slett() {
-    if (!redigererId || !window.confirm("Vil du slette denne hendelsen?")) return;
+    if (!redigererId || !window.confirm(uiText("Vil du slette denne hendelsen?"))) return;
     setLagrer(true);
     try {
       await slettKalenderhendelse(redigererId);
@@ -174,68 +177,66 @@ export default function Kalender() {
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="font-semibold text-emerald-700">PLANLEGGING</p>
-            <h1 className="mt-1 text-3xl font-bold sm:text-4xl">Kalender</h1>
+            <p className="font-semibold text-emerald-700"><UiText text="PLANLEGGING"/></p>
+            <h1 className="mt-1 text-3xl font-bold sm:text-4xl"><UiText text="Kalender"/></h1>
             <p className="mt-2 max-w-2xl text-slate-600">
               {privatModus
-                ? "Garantier, brannkontroller og vedlikeholdsfrister legges inn automatisk. Legg til møter, befaringer og andre avtaler selv."
-                : "Garantier, kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger, møter, befaringer og andre avtaler selv."}
+                ? uiText("Garantier, brannkontroller og vedlikeholdsfrister legges inn automatisk. Legg til møter, befaringer og andre avtaler selv.")
+                : uiText("Garantier, kontrakter og vedlikeholdsfrister legges inn automatisk. Legg til visninger, møter, befaringer og andre avtaler selv.")}
             </p>
           </div>
           <button
             type="button"
             onClick={() => aapneNytt()}
             className="rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white hover:bg-emerald-600"
-          >
-            + Ny hendelse
-          </button>
+          ><UiText text="+ Ny hendelse"/></button>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
           {(Object.keys(TYPEINFO) as Hendelsestype[]).filter((type) => !privatModus || (type !== "kontrakt" && type !== "visning")).map((type) => (
             <span key={type} className="flex items-center gap-2 rounded-full bg-white px-3 py-2 text-sm shadow-sm">
               <span className={`h-2.5 w-2.5 rounded-full ${TYPEINFO[type].prikk}`} />
-              {TYPEINFO[type].navn}
+              <UiText text={String(TYPEINFO[type].navn ?? "")}/>
             </span>
           ))}
         </div>
 
         {feil && !skjemaAapent && (
-          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{feil}</p>
+          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>
         )}
 
         <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
-            <div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Fremover</p><h2 className="mt-1 text-xl font-bold">Neste hendelser</h2></div>
-            <span className="text-sm text-slate-400">{nesteHendelser.length} vist</span>
+            <div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700"><UiText text="Fremover"/></p><h2 className="mt-1 text-xl font-bold"><UiText text="Neste hendelser"/></h2></div>
+            <span className="text-sm text-slate-400">{nesteHendelser.length}<UiText text=" vist"/></span>
           </div>
           {nesteHendelser.length ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {nesteHendelser.map((hendelse) => {
-                const kort = <div className="h-full min-w-0 rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300"><div className="flex items-center gap-2"><span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPEINFO[hendelse.type].prikk}`} /><span className="text-xs font-bold uppercase text-slate-500">{fullDato(hendelse.dato)}</span></div><h3 className="mt-2 break-words font-bold">{hendelse.tittel}</h3>{hendelse.boligAdresse && <p className="mt-1 break-words text-sm text-slate-500">{hendelse.boligAdresse}</p>}</div>;
-                return hendelse.kildeUrl ? <Link key={hendelse.id} href={hendelse.kildeUrl}>{kort}</Link> : <button key={hendelse.id} type="button" onClick={() => { setValgtDato(hendelse.dato); setMaaned(startMaaned(new Date(`${hendelse.dato}T12:00:00`))); }} className="min-w-0 text-left">{kort}</button>;
+                const kort = <div className="h-full min-w-0 rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300"><div className="flex items-center gap-2"><span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPEINFO[hendelse.type].prikk}`} /><span className="text-xs font-bold uppercase text-slate-500">{fullDato(hendelse.dato)}</span></div><h3 className="mt-2 break-words font-bold">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</h3>{hendelse.boligAdresse && <p className="mt-1 break-words text-sm text-slate-500">{hendelse.boligAdresse}</p>}</div>;
+                return hendelse.kildeUrl ? <Link key={hendelse.id} href={hendelse.kildeUrl}><UiText text={String(kort ?? "")}/></Link> : <button key={hendelse.id} type="button" onClick={() => { setValgtDato(hendelse.dato); setMaaned(startMaaned(new Date(`${hendelse.dato}T12:00:00`))); }} className="min-w-0 text-left"><UiText text={String(kort ?? "")}/></button>;
               })}
             </div>
-          ) : <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Ingen kommende hendelser er registrert.</p>}
+          ) : <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500"><UiText text="Ingen kommende hendelser er registrert."/></p>}
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="overflow-hidden rounded-3xl bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 p-4 sm:p-6">
-              <button type="button" onClick={() => setMaaned(flyttMaaned(maaned, -1))} className="rounded-lg border px-3 py-2" aria-label="Forrige måned">←</button>
+              <button type="button" onClick={() => setMaaned(flyttMaaned(maaned, -1))} className="rounded-lg border px-3 py-2" aria-label={uiText("Forrige måned")}>←</button>
               <h2 className="text-lg font-bold capitalize sm:text-2xl">{maanedsnavn(maaned)}</h2>
               <div className="flex gap-2">
-                <button type="button" onClick={() => { setMaaned(startMaaned(new Date())); setValgtDato(lokalDato(new Date())); }} className="hidden rounded-lg border px-3 py-2 text-sm sm:block">I dag</button>
-                <button type="button" onClick={() => setMaaned(flyttMaaned(maaned, 1))} className="rounded-lg border px-3 py-2" aria-label="Neste måned">→</button>
+                <button type="button" onClick={() => { setMaaned(startMaaned(new Date())); setValgtDato(lokalDato(new Date())); }} className="hidden rounded-lg border px-3 py-2 text-sm sm:block"><UiText text="I dag"/></button>
+                <button type="button" onClick={() => setMaaned(flyttMaaned(maaned, 1))} className="rounded-lg border px-3 py-2" aria-label={uiText("Neste måned")}>→</button>
               </div>
             </div>
 
             <div className="grid grid-cols-7 border-b bg-slate-50 text-center text-xs font-semibold text-slate-500 sm:text-sm">
-              {["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"].map((dag) => <div key={dag} className="py-3">{dag}</div>)}
+              {["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"].map((dag) => <div key={dag} className="py-3"><UiText text={String(dag ?? "")}/></div>)}
             </div>
 
             {laster ? (
-              <p className="p-16 text-center text-slate-500">Laster kalenderen…</p>
+              <p className="p-16 text-center text-slate-500"><UiText text="Laster kalenderen…"/></p>
             ) : (
               <div className="grid grid-cols-7">
                 {dager.map((dag) => {
@@ -257,10 +258,10 @@ export default function Kalender() {
                         {dagens.slice(0, 3).map((hendelse) => (
                           <div key={hendelse.id} className="flex items-center gap-1 overflow-hidden text-[10px] sm:text-xs">
                             <span className={`h-2 w-2 shrink-0 rounded-full ${TYPEINFO[hendelse.type].prikk}`} />
-                            <span className="hidden truncate sm:block">{hendelse.tittel}</span>
+                            <span className="hidden truncate sm:block">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</span>
                           </div>
                         ))}
-                        {dagens.length > 3 && <p className="text-[10px] font-semibold text-slate-500">+{dagens.length - 3} flere</p>}
+                        {dagens.length > 3 && <p className="text-[10px] font-semibold text-slate-500">+{dagens.length - 3}<UiText text=" flere"/></p>}
                       </div>
                     </button>
                   );
@@ -270,13 +271,13 @@ export default function Kalender() {
           </section>
 
           <aside className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Valgt dag</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700"><UiText text="Valgt dag"/></p>
             <h2 className="mt-1 text-2xl font-bold">{fullDato(valgtDato)}</h2>
-            <button type="button" onClick={() => aapneNytt(valgtDato)} className="mt-4 w-full rounded-xl border border-emerald-500 px-4 py-2.5 font-semibold text-emerald-700">Legg til denne dagen</button>
+            <button type="button" onClick={() => aapneNytt(valgtDato)} className="mt-4 w-full rounded-xl border border-emerald-500 px-4 py-2.5 font-semibold text-emerald-700"><UiText text="Legg til denne dagen"/></button>
 
             <div className="mt-5 space-y-3">
               {valgteHendelser.length === 0 ? (
-                <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">Ingen hendelser denne dagen.</p>
+                <p className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500"><UiText text="Ingen hendelser denne dagen."/></p>
               ) : valgteHendelser.map((hendelse) => (
                 <Hendelseskort key={hendelse.id} hendelse={hendelse} onRediger={() => aapneRedigering(hendelse)} />
               ))}
@@ -289,48 +290,41 @@ export default function Kalender() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 p-4 pt-10 sm:pt-20">
           <form onSubmit={lagre} className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold">{redigererId ? "Rediger hendelse" : "Ny hendelse"}</h2>
-              <button type="button" onClick={() => setSkjemaAapent(false)} className="rounded-lg px-3 py-2 text-slate-500">Lukk</button>
+              <h2 className="text-2xl font-bold">{redigererId ? uiText("Rediger hendelse") : uiText("Ny hendelse")}</h2>
+              <button type="button" onClick={() => setSkjemaAapent(false)} className="rounded-lg px-3 py-2 text-slate-500"><UiText text="Lukk"/></button>
             </div>
 
-            <label className="mt-6 block text-sm font-semibold">Tittel
-              <input value={skjema.tittel} onChange={(e) => setSkjema({ ...skjema, tittel: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" placeholder="For eksempel visning" />
+            <label className="mt-6 block text-sm font-semibold"><UiText text="Tittel"/><input value={skjema.tittel} onChange={(e) => setSkjema({ ...skjema, tittel: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" placeholder={uiText("For eksempel visning")} />
             </label>
-            <label className="mt-4 block text-sm font-semibold">Type
-              <select value={skjema.type} onChange={(e) => setSkjema({ ...skjema, type: e.target.value as Hendelsestype })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
-                {!privatModus && <option value="visning">Visning</option>}
-                <option value="mote">Møte / befaring</option>
-                <option value="annet">Annet</option>
+            <label className="mt-4 block text-sm font-semibold"><UiText text="Type"/><select value={skjema.type} onChange={(e) => setSkjema({ ...skjema, type: e.target.value as Hendelsestype })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
+                {!privatModus && <option value="visning"><UiText text="Visning"/></option>}
+                <option value="mote"><UiText text="Møte / befaring"/></option>
+                <option value="annet"><UiText text="Annet"/></option>
               </select>
             </label>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-semibold">Dato
-                <input type="date" value={skjema.dato} onChange={(e) => setSkjema({ ...skjema, dato: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
+              <label className="block text-sm font-semibold"><UiText text="Dato"/><input type="date" value={skjema.dato} onChange={(e) => setSkjema({ ...skjema, dato: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
               </label>
-              <label className="block text-sm font-semibold">Klokkeslett
-                <input type="time" value={skjema.klokkeslett} onChange={(e) => setSkjema({ ...skjema, klokkeslett: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
+              <label className="block text-sm font-semibold"><UiText text="Klokkeslett"/><input type="time" value={skjema.klokkeslett} onChange={(e) => setSkjema({ ...skjema, klokkeslett: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
               </label>
             </div>
-            <label className="mt-4 block text-sm font-semibold">Bolig
-              <select value={skjema.boligId} onChange={(e) => setSkjema({ ...skjema, boligId: e.target.value, leietakerId: "" })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
-                <option value="">Ingen bolig</option>
-                {boliger.map((bolig) => <option key={bolig.id} value={bolig.id}>{String(bolig.adresse || "Uten adresse")}</option>)}
+            <label className="mt-4 block text-sm font-semibold"><UiText text="Bolig"/><select value={skjema.boligId} onChange={(e) => setSkjema({ ...skjema, boligId: e.target.value, leietakerId: "" })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
+                <option value=""><UiText text="Ingen bolig"/></option>
+                {boliger.map((bolig) => <option key={bolig.id} value={bolig.id}>{String(bolig.adresse || uiText("Uten adresse"))}</option>)}
               </select>
             </label>
-            {!privatModus && <label className="mt-4 block text-sm font-semibold">Leietaker (valgfritt)
-              <select value={skjema.leietakerId} onChange={(e) => setSkjema({ ...skjema, leietakerId: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
-                <option value="">Ingen leietaker</option>
+            {!privatModus && <label className="mt-4 block text-sm font-semibold"><UiText text="Leietaker (valgfritt)"/><select value={skjema.leietakerId} onChange={(e) => setSkjema({ ...skjema, leietakerId: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
+                <option value=""><UiText text="Ingen leietaker"/></option>
                 {filtrerteLeietakere.map((leietaker) => <option key={leietaker.id} value={leietaker.id}>{leietaker.navn}</option>)}
               </select>
             </label>}
-            <label className="mt-4 block text-sm font-semibold">Notat
-              <textarea value={skjema.notat} onChange={(e) => setSkjema({ ...skjema, notat: e.target.value })} rows={3} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
+            <label className="mt-4 block text-sm font-semibold"><UiText text="Notat"/><textarea value={skjema.notat} onChange={(e) => setSkjema({ ...skjema, notat: e.target.value })} rows={3} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
             </label>
 
-            {feil && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{feil}</p>}
+            {feil && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"><UiText text={String(feil ?? "")}/></p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-              {redigererId ? <button type="button" onClick={slett} disabled={lagrer} className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-700">Slett</button> : <span />}
-              <button type="submit" disabled={lagrer} className="rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-60">{lagrer ? "Lagrer…" : "Lagre hendelse"}</button>
+              {redigererId ? <button type="button" onClick={slett} disabled={lagrer} className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-700"><UiText text="Slett"/></button> : <span />}
+              <button type="submit" disabled={lagrer} className="rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-60">{lagrer ? uiText("Lagrer…") : uiText("Lagre hendelse")}</button>
             </div>
           </form>
         </div>
@@ -340,17 +334,18 @@ export default function Kalender() {
 }
 
 function Hendelseskort({ hendelse, onRediger }: { hendelse: Kalenderhendelse; onRediger: () => void }) {
+  useLanguage();
   const innhold = (
     <div className="rounded-2xl border border-slate-200 p-4">
       <div className="flex items-start justify-between gap-3">
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${TYPEINFO[hendelse.type].merke}`}>{TYPEINFO[hendelse.type].navn}</span>
-        {hendelse.automatisk && <span className="text-xs text-slate-400">Automatisk</span>}
+        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${TYPEINFO[hendelse.type].merke}`}><UiText text={String(TYPEINFO[hendelse.type].navn ?? "")}/></span>
+        {hendelse.automatisk && <span className="text-xs text-slate-400"><UiText text="Automatisk"/></span>}
       </div>
-      <h3 className="mt-3 font-bold">{hendelse.tittel}</h3>
-      {hendelse.klokkeslett && <p className="mt-1 text-sm text-slate-600">Kl. {hendelse.klokkeslett}</p>}
+      <h3 className="mt-3 font-bold">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</h3>
+      {hendelse.klokkeslett && <p className="mt-1 text-sm text-slate-600"><UiText text="Kl. "/>{hendelse.klokkeslett}</p>}
       {hendelse.boligAdresse && <p className="mt-1 text-sm text-slate-600">{hendelse.boligAdresse}</p>}
-      {hendelse.notat && <p className="mt-2 text-sm text-slate-500">{hendelse.notat}</p>}
-      {!hendelse.automatisk && <button type="button" onClick={onRediger} className="mt-3 text-sm font-semibold text-emerald-700">Rediger</button>}
+      {hendelse.notat && <p className="mt-2 text-sm text-slate-500">{uiDemoText(hendelse.notat, hendelse.id)}</p>}
+      {!hendelse.automatisk && <button type="button" onClick={onRediger} className="mt-3 text-sm font-semibold text-emerald-700"><UiText text="Rediger"/></button>}
     </div>
   );
   return hendelse.kildeUrl ? <Link href={hendelse.kildeUrl}>{innhold}</Link> : innhold;
@@ -375,5 +370,5 @@ function kalenderdager(maaned: Date) {
     return dato;
   });
 }
-function maanedsnavn(dato: Date) { return new Intl.DateTimeFormat("nb-NO", { month: "long", year: "numeric" }).format(dato); }
-function fullDato(dato: string) { return new Intl.DateTimeFormat("nb-NO", { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${dato}T12:00:00`)); }
+function maanedsnavn(dato: Date) { return new Intl.DateTimeFormat(uiLocale(), { month: "long", year: "numeric" }).format(dato); }
+function fullDato(dato: string) { return new Intl.DateTimeFormat(uiLocale(), { weekday: "long", day: "numeric", month: "long" }).format(new Date(`${dato}T12:00:00`)); }

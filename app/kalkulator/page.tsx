@@ -1,4 +1,7 @@
 "use client";
+import { formatMoney, parseNok } from "../lib/currency";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
+
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -70,6 +73,7 @@ type Bolig = {
 };
 
 export default function Kalkulator() {
+  useLanguage();
   const router = useRouter();
 
   const [redigeringsId, setRedigeringsId] =
@@ -456,125 +460,122 @@ export default function Kalkulator() {
         <div className="mx-auto max-w-7xl">
           <p className="font-semibold text-emerald-400">
             {redigeringsId
-              ? "REDIGER BOLIG"
-              : "NY BOLIG"}
+              ? uiText("REDIGER BOLIG")
+              : uiText("NY BOLIG")}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
             {redigeringsId
-              ? "Oppdater boligopplysningene"
-              : "Registrer og analyser en bolig"}
+              ? uiText("Oppdater boligopplysningene")
+              : uiText("Registrer og analyser en bolig")}
           </h1>
 
-          <p className="mt-3 text-slate-400">
-            Sammenlign verdi, gjeld og lønnsomhet.
-          </p>
+          <p className="mt-3 text-slate-400"><UiText text="Sammenlign verdi, gjeld og lønnsomhet."/></p>
         </div>
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Nokkeltall
-            label="Nåværende verdi"
+            label={uiText("Nåværende verdi")}
             value={kroner(markedsverdi)}
           />
 
           <Nokkeltall
-            label="Egenkapital"
+            label={uiText("Egenkapital")}
             value={kroner(egenkapitalverdi)}
           />
 
           <Nokkeltall
-            label="Bruttoyield av kjøpesum"
+            label={uiText("Bruttoyield av kjøpesum")}
             value={`${bruttoyield.toFixed(2)} %`}
           />
 
           <Nokkeltall
-            label="Månedlig kontantstrøm"
+            label={uiText("Månedlig kontantstrøm")}
             value={kroner(manedligKontantstrom)}
           />
         </section>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
-            <Kort tittel="Boligen">
+            <Kort tittel={uiText("Boligen")}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="relative">
-                  <label className="block"><span className="mb-2 block text-sm font-medium">Søk etter adresse</span><input type="text" value={adresse} placeholder="Skriv gateadresse" autoComplete="off" onChange={(event) => { setAdresse(event.target.value); setAdresseErValgt(false); setKommunenummer(""); setTilgjengeligeBolignumre([]); setBolignummer(""); }} className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500" /></label>
-                  {sokerAdresse && <p className="absolute right-3 top-11 text-xs text-slate-400">Søker…</p>}
+                  <label className="block"><span className="mb-2 block text-sm font-medium"><UiText text="Søk etter adresse"/></span><input type="text" value={adresse} placeholder={uiText("Skriv gateadresse")} autoComplete="off" onChange={(event) => { setAdresse(event.target.value); setAdresseErValgt(false); setKommunenummer(""); setTilgjengeligeBolignumre([]); setBolignummer(""); }} className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500" /></label>
+                  {sokerAdresse && <p className="absolute right-3 top-11 text-xs text-slate-400"><UiText text="Søker…"/></p>}
                   {adresseforslag.length > 0 && <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl">{adresseforslag.map((forslag, indeks) => <button key={`${forslag.adressetekst}-${forslag.postnummer}-${indeks}`} type="button" onClick={() => velgAdresse(forslag)} className="block w-full rounded-lg px-3 py-3 text-left hover:bg-emerald-50"><strong className="block text-sm">{forslag.adressetekst}</strong><span className="mt-1 block text-xs text-slate-500">{forslag.postnummer} {forslag.poststed} · {forslag.kommunenavn}</span></button>)}</div>}
-                  {adresseErValgt && <p className="mt-2 text-xs font-semibold text-emerald-700">✓ Adresse bekreftet fra Kartverket</p>}
+                  {adresseErValgt && <p className="mt-2 text-xs font-semibold text-emerald-700"><UiText text="✓ Adresse bekreftet fra Kartverket"/></p>}
                 </div>
 
                 <Valgfelt
-                  label="Boligtype"
+                  label={uiText("Boligtype")}
                   value={boligtype}
                   onChange={setBoligtype}
                 />
               </div>
             </Kort>
 
-            <Kort tittel="Kjøp, verdi og lån">
+            <Kort tittel={uiText("Kjøp, verdi og lån")}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Tallfelt
-                  label="Opprinnelig kjøpesum"
+                  label={uiText("Opprinnelig kjøpesum")}
                   value={kjopesum}
                   onChange={setKjopesum}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 {adresseErValgt && tilgjengeligeBolignumre.length > 0 && (
                   <label className="block sm:col-span-2">
-                    <span className="mb-2 block text-sm font-medium">
-                      Bolignummer {tilgjengeligeBolignumre.length > 1 && <span className="font-normal text-slate-500">– velg riktig boenhet</span>}
+                    <span className="mb-2 block text-sm font-medium"><UiText text="Bolignummer "/>{tilgjengeligeBolignumre.length > 1 && <span className="font-normal text-slate-500"><UiText text="– velg riktig boenhet"/></span>}
                     </span>
                     <select value={bolignummer} onChange={(event) => setBolignummer(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 focus:border-emerald-500">
-                      {tilgjengeligeBolignumre.length > 1 && <option value="">Velg bolignummer</option>}
+                      {tilgjengeligeBolignumre.length > 1 && <option value=""><UiText text="Velg bolignummer"/></option>}
                       {tilgjengeligeBolignumre.map((nummer) => <option key={nummer} value={nummer}>{nummer}</option>)}
                     </select>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">Bolignummeret, for eksempel H0101, identifiserer riktig boenhet i bygningen. Det er ikke alltid det samme som seksjonsnummer.</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500"><UiText text="Bolignummeret, for eksempel H0101, identifiserer riktig boenhet i bygningen. Det er ikke alltid det samme som seksjonsnummer."/></p>
                   </label>
                 )}
 
-                <label className="block"><span className="mb-2 block text-sm font-medium">Kjøpsdato</span><input type="date" value={kjopsdato} onChange={(event) => { setKjopsdato(event.target.value); if (!verdiGrunnlagDato) setVerdiGrunnlagDato(event.target.value); }} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label>
+                <label className="block"><span className="mb-2 block text-sm font-medium"><UiText text="Kjøpsdato"/></span><input type="date" value={kjopsdato} onChange={(event) => { setKjopsdato(event.target.value); if (!verdiGrunnlagDato) setVerdiGrunnlagDato(event.target.value); }} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label>
 
                 <Tallfelt
-                  label="Kjøpskostnader og oppussing"
+                  label={uiText("Kjøpskostnader og oppussing")}
                   value={kjopskostnader}
                   onChange={setKjopskostnader}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Nåværende markedsverdi"
+                  label={uiText("Nåværende markedsverdi")}
                   value={markedsverdi}
                   onChange={(verdi) => { setMarkedsverdi(verdi); setAutomatiskVerdi(false); setVerdiestimat(null); }}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 sm:col-span-2">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div><strong className="block">Automatisk verdiutvikling</strong><p className="mt-1 text-sm leading-5 text-slate-600">Velg hvilket beløp SSBs regionale prisutvikling skal regnes fra.</p></div>
+                    <div><strong className="block"><UiText text="Automatisk verdiutvikling"/></strong><p className="mt-1 text-sm leading-5 text-slate-600"><UiText text="Velg hvilket beløp SSBs regionale prisutvikling skal regnes fra."/></p></div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <button type="button" onClick={() => { setVerdiGrunnlagType("kjop"); setVerdiGrunnlag(kjopesum); setVerdiGrunnlagDato(kjopsdato); }} className={verdiGrunnlagType === "kjop" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block">Bruk kjøpesum</strong><span className="mt-1 block text-sm text-slate-500">{kroner(kjopesum)} fra {kjopsdato ? formaterKortDato(kjopsdato) : "manglende kjøpsdato"}</span></button>
-                    <button type="button" onClick={() => { setVerdiGrunnlagType("egen"); if (verdiGrunnlag <= 0 || verdiGrunnlag === kjopesum) setVerdiGrunnlag(markedsverdi); if (!verdiGrunnlagDato || verdiGrunnlagDato === kjopsdato) setVerdiGrunnlagDato(new Date().toISOString().slice(0, 10)); }} className={verdiGrunnlagType === "egen" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block">Bruk egen markedsverdi</strong><span className="mt-1 block text-sm text-slate-500">For eksempel meglervurdering eller takst</span></button>
+                    <button type="button" onClick={() => { setVerdiGrunnlagType("kjop"); setVerdiGrunnlag(kjopesum); setVerdiGrunnlagDato(kjopsdato); }} className={verdiGrunnlagType === "kjop" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block"><UiText text="Bruk kjøpesum"/></strong><span className="mt-1 block text-sm text-slate-500">{kroner(kjopesum)}<UiText text=" fra "/>{kjopsdato ? formaterKortDato(kjopsdato) : uiText("manglende kjøpsdato")}</span></button>
+                    <button type="button" onClick={() => { setVerdiGrunnlagType("egen"); if (verdiGrunnlag <= 0 || verdiGrunnlag === kjopesum) setVerdiGrunnlag(markedsverdi); if (!verdiGrunnlagDato || verdiGrunnlagDato === kjopsdato) setVerdiGrunnlagDato(new Date().toISOString().slice(0, 10)); }} className={verdiGrunnlagType === "egen" ? "rounded-xl border-2 border-emerald-500 bg-white p-4 text-left" : "rounded-xl border border-slate-300 bg-white/60 p-4 text-left"}><strong className="block"><UiText text="Bruk egen markedsverdi"/></strong><span className="mt-1 block text-sm text-slate-500"><UiText text="For eksempel meglervurdering eller takst"/></span></button>
                   </div>
-                  {verdiGrunnlagType === "egen" && <div className="mt-4 grid gap-4 rounded-xl bg-white p-4 sm:grid-cols-2"><Tallfelt label="Markedsverdi som utgangspunkt" value={verdiGrunnlag} onChange={setVerdiGrunnlag} suffix="kr" /><label className="block"><span className="mb-2 block text-sm font-medium">Dato verdien gjelder fra</span><input type="date" value={verdiGrunnlagDato} onChange={(event) => setVerdiGrunnlagDato(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label></div>}
-                  <button type="button" onClick={beregnBoligverdi} disabled={beregnerVerdi} className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white disabled:opacity-60">{beregnerVerdi ? "Beregner…" : "Oppdater markedsverdi med SSB"}</button>
-                  {verdiestimat && <div className="mt-4 rounded-xl bg-white p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs text-slate-500">Estimert markedsutvikling</p><p className="mt-1 text-2xl font-bold">{kroner(markedsverdi)}</p></div>{verdiestimat.endringProsent !== 0 && <p className={verdiestimat.endringProsent >= 0 ? "font-bold text-emerald-700" : "font-bold text-red-700"}>{verdiestimat.endringProsent >= 0 ? "+" : ""}{verdiestimat.endringProsent.toFixed(1)} %</p>}</div><p className="mt-3 text-xs leading-5 text-slate-500">SSB {verdiestimat.fra ? `${verdiestimat.fra}–` : ""}{verdiestimat.til}. Dette er generell prisutvikling, ikke en takst eller individuell verdivurdering. Du kan endre markedsverdien manuelt.</p></div>}
-                  <label className="mt-4 flex items-start gap-3"><input type="checkbox" checked={automatiskVerdi} onChange={(event) => setAutomatiskVerdi(event.target.checked)} className="mt-1 h-5 w-5 accent-emerald-600" /><span><strong className="block text-sm">Oppdater estimatet automatisk</strong><span className="mt-1 block text-xs leading-5 text-slate-500">Verdien justeres når SSB publiserer nye kvartalstall. Slå av hvis du vil bruke din egen markedsverdi.</span></span></label>
+                  {verdiGrunnlagType === "egen" && <div className="mt-4 grid gap-4 rounded-xl bg-white p-4 sm:grid-cols-2"><Tallfelt label={uiText("Markedsverdi som utgangspunkt")} value={verdiGrunnlag} onChange={setVerdiGrunnlag} suffix="NOK" /><label className="block"><span className="mb-2 block text-sm font-medium"><UiText text="Dato verdien gjelder fra"/></span><input type="date" value={verdiGrunnlagDato} onChange={(event) => setVerdiGrunnlagDato(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3" /></label></div>}
+                  <button type="button" onClick={beregnBoligverdi} disabled={beregnerVerdi} className="mt-4 w-full rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white disabled:opacity-60">{beregnerVerdi ? uiText("Beregner…") : uiText("Oppdater markedsverdi med SSB")}</button>
+                  {verdiestimat && <div className="mt-4 rounded-xl bg-white p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs text-slate-500"><UiText text="Estimert markedsutvikling"/></p><p className="mt-1 text-2xl font-bold">{kroner(markedsverdi)}</p></div>{verdiestimat.endringProsent !== 0 && <p className={verdiestimat.endringProsent >= 0 ? "font-bold text-emerald-700" : "font-bold text-red-700"}>{verdiestimat.endringProsent >= 0 ? "+" : ""}{verdiestimat.endringProsent.toFixed(1)} %</p>}</div><p className="mt-3 text-xs leading-5 text-slate-500">SSB {verdiestimat.fra ? `${verdiestimat.fra}–` : ""}{verdiestimat.til}<UiText text=". Dette er generell prisutvikling, ikke en takst eller individuell verdivurdering. Du kan endre markedsverdien manuelt."/></p></div>}
+                  <label className="mt-4 flex items-start gap-3"><input type="checkbox" checked={automatiskVerdi} onChange={(event) => setAutomatiskVerdi(event.target.checked)} className="mt-1 h-5 w-5 accent-emerald-600" /><span><strong className="block text-sm"><UiText text="Oppdater estimatet automatisk"/></strong><span className="mt-1 block text-xs leading-5 text-slate-500"><UiText text="Verdien justeres når SSB publiserer nye kvartalstall. Slå av hvis du vil bruke din egen markedsverdi."/></span></span></label>
                 </div>
 
                 <Tallfelt
-                  label="Nåværende restlån"
+                  label={uiText("Nåværende restlån")}
                   value={restlaan}
                   onChange={setRestlaan}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Rente"
+                  label={uiText("Rente")}
                   value={rente}
                   onChange={setRente}
                   suffix="%"
@@ -582,7 +583,7 @@ export default function Kalkulator() {
                 />
 
                 <Tallfelt
-                  label="Gjenværende nedbetalingstid"
+                  label={uiText("Gjenværende nedbetalingstid")}
                   value={nedbetalingstid}
                   onChange={setNedbetalingstid}
                   suffix="år"
@@ -590,17 +591,17 @@ export default function Kalkulator() {
               </div>
             </Kort>
 
-            <Kort tittel="Leieinntekter og kostnader">
+            <Kort tittel={uiText("Leieinntekter og kostnader")}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Tallfelt
-                  label="Månedlig husleie"
+                  label={uiText("Månedlig husleie")}
                   value={manedsleie}
                   onChange={setManedsleie}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Forventet ledighet"
+                  label={uiText("Forventet ledighet")}
                   value={ledighet}
                   onChange={setLedighet}
                   suffix="%"
@@ -608,10 +609,10 @@ export default function Kalkulator() {
                 />
 
                 <Tallfelt
-                  label="Felleskostnader per måned"
+                  label={uiText("Felleskostnader per måned")}
                   value={felleskostnader}
                   onChange={setFelleskostnader}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 sm:col-span-2">
@@ -624,43 +625,37 @@ export default function Kalkulator() {
                     className="mt-1 h-5 w-5 accent-amber-600"
                   />
                   <span>
-                    <strong className="block text-sm">
-                      Felleskostnadene inneholder renter eller avdrag på fellesgjeld
-                    </strong>
-                    <span className="mt-1 block text-sm leading-5 text-slate-600">
-                      Kryss av hvis deler av felleskostnadene gjelder lån i
-                      sameiet eller borettslaget. Da må beløpet vurderes i
-                      årsrapporten.
-                    </span>
+                    <strong className="block text-sm"><UiText text="Felleskostnadene inneholder renter eller avdrag på fellesgjeld"/></strong>
+                    <span className="mt-1 block text-sm leading-5 text-slate-600"><UiText text="Kryss av hvis deler av felleskostnadene gjelder lån i sameiet eller borettslaget. Da må beløpet vurderes i årsrapporten."/></span>
                   </span>
                 </label>
 
                 <Tallfelt
-                  label="Kommunale avgifter per år"
+                  label={uiText("Kommunale avgifter per år")}
                   value={kommunaleAvgifter}
                   onChange={setKommunaleAvgifter}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Strøm og internett per måned"
+                  label={uiText("Strøm og internett per måned")}
                   value={stromInternett}
                   onChange={setStromInternett}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Vedlikehold per år"
+                  label={uiText("Vedlikehold per år")}
                   value={vedlikehold}
                   onChange={setVedlikehold}
-                  suffix="kr"
+                  suffix="NOK"
                 />
 
                 <Tallfelt
-                  label="Andre kostnader per år"
+                  label={uiText("Andre kostnader per år")}
                   value={andreKostnader}
                   onChange={setAndreKostnader}
-                  suffix="kr"
+                  suffix="NOK"
                 />
               </div>
 
@@ -677,75 +672,71 @@ export default function Kalkulator() {
                 />
 
                 <span>
-                  <strong>
-                    Utleieinntekten er skattepliktig
-                  </strong>
+                  <strong><UiText text="Utleieinntekten er skattepliktig"/></strong>
 
-                  <span className="mt-1 block text-sm text-slate-500">
-                    Forenklet skatteestimat på 22 %.
-                  </span>
+                  <span className="mt-1 block text-sm text-slate-500"><UiText text="Forenklet skatteestimat på 22 %."/></span>
                 </span>
               </label>
             </Kort>
           </div>
 
           <aside className="space-y-6">
-            <Kort tittel="Verdi og gjeld">
+            <Kort tittel={uiText("Verdi og gjeld")}>
               <Rad
-                label="Total investering"
+                label={uiText("Total investering")}
                 value={kroner(totalInvestering)}
               />
 
               <Rad
-                label="Markedsverdi"
+                label={uiText("Markedsverdi")}
                 value={kroner(markedsverdi)}
               />
 
               <Rad
-                label="Restlån"
+                label={uiText("Restlån")}
                 value={kroner(restlaan)}
               />
 
               <Rad
-                label="Egenkapital"
+                label={uiText("Egenkapital")}
                 value={kroner(egenkapitalverdi)}
                 viktig
               />
 
               <Rad
-                label="Verdistigning"
+                label={uiText("Verdistigning")}
                 value={kroner(verdistigning)}
               />
 
               <Rad
-                label="Belåningsgrad"
+                label={uiText("Belåningsgrad")}
                 value={`${belaningsgrad.toFixed(1)} %`}
               />
             </Kort>
 
-            <Kort tittel="Lønnsomhet">
+            <Kort tittel={uiText("Lønnsomhet")}>
               <Rad
-                label="Bruttoyield av kjøpesum"
+                label={uiText("Bruttoyield av kjøpesum")}
                 value={`${bruttoyield.toFixed(2)} %`}
               />
 
               <Rad
-                label="Nettoyield"
+                label={uiText("Nettoyield")}
                 value={`${nettoyield.toFixed(2)} %`}
               />
 
               <Rad
-                label="Lånebetaling per måned"
+                label={uiText("Lånebetaling per måned")}
                 value={kroner(manedligLaan)}
               />
 
               <Rad
-                label="Beregnet skatteeffekt per år"
+                label={uiText("Beregnet skatteeffekt per år")}
                 value={kroner(beregnetSkatt)}
               />
 
               <Rad
-                label="Avkastning på egenkapital"
+                label={uiText("Avkastning på egenkapital")}
                 value={`${egenkapitalavkastning.toFixed(
                   2,
                 )} %`}
@@ -759,9 +750,7 @@ export default function Kalkulator() {
                   : "rounded-2xl bg-red-700 p-6 text-white"
               }
             >
-              <p className="text-sm opacity-80">
-                Månedlig kontantstrøm
-              </p>
+              <p className="text-sm opacity-80"><UiText text="Månedlig kontantstrøm"/></p>
 
               <p className="mt-2 text-3xl font-bold">
                 {kroner(manedligKontantstrom)}
@@ -770,7 +759,7 @@ export default function Kalkulator() {
 
             {feilmelding && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-                {feilmelding}
+                <UiText text={feilmelding}/>
               </div>
             )}
 
@@ -781,19 +770,17 @@ export default function Kalkulator() {
               className="w-full rounded-xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {lagrer
-                ? "Lagrer…"
+                ? uiText("Lagrer…")
                 : redigeringsId
-                ? "Lagre endringer"
-                : "Lagre bolig"}
+                ? uiText("Lagre endringer")
+                : uiText("Lagre bolig")}
             </button>
 
             {redigeringsId && (
               <Link
                 href="/boliger"
                 className="block rounded-xl border border-slate-300 px-6 py-3 text-center font-semibold hover:bg-white"
-              >
-                Avbryt redigering
-              </Link>
+              ><UiText text="Avbryt redigering"/></Link>
             )}
           </aside>
         </div>
@@ -809,9 +796,10 @@ function Kort({
   tittel: string;
   children: ReactNode;
 }) {
+  useLanguage();
   return (
     <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="mb-5 text-xl font-bold">{tittel}</h2>
+      <h2 className="mb-5 text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2>
       {children}
     </section>
   );
@@ -830,10 +818,11 @@ function Tallfelt({
   suffix: string;
   step?: string;
 }) {
+  useLanguage();
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium">
-        {label}
+        <UiText text={String(label ?? "")}/>
       </span>
 
       <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white">
@@ -865,10 +854,11 @@ function Tekstfelt({
   value: string;
   onChange: (value: string) => void;
 }) {
+  useLanguage();
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium">
-        {label}
+        <UiText text={String(label ?? "")}/>
       </span>
 
       <input
@@ -893,10 +883,11 @@ function Valgfelt({
   value: string;
   onChange: (value: string) => void;
 }) {
+  useLanguage();
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium">
-        {label}
+        <UiText text={String(label ?? "")}/>
       </span>
 
       <select
@@ -906,12 +897,12 @@ function Valgfelt({
         }
         className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"
       >
-        <option>Leilighet</option>
-        <option>Enebolig</option>
-        <option>Rekkehus</option>
-        <option>Tomannsbolig</option>
-        <option>Hybel</option>
-        <option>Næringseiendom</option>
+        <option value="Leilighet"><UiText text="Leilighet"/></option>
+        <option value="Enebolig"><UiText text="Enebolig"/></option>
+        <option value="Rekkehus"><UiText text="Rekkehus"/></option>
+        <option value="Tomannsbolig"><UiText text="Tomannsbolig"/></option>
+        <option value="Hybel"><UiText text="Hybel"/></option>
+        <option value="Næringseiendom"><UiText text="Næringseiendom"/></option>
       </select>
     </label>
   );
@@ -924,9 +915,10 @@ function Nokkeltall({
   label: string;
   value: string;
 }) {
+  useLanguage();
   return (
     <div className="rounded-2xl bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
+      <p className="text-sm text-slate-500"><UiText text={String(label ?? "")}/></p>
       <p className="mt-2 text-2xl font-bold">{value}</p>
     </div>
   );
@@ -941,6 +933,7 @@ function Rad({
   value: string;
   viktig?: boolean;
 }) {
+  useLanguage();
   return (
     <div className="flex items-center justify-between gap-4 py-2">
       <span
@@ -948,7 +941,7 @@ function Rad({
           viktig ? "font-bold" : "text-slate-600"
         }
       >
-        {label}
+        <UiText text={String(label ?? "")}/>
       </span>
 
       <span
@@ -964,16 +957,10 @@ function Rad({
   );
 }
 
-function kroner(belop: number) {
-  return new Intl.NumberFormat("nb-NO", {
-    style: "currency",
-    currency: "NOK",
-    maximumFractionDigits: 0,
-  }).format(Number.isFinite(belop) ? belop : 0);
-}
+function kroner(belop: number) { return formatMoney(parseNok(belop), false); }
 
 function formaterKortDato(dato: string) {
-  return new Intl.DateTimeFormat("nb-NO", {
+  return new Intl.DateTimeFormat(uiLocale(), {
     day: "numeric",
     month: "short",
     year: "numeric",

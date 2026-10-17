@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "./components/Footer";
 import Tilbakemelding from "./components/Tilbakemelding";
+import { CurrencyController } from "./lib/currency";
+import { LanguageController } from "./lib/language";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +26,14 @@ export const metadata: Metadata = {
   description:
     "Samle boliginformasjon, oppussing, vedlikehold og dokumenter. Egen løsning for både boligeiere og utleiere.",
   applicationName: "Eiendomsoversikten",
+  icons: {
+    icon: [
+      { url: "/brand/icon-48-v76.png", sizes: "48x48", type: "image/png" },
+      { url: "/brand/icon-192-v76.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/brand/favicon-v76.ico",
+    apple: [{ url: "/brand/apple-touch-icon-v76.png", sizes: "180x180", type: "image/png" }],
+  },
   authors: [{ name: "Eiendomsoversikten" }],
   creator: "Eiendomsoversikten",
   publisher: "Eiendomsoversikten",
@@ -47,13 +57,15 @@ export const metadata: Metadata = {
     locale: "nb_NO",
     url: "/",
     siteName: "Eiendomsoversikten",
+    images: [{ url: "/brand/eiendomsoversikten-wide-v76.jpg", width: 1536, height: 1024, alt: "Eiendomsoversikten" }],
     title:
       "Eiendomsoversikten – full kontroll på boligen",
     description:
       "Én tjeneste for privat bolig og utleie. Samle boliginformasjon, oppussing, vedlikehold, økonomi og dokumenter.",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    images: ["/brand/eiendomsoversikten-wide-v76.jpg"],
     title:
       "Eiendomsoversikten – full kontroll på boligen",
     description:
@@ -104,6 +116,7 @@ export default function RootLayout({
   return (
     <html lang="nb">
       <body>
+        <LanguageController /><CurrencyController />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
