@@ -1,0 +1,983 @@
+"use client";
+// Utleie-only view. Original private/shared pages are intentionally kept intact.
+import { velgUtleieBolig } from "../lib/utleie-data/omfang";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText  } from "../lib/language";
+
+
+import Link from "../components/UtleieLink";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Navigasjon from "../components/UtleieInnholdHeader";
+import Boligadministrasjon from "../components/Boligadministrasjon";
+import Brannkontroll from "../components/Brannkontroll";
+import {
+  demoAltOmBoligen,
+  lesAltOmBoligen,
+  nyNokkel,
+  nyOppussing,
+  nyttMal,
+  nyttUteomrade,
+  nyttUtstyr,
+  type AltOmBoligenData,
+  type Malinfo,
+  type Nokkelinfo,
+  type Oppussinginfo,
+  type Uteomradeinfo,
+  type Utstyrinfo,
+} from "../lib/alt-om-boligen";
+import { erEksempelbolig, hentBoliger, oppdaterBolig, type BoligData } from "../lib/utleie-data/boliger";
+import { DEMO_BOLIGER } from "../lib/demo-data";
+import {
+  dokumentLenke,
+  hentDokumenter,
+  lastOppDokument,
+  oppdaterDokumentkategori,
+  slettDokument,
+  type Dokument,
+} from "../lib/utleie-data/dokumenter";
+import { createClient } from "../lib/supabase/client";
+
+type Objektseksjon = "generell" | "teknisk" | "sikkerhet" | "tilleggsarealer";
+type Listefelt = "uteomrader" | "nokler" | "utstyr" | "oppussing" | "mal";
+
+const UTEOMRADETYPER = ["Hage", "Terrasse/uteplass", "Bod/redskapsbod", "Garasje", "Parkering", "Drivhus", "Gjerde/mur/port", "Annet"];
+
+const BILDEKATEGORI = "boligbilde";
+const PLANTEGNINGKATEGORI = "plantegning";
+const demoPrivatGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", adresse: "Eksempelveien 12, Bergen", boligtype: "Enebolig", byggeaar: "1958", areal: 142 };
+const demoPrivatBolig: BoligData = { ...demoPrivatGrunnlag, altOmBoligen: demoAltOmBoligen(demoPrivatGrunnlag) };
+
+export default function AltOmBoligen() {
+  const language = useLanguage();
+  const [boliger, setBoliger] = useState<BoligData[]>([]);
+  const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
+  const [valgtBoligId, setValgtBoligId] = useState("");
+  const [innlogget, setInnlogget] = useState(false);
+  const [laster, setLaster] = useState(true);
+  const [redigerer, setRedigerer] = useState(false);
+  const [visHurtigvalg, setVisHurtigvalg] = useState(false);
+  const [utkast, setUtkast] = useState<AltOmBoligenData | null>(null);
+  const [jobber, setJobber] = useState(false);
+  const [feil, setFeil] = useState("");
+  const [melding, setMelding] = useState("");
+  const [filLenker, setFilLenker] = useState<Record<string, string>>({});
+  const innlasting = useRef(0);
+  const authBruker = useRef<string | null | undefined>(undefined);
+
+  async function lastInn() {
+    const foresporsel = ++innlasting.current;
+    setLaster(true);
+    setFeil("");
+    try {
+      const supabase = createClient();
+      const { data, error: authFeil } = await supabase.auth.getUser();
+      if (foresporsel !== innlasting.current) return;
+      if (authFeil && authFeil.name !== "AuthSessionMissingError") throw authFeil;
+      const erInnlogget = Boolean(data.user);
+      authBruker.current = data.user?.id || null;
+      setInnlogget(erInnlogget);
+      const alleBoliger = await hentBoliger({ kunEgne: true });
+      const fraAdresse = new URLSearchParams(window.location.search).get("bolig") || "";
+      const viserPrivatEksempel = false;
+      const b = erInnlogget ? alleBoliger.filter((bolig) => !erEksempelbolig(bolig)) : viserPrivatEksempel ? [demoPrivatBolig] : alleBoliger;
+      let d: Dokument[] = [];
+      try {
+        d = await hentDokumenter();
+      } catch (dokumentfeil) {
+        console.error("Kunne ikke hente boligfiler", dokumentfeil);
+        if (foresporsel === innlasting.current) setFeil("Boligopplysningene ble hentet, men bilder og dokumenter kunne ikke lastes. Prøv igjen.");
+      }
+      if (foresporsel !== innlasting.current) return;
+      setInnlogget(erInnlogget);
+      setBoliger(b);
+      setDokumenter(d);
+
+      const lagret = localStorage.getItem("utleie_alt_om_boligen_valgt") || "";
+      const start = [fraAdresse, lagret, String(b[0]?.id || "")].find((id) =>
+        b.some((bolig) => String(bolig.id) === id),
+      );
+      setValgtBoligId(start || "");
+    } catch (error) {
+      if (foresporsel !== innlasting.current) return;
+      console.error(error);
+      setBoliger([]);
+      setDokumenter([]);
+      setValgtBoligId("");
+      setFeil("Kunne ikke hente boligopplysningene. Prøv igjen.");
+    } finally {
+      if (foresporsel === innlasting.current) setLaster(false);
+    }
+  }
+
+  useEffect(() => {
+    let aktiv = true;
+    let ventende: ReturnType<typeof setTimeout> | undefined;
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_hendelse, sesjon) => {
+      const brukerId = sesjon?.user.id || null;
+      if (authBruker.current === brukerId) return;
+      authBruker.current = brukerId;
+      ++innlasting.current;
+      setInnlogget(Boolean(brukerId));
+      setBoliger([]);
+      setDokumenter([]);
+      setValgtBoligId("");
+      setUtkast(null);
+      setRedigerer(false);
+      setFilLenker({});
+      setLaster(true);
+      clearTimeout(ventende);
+      ventende = setTimeout(() => { if (aktiv) void lastInn(); }, 0);
+    });
+    lastInn();
+    return () => { aktiv = false; ++innlasting.current; clearTimeout(ventende); subscription.unsubscribe(); };
+  }, []);
+
+  const valgtBolig = useMemo(
+    () => boliger.find((bolig) => String(bolig.id) === valgtBoligId) || null,
+    [boliger, valgtBoligId],
+  );
+  const kanRedigere = String(valgtBolig?.tilgang || "eier") !== "leser";
+
+  const data = useMemo(() => {
+    if (!valgtBolig) return null;
+    return uiDemoData(innlogget ? lesAltOmBoligen(valgtBolig) : demoAltOmBoligen(valgtBolig), String(valgtBolig.id));
+  }, [valgtBolig, innlogget, language]);
+
+  useEffect(() => {
+    if (!data || !innlogget || !kanRedigere || redigerer) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("rediger") !== "1") return;
+    setUtkast(structuredClone(data));
+    setRedigerer(true);
+    url.searchParams.delete("rediger");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [data, innlogget, kanRedigere, redigerer]);
+
+  useEffect(() => {
+    if (!redigerer && data) setUtkast(data);
+  }, [data, redigerer]);
+
+  useEffect(() => {
+    if (laster || !data || redigerer || window.location.hash !== "#del-tilgang") return;
+    requestAnimationFrame(() => document.getElementById("del-tilgang")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }, [laster, data, redigerer]);
+
+  // Filer uten riktig boligtilknytning vises bare i dokumentarkivet.
+  const bilder = dokumenter.filter((dokument) => dokument.boligId === valgtBoligId && dokument.kategori === BILDEKATEGORI);
+  const plantegninger = dokumenter.filter((dokument) => dokument.boligId === valgtBoligId && dokument.kategori === PLANTEGNINGKATEGORI);
+  const valgtToppbilde = data
+    ? bilder.find((dokument) => dokument.id === data.forsidebildeId) || bilder.find((dokument) => dokument.boligId === valgtBoligId) || bilder[0]
+    : null;
+  const toppbildeUrl = valgtToppbilde ? filLenker[valgtToppbilde.id] || "" : "";
+
+  useEffect(() => {
+    let aktiv = true;
+    async function lagLenker() {
+      if (!innlogget) {
+        setFilLenker({});
+        return;
+      }
+      const aktuelle = [...bilder, ...plantegninger].filter((dokument) => dokument.filsti);
+      const par = await Promise.all(
+        aktuelle.map(async (dokument) => {
+          try {
+            return [dokument.id, await dokumentLenke(dokument.filsti)] as const;
+          } catch {
+            return [dokument.id, ""] as const;
+          }
+        }),
+      );
+      if (aktiv) setFilLenker(Object.fromEntries(par));
+    }
+    lagLenker();
+    return () => {
+      aktiv = false;
+    };
+  }, [dokumenter, valgtBoligId, innlogget]);
+
+  function velgBolig(id: string) {
+    if (redigerer && !confirm(uiText("Forkast endringene og bytt bolig?"))) return;
+    setRedigerer(false);
+    setUtkast(null);
+    setFilLenker({});
+    setValgtBoligId(id);
+    velgUtleieBolig(id);
+    setFeil("");
+    setMelding("");
+    localStorage.setItem("utleie_alt_om_boligen_valgt", id);
+  }
+
+  function startRedigering() {
+    if (!innlogget) {
+      window.location.assign("/logg-inn");
+      return;
+    }
+    if (!kanRedigere) {
+      setFeil("Du har lesetilgang og kan derfor ikke redigere boligen.");
+      return;
+    }
+    if (data) setUtkast(structuredClone(data));
+    setFeil("");
+    setMelding("");
+    setRedigerer(true);
+  }
+
+  function hurtigLeggTil(liste: Listefelt, startverdi = "") {
+    if (!innlogget) {
+      window.location.assign("/logg-inn");
+      return;
+    }
+    if (!kanRedigere || !data) return;
+    const nye = {
+      uteomrader: nyttUteomrade(startverdi || "Hage"),
+      nokler: nyNokkel(),
+      utstyr: nyttUtstyr(),
+      oppussing: nyOppussing(),
+      mal: nyttMal(),
+    };
+    const grunnlag = structuredClone(data);
+    const nyOppforing = nye[liste];
+    setUtkast({
+      ...grunnlag,
+      [liste]: [...grunnlag[liste], nyOppforing],
+    });
+    setVisHurtigvalg(false);
+    setRedigerer(true);
+    rullTilOppforing(`rediger-${liste}-${nyOppforing.id}`);
+  }
+
+  function rullTilOppforing(id: string) {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const element = document.getElementById(id);
+      if (!element) return;
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      const felt = element.querySelector<HTMLElement>("input, select, textarea");
+      felt?.focus({ preventScroll: true });
+    }));
+  }
+
+  function oppdaterObjekt(seksjon: Objektseksjon, felt: string, verdi: string) {
+    setUtkast((forrige) => {
+      if (!forrige) return forrige;
+      const objekt = forrige[seksjon] as Record<string, string>;
+      return { ...forrige, [seksjon]: { ...objekt, [felt]: verdi } };
+    });
+  }
+
+  function oppdaterListe<T extends Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(
+    liste: Listefelt,
+    id: string,
+    felt: keyof T,
+    verdi: string,
+  ) {
+    setUtkast((forrige) => {
+      if (!forrige) return forrige;
+      const oppdatert = (forrige[liste] as T[]).map((rad) =>
+        rad.id === id ? { ...rad, [felt]: verdi } : rad,
+      );
+      return { ...forrige, [liste]: oppdatert };
+    });
+  }
+
+  function leggTil(liste: Listefelt, startverdi = "") {
+    const nye = {
+      uteomrader: nyttUteomrade(startverdi || "Hage"),
+      nokler: nyNokkel(),
+      utstyr: nyttUtstyr(),
+      oppussing: nyOppussing(),
+      mal: nyttMal(),
+    };
+    const nyOppforing = nye[liste];
+    setUtkast((forrige) =>
+      forrige ? { ...forrige, [liste]: [...forrige[liste], nyOppforing] } : forrige,
+    );
+    rullTilOppforing(`rediger-${liste}-${nyOppforing.id}`);
+  }
+
+  function fjern(liste: Listefelt, id: string) {
+    setUtkast((forrige) =>
+      forrige
+        ? { ...forrige, [liste]: forrige[liste].filter((rad) => rad.id !== id) }
+        : forrige,
+    );
+  }
+
+  async function lagre() {
+    if (!valgtBolig || !utkast || !innlogget) return;
+    setJobber(true);
+    setFeil("");
+    setMelding("");
+    try {
+      const ferdig: AltOmBoligenData = {
+        ...utkast,
+        oppdatert: new Date().toISOString(),
+      };
+      await oppdaterBolig(String(valgtBolig.id), {
+        ...valgtBolig,
+        altOmBoligen: ferdig,
+      });
+      setBoliger((gamle) =>
+        gamle.map((bolig) =>
+          String(bolig.id) === String(valgtBolig.id)
+            ? { ...bolig, altOmBoligen: ferdig }
+            : bolig,
+        ),
+      );
+      setUtkast(ferdig);
+      setRedigerer(false);
+      setMelding("Boligopplysningene er lagret.");
+    } catch (error) {
+      console.error(error);
+      setFeil("Kunne ikke lagre boligopplysningene.");
+    } finally {
+      setJobber(false);
+    }
+  }
+
+  async function lastOpp(fil: File | null, kategori: string) {
+    if (!fil || !valgtBolig) return;
+    if (!innlogget) {
+      window.location.assign("/logg-inn");
+      return;
+    }
+    setJobber(true);
+    setFeil("");
+    try {
+      const erPlantegning = kategori === PLANTEGNINGKATEGORI;
+      await lastOppDokument(fil, {
+        boligId: String(valgtBolig.id),
+        navn: fil.name.replace(/\.[^.]+$/, ""),
+        kategori,
+        ar: new Date().getFullYear(),
+        dokumentdato: new Date().toISOString().slice(0, 10),
+        notat: erPlantegning ? "Plantegning fra Alt om boligen" : "Boligbilde fra Alt om boligen",
+      });
+      setDokumenter(await hentDokumenter());
+      setMelding(erPlantegning ? "Plantegningen er lastet opp." : "Bildet er lastet opp.");
+    } catch (error) {
+      const kode = error instanceof Error ? error.message : "";
+      setFeil(
+        kode === "FIL_FOR_STOR"
+          ? "Filen kan ikke være større enn 25 MB."
+          : kode === "UGYLDIG_FILTYPE"
+            ? "Bruk bilde eller PDF."
+            : "Kunne ikke laste opp filen.",
+      );
+    } finally {
+      setJobber(false);
+    }
+  }
+
+  async function slettFil(dokument: Dokument) {
+    if (!confirm(uiFormat("Slett «{0}»? Filen fjernes også fra dokumentarkivet.", [dokument.navn]))) return;
+    setJobber(true);
+    setFeil("");
+    try {
+      await slettDokument(dokument);
+      setDokumenter((gamle) => gamle.filter((fil) => fil.id !== dokument.id));
+    } catch {
+      setFeil("Kunne ikke slette filen.");
+    } finally {
+      setJobber(false);
+    }
+  }
+
+  async function flyttFil(dokument: Dokument, kategori: string) {
+    if (![BILDEKATEGORI, PLANTEGNINGKATEGORI].includes(kategori)) return;
+    setJobber(true);
+    setFeil("");
+    try {
+      await oppdaterDokumentkategori(dokument.id, kategori);
+      setDokumenter((gamle) =>
+        gamle.map((fil) => fil.id === dokument.id ? { ...fil, kategori } : fil),
+      );
+      setMelding(
+        kategori === PLANTEGNINGKATEGORI
+          ? uiFormat("«{0}» er flyttet til plantegninger.", [dokument.navn])
+          : uiFormat("«{0}» er flyttet til boligbilder.", [dokument.navn]),
+      );
+    } catch {
+      setFeil("Kunne ikke flytte bildet. Prøv igjen.");
+    } finally {
+      setJobber(false);
+    }
+  }
+
+  return (
+    <main className="privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
+      <Navigasjon />
+      <header className="relative min-h-[260px] overflow-hidden bg-slate-950 px-4 py-10 text-white sm:min-h-[360px] sm:px-6 sm:py-14">
+        {toppbildeUrl && <><img src={toppbildeUrl} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/25" /></>}
+        <div className="relative mx-auto flex min-h-[180px] max-w-7xl flex-col justify-end sm:min-h-[248px]">
+          <p className="font-semibold text-emerald-400"><UiText text="PRAKTISK BOLIGINFO"/></p>
+          <h1 className="mt-2 text-3xl font-bold sm:text-4xl"><UiText text="Alt om boligen"/></h1>
+          <p className="mt-3 max-w-3xl text-slate-300">
+            {valgtBolig?.adresse ? String(valgtBolig.adresse) : uiText("Samle bilder, plantegninger, uteområder, nøkler, installasjoner og viktig teknisk informasjon.")}
+          </p>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10">
+        <section className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-sm md:flex-row md:items-end md:justify-between">
+          <label className="w-full max-w-xl text-sm font-semibold">
+            <span className="mb-2 block"><UiText text="Velg bolig"/></span>
+            <select
+              value={valgtBoligId}
+              onChange={(event) => velgBolig(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"
+            >
+              {boliger.map((bolig) => (
+                <option key={String(bolig.id)} value={String(bolig.id)}>
+                  {String(bolig.adresse || uiText("Bolig uten adresse"))}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="flex flex-wrap gap-3">
+            {redigerer ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUtkast(data ? structuredClone(data) : null);
+                    setRedigerer(false);
+                  }}
+                  disabled={jobber}
+                  className="rounded-xl border border-slate-300 px-5 py-3 font-semibold disabled:opacity-50"
+                ><UiText text="Avbryt"/></button>
+                <button
+                  type="button"
+                  onClick={lagre}
+                  disabled={jobber}
+                  className="rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"
+                >
+                  {jobber ? uiText("Lagrer…") : uiText("Lagre endringer")}
+                </button>
+              </>
+            ) : (!innlogget || kanRedigere) ? (
+              <>
+                <button type="button" onClick={() => innlogget ? setVisHurtigvalg(!visHurtigvalg) : window.location.assign("/logg-inn")} className="rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white"><UiText text="+ Legg til"/></button>
+                <button
+                  type="button"
+                  onClick={startRedigering}
+                  className="rounded-xl bg-slate-950 px-5 py-3 font-bold text-white"
+                >
+                  {innlogget ? uiText("Rediger boliginfo") : uiText("Logg inn for å legge inn data")}
+                </button>
+              </>
+            ) : null}
+          </div>
+        </section>
+
+        {visHurtigvalg && data && (
+          <section className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm font-bold text-emerald-900"><UiText text="Hva vil du legge til?"/></p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Hurtigknapp onClick={() => hurtigLeggTil("uteomrader")}><UiText text="Uteområde eller bod"/></Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("nokler")}><UiText text="Nøkkeltype"/></Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("utstyr")}><UiText text="Utstyr/installasjon"/></Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("oppussing")}><UiText text="Utført arbeid"/></Hurtigknapp>
+              <Hurtigknapp onClick={() => hurtigLeggTil("mal")}><UiText text="Nyttig mål"/></Hurtigknapp>
+              <Link href="/rom" className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm"><UiText text="Rom"/></Link>
+              <Link href="/dokumentarkiv" className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm"><UiText text="Dokument eller bilde"/></Link>
+            </div>
+          </section>
+        )}
+
+        {data && <Seksjonsmeny />}
+
+        {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+        {melding && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><UiText text={String(melding ?? "")}/></p>}
+
+        {laster ? (
+          <p className="py-20 text-center text-slate-500"><UiText text="Laster boligopplysninger…"/></p>
+        ) : !valgtBolig || !data || !utkast ? (
+          <TomSide />
+        ) : redigerer ? (
+          <Redigeringsvisning
+            data={utkast}
+            oppdaterObjekt={oppdaterObjekt}
+            oppdaterNotat={(verdi) => setUtkast((forrige) => (forrige ? { ...forrige, notater: verdi } : forrige))}
+            oppdaterListe={oppdaterListe}
+            leggTil={leggTil}
+            fjern={fjern}
+            bilder={bilder}
+            plantegninger={plantegninger}
+            filLenker={filLenker}
+            lastOpp={lastOpp}
+            slettFil={slettFil}
+            flyttFil={flyttFil}
+            jobber={jobber}
+          />
+        ) : (
+          <>
+          <Oversiktsvisning
+            bolig={valgtBolig}
+            data={data}
+            bilder={bilder}
+            plantegninger={plantegninger}
+            filLenker={filLenker}
+            innlogget={innlogget}
+            kanRedigere={kanRedigere}
+            startRedigering={startRedigering}
+          />
+          <div id="del-tilgang" className="scroll-mt-24">
+            <Boligadministrasjon bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
+          </div>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function Oversiktsvisning({
+  bolig,
+  data,
+  bilder,
+  plantegninger,
+  filLenker,
+  innlogget,
+  kanRedigere,
+  startRedigering,
+}: {
+  bolig: BoligData;
+  data: AltOmBoligenData;
+  bilder: Dokument[];
+  plantegninger: Dokument[];
+  filLenker: Record<string, string>;
+  innlogget: boolean;
+  kanRedigere: boolean;
+  startRedigering: () => void;
+}) {
+  useLanguage();
+  return (
+    <div className="mt-6 space-y-6">
+      <section className="overflow-hidden rounded-3xl bg-slate-950 text-white shadow-sm">
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <p className="text-sm font-semibold text-emerald-400"><UiText text="VALGT BOLIG"/></p>
+            <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{String(bolig.adresse || uiText("Bolig"))}</h2>
+            <p className="mt-3 text-slate-300">
+              <UiText text={String(data.generell.boligtype || uiText("Bolig"))}/>
+              {data.generell.totalareal ? ` · ${data.generell.totalareal} m²` : ""}
+              {data.generell.soverom ? uiFormat(" · {0} soverom", [data.generell.soverom]) : ""}
+            </p>
+          </div>
+          <p className="text-sm text-slate-400">
+            {data.oppdatert ? uiFormat("Sist oppdatert {0}", [formatDatoTid(data.oppdatert)]) : uiText("Ikke oppdatert ennå")}
+          </p>
+        </div>
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <InfoKort id="grunninformasjon" tittel={uiText("Generell informasjon")} merke="BOLIG">
+          <Detaljliste
+            rader={[
+              ["Boligtype", data.generell.boligtype],
+              ["Byggeår", data.generell.byggeaar],
+              ["Totalareal", medEnhet(data.generell.totalareal, "m²")],
+              ["Tomteareal", medEnhet(data.generell.tomteareal, "m²")],
+              ["Bruttoareal", medEnhet(data.generell.bruttoareal, "m²")],
+              ["Energimerking", data.generell.energimerking],
+              ["Antall rom", data.generell.antallRom],
+              ["Soverom", data.generell.soverom],
+              ["Etasje", data.generell.etasje],
+              ["Leilighetsnummer", data.generell.leilighetsnummer],
+              ["Gnr./bnr.", data.generell.gnrBnr],
+              ["Takhøyde", data.generell.takhoyde],
+            ]}
+          />
+        </InfoKort>
+
+        <InfoKort id="viktige-plasseringer" tittel={uiText("Viktige plasseringer")} merke="FINN DET RASKT">
+          <Detaljliste
+            rader={[
+              ["Hovedstoppekran", data.teknisk.hovedstoppekran],
+              ["Sikringsskap", data.teknisk.sikringsskap],
+              ["Hovedsikring", data.teknisk.hovedsikring],
+              ["Vannmåler", data.teknisk.vannmaler],
+              ["Strømmåler", data.teknisk.strommaler],
+              ["Sluk/inspeksjon", data.teknisk.slukInspeksjon],
+              ["Brannslukker", data.teknisk.brannslukker],
+              ["Internettinntak", data.teknisk.internettinntak],
+            ]}
+          />
+        </InfoKort>
+
+        <InfoKort id="teknisk-sikkerhet" tittel={uiText("Teknisk informasjon")} merke="TEKNISK">
+          <Detaljliste
+            rader={[
+              ["Oppvarming", data.teknisk.oppvarming],
+              ["Ventilasjon", data.teknisk.ventilasjon],
+              ["Internett", data.teknisk.internettleverandor],
+            ]}
+          />
+        </InfoKort>
+
+        <InfoKort tittel={uiText("Brann og sikkerhet")} merke="SIKKERHET">
+          <Detaljliste
+            rader={[
+              ["Røykvarslere", data.sikkerhet.roykvarslere],
+              ["Sist kontrollert", data.sikkerhet.sistKontrollert],
+              ["Rømningsveier", data.sikkerhet.romningsveier],
+              ["Radon", data.sikkerhet.radon],
+              ["Notat", data.sikkerhet.notat],
+            ]}
+          />
+          <Brannkontroll bolig={bolig} kanRedigere={innlogget && kanRedigere} />
+        </InfoKort>
+      </div>
+
+      <SamlingKort id="uteomrader" tittel={uiText("Uteområder og boder")} antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {data.uteomrader.map((omrade) => (
+            <article key={omrade.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide text-emerald-700"><UiText text={String(omrade.type || uiText("Uteområde"))}/></p>
+                  <h3 className="mt-1 text-lg font-bold">{omrade.navn || omrade.type || uiText("Uten navn")}</h3>
+                </div>
+                {omrade.storrelse && <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold">{omrade.storrelse}</span>}
+              </div>
+              <Detaljliste kompakt rader={[["Materiale", omrade.materiale], ["Siste arbeid", omrade.sistArbeid], ["Neste", omrade.nesteVedlikehold], ["Notat", omrade.notat]]} />
+            </article>
+          ))}
+        </div>
+      </SamlingKort>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SamlingKort id="nokler-utstyr" tittel={uiText("Nøkkeloversikt")} antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-left text-sm">
+              <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
+                <tr><th className="pb-3"><UiText text="Type"/></th><th className="pb-3"><UiText text="Antall"/></th><th className="pb-3"><UiText text="Merking"/></th><th className="pb-3"><UiText text="Kategori"/></th></tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.nokler.map((nokkel) => (
+                  <tr key={nokkel.id}><td className="py-3 font-semibold">{nokkel.type || "–"}</td><td className="py-3">{nokkel.antall || "–"}</td><td className="py-3">{nokkel.merking || "–"}</td><td className="py-3"><UiText text={String(nokkel.kategori || "–")}/></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SamlingKort>
+
+        <SamlingKort tittel={uiText("Utstyr og installasjoner")} antall={data.utstyr.length} tomtekst="Ingen installasjoner er registrert.">
+          <div className="space-y-3">
+            {data.utstyr.map((utstyr) => (
+              <article key={utstyr.id} className="rounded-xl border p-4">
+                <h3 className="font-bold">{utstyr.navn || uiText("Utstyr uten navn")}</h3>
+                <p className="mt-1 text-sm text-slate-600">{kombiner(utstyr.merkeModell, utstyr.plassering)}</p>
+                <p className="mt-2 text-xs text-slate-500">{utstyr.installert ? uiFormat("Installert {0}", [utstyr.installert]) : ""}{utstyr.garantiTil ? uiFormat(" · Garanti til {0}", [utstyr.garantiTil]) : ""}</p>
+              </article>
+            ))}
+          </div>
+        </SamlingKort>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <InfoKort id="tilleggsarealer" tittel={uiText("Tilleggsarealer og tilbehør")} merke="TILHØRER BOLIGEN">
+          <Detaljliste rader={[
+            ["Bod", data.tilleggsarealer.bod], ["Parkering", data.tilleggsarealer.parkering], ["Garasje", data.tilleggsarealer.garasje], ["Balkong/terrasse", data.tilleggsarealer.balkong], ["Postkasse", data.tilleggsarealer.postkasse], ["Fellesareal", data.tilleggsarealer.fellesareal], ["Fast inventar", data.tilleggsarealer.fastInventar],
+          ]} />
+        </InfoKort>
+        <SamlingKort tittel={uiText("Nyttige mål")} antall={data.mal.length} tomtekst="Ingen mål er registrert.">
+          <div className="space-y-3">{data.mal.map((mal) => <article key={mal.id} className="rounded-xl border p-4"><div className="flex justify-between gap-4"><strong>{mal.navn || uiText("Mål")}</strong><span className="font-semibold text-emerald-700">{mal.mal || "–"}</span></div>{mal.notat && <p className="mt-2 text-sm text-slate-500">{uiDemoText(mal.notat, mal.id)}</p>}</article>)}</div>
+        </SamlingKort>
+      </div>
+
+      <SamlingKort id="historikk" tittel={uiText("Oppussingshistorikk")} antall={data.oppussing.length} tomtekst="Ingen oppussing er registrert.">
+        <div className="space-y-3">
+          {[...data.oppussing].sort((a, b) => b.dato.localeCompare(a.dato)).map((oppussing) => (
+            <article key={oppussing.id} className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[130px_1fr]">
+              <p className="text-sm font-semibold text-emerald-700">{formatDato(oppussing.dato)}</p>
+              <div><h3 className="font-bold">{uiDemoText(oppussing.tittel, oppussing.id) || uiText("Oppussing")}</h3><p className="mt-1 text-sm text-slate-500">{uiDemoText(oppussing.rom, oppussing.id)}{oppussing.rom && oppussing.beskrivelse ? " · " : ""}{uiDemoText(oppussing.beskrivelse, oppussing.id)}</p></div>
+            </article>
+          ))}
+        </div>
+      </SamlingKort>
+
+      {data.notater && <InfoKort tittel={uiText("Egne notater")} merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
+
+      <Filoversikt
+        boligId={String(bolig.id)}
+        bilder={bilder}
+        plantegninger={plantegninger}
+        filLenker={filLenker}
+        innlogget={innlogget}
+      />
+
+      <div className="flex justify-center py-3">
+        {(!innlogget || kanRedigere) && <button type="button" onClick={startRedigering} className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">
+          {innlogget ? uiText("Rediger boliginfo") : uiText("Opprett konto for å fylle inn egne data")}
+        </button>}
+      </div>
+    </div>
+  );
+}
+
+function Redigeringsvisning({
+  data,
+  oppdaterObjekt,
+  oppdaterNotat,
+  oppdaterListe,
+  leggTil,
+  fjern,
+  bilder,
+  plantegninger,
+  filLenker,
+  lastOpp,
+  slettFil,
+  flyttFil,
+  jobber,
+}: {
+  data: AltOmBoligenData;
+  oppdaterObjekt: (seksjon: Objektseksjon, felt: string, verdi: string) => void;
+  oppdaterNotat: (verdi: string) => void;
+  oppdaterListe: <T extends Uteomradeinfo | Nokkelinfo | Utstyrinfo | Oppussinginfo | Malinfo>(liste: Listefelt, id: string, felt: keyof T, verdi: string) => void;
+  leggTil: (liste: Listefelt, startverdi?: string) => void;
+  fjern: (liste: Listefelt, id: string) => void;
+  bilder: Dokument[];
+  plantegninger: Dokument[];
+  filLenker: Record<string, string>;
+  lastOpp: (fil: File | null, kategori: string) => void;
+  slettFil: (dokument: Dokument) => void;
+  flyttFil: (dokument: Dokument, kategori: string) => void;
+  jobber: boolean;
+}) {
+  useLanguage();
+  return (
+    <div className="mt-6 space-y-5">
+      <Redigeringsseksjon tittel={uiText("Generell informasjon")} forklaring={uiText("Grunnopplysninger om selve boligen.")}>
+        <Feltgrid>
+          <Tekstfelt label={uiText("Boligtype")} value={data.generell.boligtype} onChange={(v) => oppdaterObjekt("generell", "boligtype", v)} />
+          <Tekstfelt label={uiText("Byggeår")} value={data.generell.byggeaar} onChange={(v) => oppdaterObjekt("generell", "byggeaar", v)} inputMode="numeric" />
+          <Tekstfelt label={uiText("Totalareal (m²)")} value={data.generell.totalareal} onChange={(v) => oppdaterObjekt("generell", "totalareal", v)} />
+          <Tekstfelt label={uiText("Tomteareal (m²)")} value={data.generell.tomteareal} onChange={(v) => oppdaterObjekt("generell", "tomteareal", v)} />
+          <Tekstfelt label={uiText("Bruttoareal (m²)")} value={data.generell.bruttoareal} onChange={(v) => oppdaterObjekt("generell", "bruttoareal", v)} />
+          <Tekstfelt label={uiText("Energimerking")} value={data.generell.energimerking} onChange={(v) => oppdaterObjekt("generell", "energimerking", v)} />
+          <Tekstfelt label={uiText("Antall rom")} value={data.generell.antallRom} onChange={(v) => oppdaterObjekt("generell", "antallRom", v)} inputMode="numeric" />
+          <Tekstfelt label={uiText("Antall soverom")} value={data.generell.soverom} onChange={(v) => oppdaterObjekt("generell", "soverom", v)} />
+          <Tekstfelt label={uiText("Etasje")} value={data.generell.etasje} onChange={(v) => oppdaterObjekt("generell", "etasje", v)} />
+          <Tekstfelt label={uiText("Leilighetsnummer")} value={data.generell.leilighetsnummer} onChange={(v) => oppdaterObjekt("generell", "leilighetsnummer", v)} />
+          <Tekstfelt label={uiText("Gnr./bnr.")} value={data.generell.gnrBnr} onChange={(v) => oppdaterObjekt("generell", "gnrBnr", v)} />
+          <Tekstfelt label={uiText("Takhøyde")} value={data.generell.takhoyde} onChange={(v) => oppdaterObjekt("generell", "takhoyde", v)} />
+        </Feltgrid>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Viktige plasseringer og teknisk")} forklaring={uiText("Informasjon du vil finne raskt når noe skjer.")}>
+        <Feltgrid>
+          <Tekstfelt label={uiText("Hvor er hovedstoppekranen?")} value={data.teknisk.hovedstoppekran} onChange={(v) => oppdaterObjekt("teknisk", "hovedstoppekran", v)} />
+          <Tekstfelt label={uiText("Hvor er sikringsskapet?")} value={data.teknisk.sikringsskap} onChange={(v) => oppdaterObjekt("teknisk", "sikringsskap", v)} />
+          <Tekstfelt label={uiText("Hovedsikring")} value={data.teknisk.hovedsikring} onChange={(v) => oppdaterObjekt("teknisk", "hovedsikring", v)} />
+          <Tekstfelt label={uiText("Hvor er vannmåleren?")} value={data.teknisk.vannmaler} onChange={(v) => oppdaterObjekt("teknisk", "vannmaler", v)} />
+          <Tekstfelt label={uiText("Hvor er strømmåleren?")} value={data.teknisk.strommaler} onChange={(v) => oppdaterObjekt("teknisk", "strommaler", v)} />
+          <Tekstfelt label={uiText("Sluk og inspeksjonsluker")} value={data.teknisk.slukInspeksjon} onChange={(v) => oppdaterObjekt("teknisk", "slukInspeksjon", v)} />
+          <Tekstfelt label={uiText("Hvor er brannslukkeren?")} value={data.teknisk.brannslukker} onChange={(v) => oppdaterObjekt("teknisk", "brannslukker", v)} />
+          <Tekstfelt label={uiText("Internettinntak")} value={data.teknisk.internettinntak} onChange={(v) => oppdaterObjekt("teknisk", "internettinntak", v)} />
+          <Tekstfelt label={uiText("Oppvarming")} value={data.teknisk.oppvarming} onChange={(v) => oppdaterObjekt("teknisk", "oppvarming", v)} />
+          <Tekstfelt label={uiText("Ventilasjon")} value={data.teknisk.ventilasjon} onChange={(v) => oppdaterObjekt("teknisk", "ventilasjon", v)} />
+          <Tekstfelt label={uiText("Internettleverandør")} value={data.teknisk.internettleverandor} onChange={(v) => oppdaterObjekt("teknisk", "internettleverandor", v)} />
+        </Feltgrid>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Bilder og plantegninger")} forklaring={uiText("Filene blir også tilgjengelige i dokumentarkivet.")}>
+        <div className="grid gap-5 md:grid-cols-2">
+          <Filredigering tittel={uiText("Boligbilder")} dokumenter={bilder} filLenker={filLenker} accept="image/*" kategori={BILDEKATEGORI} lastOpp={lastOpp} slettFil={slettFil} flyttFil={flyttFil} jobber={jobber} />
+          <Filredigering tittel={uiText("Plantegninger")} dokumenter={plantegninger} filLenker={filLenker} accept="image/*,.pdf" kategori={PLANTEGNINGKATEGORI} lastOpp={lastOpp} slettFil={slettFil} flyttFil={flyttFil} jobber={jobber} />
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Uteområder og boder")} forklaring={uiText("Trykk på riktig type. Du trenger bare å fylle ut det du vil huske.")}>
+        <div className="mb-5 flex flex-wrap gap-2">
+          {UTEOMRADETYPER.map((type) => (
+            <button key={type} type="button" onClick={() => leggTil("uteomrader", type)} className="rounded-full border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-800 hover:bg-emerald-100">
+              + <UiText text={String(type ?? "")}/>
+            </button>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {data.uteomrader.map((omrade, indeks) => (
+            <Redigeringskort key={omrade.id} id={`rediger-uteomrader-${omrade.id}`} tittel={omrade.navn || omrade.type || uiFormat("Uteområde {0}", [indeks + 1])} onDelete={() => fjern("uteomrader", omrade.id)}>
+              <Feltgrid>
+                <Valgfelt label={uiText("Type")} value={omrade.type} valg={UTEOMRADETYPER} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "type", v)} />
+                <Tekstfelt label={uiText("Navn (valgfritt)")} value={omrade.navn} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "navn", v)} placeholder={uiText("For eksempel bakhagen")} />
+                <Tekstfelt label={uiText("Størrelse")} value={omrade.storrelse} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "storrelse", v)} placeholder={uiText("For eksempel 150 m²")} />
+                <Tekstfelt label={uiText("Materiale eller overflate")} value={omrade.materiale} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "materiale", v)} placeholder={uiText("For eksempel plen og belegningsstein")} />
+                <Tekstfelt label={uiText("Siste arbeid")} value={omrade.sistArbeid} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "sistArbeid", v)} placeholder={uiText("For eksempel beiset juni 2026")} />
+                <Tekstfelt label={uiText("Neste vedlikehold")} value={omrade.nesteVedlikehold} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "nesteVedlikehold", v)} placeholder={uiText("For eksempel vårstell april 2027")} />
+                <Tekstfelt label={uiText("Notat")} value={omrade.notat} onChange={(v) => oppdaterListe<Uteomradeinfo>("uteomrader", omrade.id, "notat", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          {!data.uteomrader.length && <TomInnhold tekst="Velg en type ovenfor for å komme i gang." />}
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Nøkkeloversikt")} forklaring={uiText("Ikke registrer alarmkoder, dørlåskoder eller hvor reservenøkler oppbevares.")}>
+        <div className="space-y-4">
+          {data.nokler.map((nokkel, indeks) => (
+            <Redigeringskort key={nokkel.id} id={`rediger-nokler-${nokkel.id}`} tittel={nokkel.type || uiFormat("Nøkkeltype {0}", [indeks + 1])} onDelete={() => fjern("nokler", nokkel.id)}>
+              <Feltgrid>
+                <Tekstfelt label={uiText("Nøkkeltype")} value={nokkel.type} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "type", v)} />
+                <Tekstfelt label={uiText("Antall")} value={nokkel.antall} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "antall", v)} />
+                <Tekstfelt label={uiText("Merking/nøkkelnummer")} value={nokkel.merking} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "merking", v)} />
+                <Tekstfelt label={uiText("Kategori")} value={nokkel.kategori} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "kategori", v)} placeholder={uiText("For eksempel hovednøkkel")} />
+                <Tekstfelt label={uiText("Notat")} value={nokkel.notat} onChange={(v) => oppdaterListe<Nokkelinfo>("nokler", nokkel.id, "notat", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          <LeggTilKnapp onClick={() => leggTil("nokler")}><UiText text="+ Legg til nøkkeltype"/></LeggTilKnapp>
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Utstyr og installasjoner")} forklaring={uiText("Hvitevarer, varmtvannsbereder, varmepumpe og annet fast utstyr.")}>
+        <div className="space-y-4">
+          {data.utstyr.map((utstyr, indeks) => (
+            <Redigeringskort key={utstyr.id} id={`rediger-utstyr-${utstyr.id}`} tittel={utstyr.navn || `Utstyr ${indeks + 1}`} onDelete={() => fjern("utstyr", utstyr.id)}>
+              <Feltgrid>
+                <Tekstfelt label={uiText("Navn")} value={utstyr.navn} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "navn", v)} />
+                <Tekstfelt label={uiText("Merke og modell")} value={utstyr.merkeModell} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "merkeModell", v)} />
+                <Tekstfelt label={uiText("Serienummer")} value={utstyr.serienummer} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "serienummer", v)} />
+                <Tekstfelt label={uiText("Installert/kjøpt")} value={utstyr.installert} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "installert", v)} />
+                <Tekstfelt label={uiText("Garanti til")} value={utstyr.garantiTil} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "garantiTil", v)} />
+                <Tekstfelt label={uiText("Plassering")} value={utstyr.plassering} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "plassering", v)} />
+                <Tekstfelt label={uiText("Notat")} value={utstyr.notat} onChange={(v) => oppdaterListe<Utstyrinfo>("utstyr", utstyr.id, "notat", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          <LeggTilKnapp onClick={() => leggTil("utstyr")}><UiText text="+ Legg til utstyr"/></LeggTilKnapp>
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Oppussingshistorikk")} forklaring={uiText("Arbeid som allerede er utført på boligen.")}>
+        <div className="space-y-4">
+          {data.oppussing.map((oppussing, indeks) => (
+            <Redigeringskort key={oppussing.id} id={`rediger-oppussing-${oppussing.id}`} tittel={oppussing.tittel || uiFormat("Oppføring {0}", [indeks + 1])} onDelete={() => fjern("oppussing", oppussing.id)}>
+              <Feltgrid>
+                <Tekstfelt type="date" label={uiText("Dato")} value={oppussing.dato} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "dato", v)} />
+                <Tekstfelt label={uiText("Hva ble gjort?")} value={uiDemoText(oppussing.tittel, oppussing.id)} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "tittel", v)} />
+                <Tekstfelt label={uiText("Rom/område")} value={uiDemoText(oppussing.rom, oppussing.id)} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "rom", v)} />
+                <Tekstfelt label={uiText("Beskrivelse")} value={uiDemoText(oppussing.beskrivelse, oppussing.id)} onChange={(v) => oppdaterListe<Oppussinginfo>("oppussing", oppussing.id, "beskrivelse", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          <LeggTilKnapp onClick={() => leggTil("oppussing")}><UiText text="+ Legg til oppussing"/></LeggTilKnapp>
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Brann og sikkerhet")} forklaring={uiText("Praktisk dokumentasjon – ikke en erstatning for lovpålagte kontroller.")}>
+        <Feltgrid>
+          <Tekstfelt label={uiText("Røykvarslere")} value={data.sikkerhet.roykvarslere} onChange={(v) => oppdaterObjekt("sikkerhet", "roykvarslere", v)} />
+          <Tekstfelt label={uiText("Sist kontrollert")} value={data.sikkerhet.sistKontrollert} onChange={(v) => oppdaterObjekt("sikkerhet", "sistKontrollert", v)} />
+          <Tekstfelt label={uiText("Rømningsveier")} value={data.sikkerhet.romningsveier} onChange={(v) => oppdaterObjekt("sikkerhet", "romningsveier", v)} />
+          <Tekstfelt label={uiText("Radonmåling")} value={data.sikkerhet.radon} onChange={(v) => oppdaterObjekt("sikkerhet", "radon", v)} />
+          <Tekstfelt label={uiText("Notat")} value={data.sikkerhet.notat} onChange={(v) => oppdaterObjekt("sikkerhet", "notat", v)} bred />
+        </Feltgrid>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Tilleggsarealer og tilbehør")} forklaring={uiText("Valgfri informasjon om det som hører til boligen.")}>
+        <Feltgrid>
+          <Tekstfelt label={uiText("Bod")} value={data.tilleggsarealer.bod} onChange={(v) => oppdaterObjekt("tilleggsarealer", "bod", v)} />
+          <Tekstfelt label={uiText("Parkering")} value={data.tilleggsarealer.parkering} onChange={(v) => oppdaterObjekt("tilleggsarealer", "parkering", v)} />
+          <Tekstfelt label={uiText("Garasje")} value={data.tilleggsarealer.garasje} onChange={(v) => oppdaterObjekt("tilleggsarealer", "garasje", v)} />
+          <Tekstfelt label={uiText("Balkong/terrasse")} value={data.tilleggsarealer.balkong} onChange={(v) => oppdaterObjekt("tilleggsarealer", "balkong", v)} />
+          <Tekstfelt label={uiText("Postkasse")} value={data.tilleggsarealer.postkasse} onChange={(v) => oppdaterObjekt("tilleggsarealer", "postkasse", v)} />
+          <Tekstfelt label={uiText("Fellesareal")} value={data.tilleggsarealer.fellesareal} onChange={(v) => oppdaterObjekt("tilleggsarealer", "fellesareal", v)} />
+          <Tekstfelt label={uiText("Fast inventar")} value={data.tilleggsarealer.fastInventar} onChange={(v) => oppdaterObjekt("tilleggsarealer", "fastInventar", v)} bred />
+        </Feltgrid>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Nyttige mål")} forklaring={uiText("For eksempel vinduer, gardiner, dører og plass til hvitevarer.")}>
+        <div className="space-y-4">
+          {data.mal.map((mal, indeks) => (
+            <Redigeringskort key={mal.id} id={`rediger-mal-${mal.id}`} tittel={mal.navn || uiFormat("Mål {0}", [indeks + 1])} onDelete={() => fjern("mal", mal.id)}>
+              <Feltgrid>
+                <Tekstfelt label={uiText("Hva er målt?")} value={mal.navn} onChange={(v) => oppdaterListe<Malinfo>("mal", mal.id, "navn", v)} />
+                <Tekstfelt label={uiText("Mål")} value={mal.mal} onChange={(v) => oppdaterListe<Malinfo>("mal", mal.id, "mal", v)} placeholder={uiText("For eksempel 160 × 140 cm")} />
+                <Tekstfelt label={uiText("Notat")} value={mal.notat} onChange={(v) => oppdaterListe<Malinfo>("mal", mal.id, "notat", v)} bred />
+              </Feltgrid>
+            </Redigeringskort>
+          ))}
+          <LeggTilKnapp onClick={() => leggTil("mal")}><UiText text="+ Legg til mål"/></LeggTilKnapp>
+        </div>
+      </Redigeringsseksjon>
+
+      <Redigeringsseksjon tittel={uiText("Egne notater")} forklaring={uiText("Annen praktisk informasjon om boligen.")}>
+        <textarea value={data.notater} onChange={(event) => oppdaterNotat(event.target.value)} rows={5} className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-emerald-500" />
+      </Redigeringsseksjon>
+    </div>
+  );
+}
+
+function Filoversikt({ boligId, bilder, plantegninger, filLenker, innlogget }: { boligId: string; bilder: Dokument[]; plantegninger: Dokument[]; filLenker: Record<string, string>; innlogget: boolean }) {
+  useLanguage();
+  const [visAlle, setVisAlle] = useState(false);
+  const harFiler = bilder.length > 0 || plantegninger.length > 0;
+  const alleFiler = [...bilder, ...plantegninger];
+  const visteFiler = visAlle ? alleFiler : alleFiler.slice(0, 8);
+  return (
+    <section id="bilder-dokumenter" className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7">
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700"><UiText text="BILDER OG TEGNINGER"/></p><h2 className="mt-2 text-xl font-bold"><UiText text="Visuelt arkiv"/></h2></div>{innlogget && <Link href={`/dokumentarkiv?type=bilder&bolig=${encodeURIComponent(boligId)}`} className="text-sm font-semibold text-emerald-700"><UiText text="Åpne dokumentarkivet →"/></Link>}</div>
+      {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel={uiText("Stue")} farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel={uiText("Kjøkken")} farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel={uiText("Plantegning")} farge="from-blue-100 to-slate-200" /></div> : <><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{visteFiler.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>{alleFiler.length > 8 && <button type="button" onClick={() => setVisAlle((verdi) => !verdi)} className="mt-5 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{visAlle ? uiText("Vis færre") : uiFormat("Se resten ({0})", [alleFiler.length - 8])}</button>}</>}
+    </section>
+  );
+}
+
+function Filredigering({ tittel, dokumenter, filLenker, accept, kategori, lastOpp, slettFil, flyttFil, jobber }: { tittel: string; dokumenter: Dokument[]; filLenker: Record<string, string>; accept: string; kategori: string; lastOpp: (fil: File | null, kategori: string) => void; slettFil: (dokument: Dokument) => void; flyttFil: (dokument: Dokument, kategori: string) => void; jobber: boolean }) {
+  useLanguage();
+  const maalKategori = kategori === BILDEKATEGORI ? PLANTEGNINGKATEGORI : BILDEKATEGORI;
+  const flyttetekst = kategori === BILDEKATEGORI ? "Flytt til plantegninger" : "Flytt til boligbilder";
+  return <div className="min-w-0 rounded-2xl border border-slate-200 p-4"><h3 className="font-bold"><UiText text={String(tittel ?? "")}/></h3><div className="mt-3 space-y-2">{dokumenter.map((dokument) => <div key={dokument.id} className="min-w-0 rounded-lg bg-slate-50 p-3"><a href={filLenker[dokument.id] || "#"} target="_blank" rel="noreferrer" className="block truncate text-sm font-semibold text-emerald-700">{uiDemoText(dokument.navn, dokument.id)}</a><div className="mt-2 flex flex-wrap gap-x-4 gap-y-2"><button type="button" disabled={jobber} onClick={() => flyttFil(dokument, maalKategori)} className="text-xs font-bold text-sky-700 disabled:opacity-50"><UiText text={String(flyttetekst ?? "")}/></button><button type="button" disabled={jobber} onClick={() => slettFil(dokument)} className="text-xs font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button></div></div>)}</div><label className="mt-4 block cursor-pointer rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-800"><input type="file" accept={accept} disabled={jobber} onChange={(event) => { const fil = event.target.files?.[0] || null; lastOpp(fil, kategori); event.currentTarget.value = ""; }} className="sr-only" /><UiText text="+ Last opp"/></label></div>;
+}
+
+function Filkort({ dokument, url }: { dokument: Dokument; url?: string }) {
+  useLanguage();
+  const erBilde = dokument.filtype.startsWith("image/");
+  return <a href={url || "#"} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"><div className="flex aspect-[4/3] items-center justify-center overflow-hidden bg-slate-200">{erBilde && url ? <img src={url} alt={dokument.navn} className="h-full w-full object-cover transition group-hover:scale-105" /> : <span className="text-4xl">⌑</span>}</div><div className="p-3"><p className="truncate font-semibold">{uiDemoText(dokument.navn, dokument.id)}</p><p className="mt-1 text-xs text-slate-500">{dokument.kategori === PLANTEGNINGKATEGORI ? uiText("Plantegning") : uiText("Boligbilde")}</p></div></a>;
+}
+
+function Eksempelbilde({ tittel, farge }: { tittel: string; farge: string }) {
+  useLanguage(); return <div className="overflow-hidden rounded-2xl border bg-white"><div className={`flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${farge}`}><span className="rounded-lg bg-white/80 px-3 py-2 text-xs font-bold text-slate-600"><UiText text="EKSEMPELBILDE"/></span></div><p className="p-3 font-semibold"><UiText text={String(tittel ?? "")}/></p></div>; }
+function InfoKort({ id, tittel, merke, children }: { id?: string; tittel: string; merke: string; children: React.ReactNode }) {
+  useLanguage(); return <section id={id} className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7"><p className="text-xs font-bold tracking-wider text-emerald-700"><UiText text={String(merke ?? "")}/></p><h2 className="mt-2 text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><div className="mt-5">{children}</div></section>; }
+function SamlingKort({ id, tittel, antall, tomtekst, children }: { id?: string; tittel: string; antall: number; tomtekst: string; children: React.ReactNode }) {
+  useLanguage(); return <section id={id} className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{antall}</span></div><div className="mt-5">{antall ? children : <TomInnhold tekst={tomtekst} />}</div></section>; }
+
+function Seksjonsmeny() {
+  useLanguage();
+  const valg = [
+    ["Grunninformasjon", "grunninformasjon"],
+    ["Viktige plasseringer", "viktige-plasseringer"],
+    ["Teknisk og sikkerhet", "teknisk-sikkerhet"],
+    ["Uteområder", "uteomrader"],
+    ["Nøkler og utstyr", "nokler-utstyr"],
+    ["Tilleggsarealer", "tilleggsarealer"],
+    ["Historikk", "historikk"],
+    ["Bilder og plantegninger", "bilder-dokumenter"],
+  ];
+  return <nav aria-label={uiText("Seksjoner i Alt om boligen")} className="sticky top-0 z-20 mt-4 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"><div className="grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-8">{valg.map(([navn, id]) => <a key={id} href={`#${id}`} className="flex min-h-10 items-center justify-center rounded-lg px-2 py-2 text-center text-xs font-semibold leading-tight text-slate-600 hover:bg-emerald-50 hover:text-emerald-800 sm:text-sm"><UiText text={navn}/></a>)}</div></nav>;
+}
+function Detaljliste({ rader, kompakt = false }: { rader: [string, string][]; kompakt?: boolean }) {
+  useLanguage(); const synlige = rader.filter(([, verdi]) => verdi.trim()); if (!synlige.length) return <TomInnhold tekst="Ingen opplysninger er registrert." />; return <dl className={kompakt ? "mt-4 space-y-2 text-sm" : "divide-y divide-slate-100"}>{synlige.map(([label, verdi]) => <div key={label} className={kompakt ? "grid grid-cols-[95px_1fr] gap-3" : "grid gap-1 py-3 first:pt-0 sm:grid-cols-[150px_1fr] sm:gap-4"}><dt className="text-slate-500"><UiText text={String(label ?? "")}/></dt><dd className="font-medium text-slate-800">{verdi}</dd></div>)}</dl>; }
+function TomInnhold({ tekst }: { tekst: string }) {
+  useLanguage(); return <p className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-sm text-slate-500"><UiText text={tekst}/></p>; }
+function TomSide() {
+  useLanguage(); return <section className="mt-6 rounded-3xl bg-white p-12 text-center shadow-sm"><h2 className="text-2xl font-bold"><UiText text="Ingen bolig å vise"/></h2><p className="mt-2 text-slate-500"><UiText text="Opprett en bolig først, så kan du samle praktisk informasjon her."/></p><Link href="/kalkulator" className="mt-6 inline-block rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white"><UiText text="Opprett bolig"/></Link></section>; }
+function Redigeringsseksjon({ tittel, forklaring, children }: { tittel: string; forklaring: string; children: React.ReactNode }) {
+  useLanguage(); return <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7"><h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><p className="mt-1 text-sm text-slate-500"><UiText text={String(forklaring ?? "")}/></p><div className="mt-6">{children}</div></section>; }
+function Feltgrid({ children }: { children: React.ReactNode }) {
+  useLanguage(); return <div className="grid gap-4 sm:grid-cols-2">{children}</div>; }
+function Tekstfelt({ label, value, onChange, bred = false, placeholder = "", type = "text", inputMode }: { label: string; value: string; onChange: (verdi: string) => void; bred?: boolean; placeholder?: string; type?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"] }) {
+  useLanguage(); return <label className={bred ? "text-sm font-semibold sm:col-span-2" : "text-sm font-semibold"}><span className="mb-2 block"><UiText text={String(label ?? "")}/></span><input type={type} inputMode={inputMode} value={value} placeholder={uiText(placeholder)} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 px-4 py-3 font-normal outline-none focus:border-emerald-500" /></label>; }
+function Valgfelt({ label, value, valg, onChange }: { label: string; value: string; valg: string[]; onChange: (verdi: string) => void }) {
+  useLanguage(); return <label className="text-sm font-semibold"><span className="mb-2 block"><UiText text={String(label ?? "")}/></span><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500">{valg.map((alternativ) => <option key={alternativ} value={alternativ}><UiText text={String(alternativ ?? "")}/></option>)}</select></label>; }
+function Redigeringskort({ id, tittel, onDelete, children }: { id?: string; tittel: string; onDelete: () => void; children: React.ReactNode }) {
+  useLanguage(); return <article id={id} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"><div className="mb-4 flex items-center justify-between gap-3"><h3 className="font-bold">{tittel}</h3><button type="button" onClick={onDelete} className="text-sm font-semibold text-red-600"><UiText text="Slett"/></button></div>{children}</article>; }
+function LeggTilKnapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  useLanguage(); return <button type="button" onClick={onClick} className="w-full rounded-xl border border-dashed border-emerald-400 bg-emerald-50 px-4 py-3 font-bold text-emerald-800">{children}</button>; }
+function Hurtigknapp({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  useLanguage(); return <button type="button" onClick={onClick} className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-emerald-800 shadow-sm">{children}</button>; }
+function medEnhet(verdi: string, enhet: string) { if (!verdi.trim()) return ""; return verdi.toLowerCase().includes(enhet.toLowerCase()) ? verdi : `${verdi} ${enhet}`; }
+function kombiner(...verdier: string[]) { return verdier.filter((verdi) => verdi.trim()).join(" · "); }
+function formatDato(verdi: string) { if (!verdi) return uiText("Dato ikke registrert"); return new Intl.DateTimeFormat(uiLocale()).format(new Date(`${verdi}T12:00:00`)); }
+function formatDatoTid(verdi: string) { try { return new Intl.DateTimeFormat(uiLocale(), { dateStyle: "medium" }).format(new Date(verdi)); } catch { return verdi; } }

@@ -15,7 +15,7 @@ type Lenke = { navn: string; adresse: string };
 type Gruppe = { navn: string; lenker: Lenke[] };
 type DemoModus = "privat" | "utleie" | null;
 
-const utleie: Gruppe[] = [
+const gammelUtleie: Gruppe[] = [
   { navn: "Eiendom", lenker: [{ navn: "Mine boliger", adresse: "/boliger" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Leietakere", adresse: "/leietakere" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender" }] },
   { navn: "Økonomi", lenker: [{ navn: "Inntekter og utgifter", adresse: "/okonomi" }, { navn: "Årsrapport", adresse: "/skatterapport" }] },
   { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Kontrakter", adresse: "/kontrakter" }] },
@@ -66,26 +66,35 @@ export default function Navigasjon() {
 
   useEffect(() => {
     const privatSide = pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
-    const utleieSide = pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator";
+    const utleieSide = pathname === "/utleie" || pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator";
     if (privatSide) { lagreDemoModus("privat"); setDemoModus("privat"); }
     if (utleieSide) { lagreDemoModus("utleie"); setDemoModus("utleie"); }
   }, [pathname]);
 
+  const erSamletUtleie = pathname === "/utleie" || modus === "utleie";
   const grupper = useMemo(() => {
+    const utleie: Gruppe[] = erSamletUtleie ? [{ navn: "Utleie", lenker: [
+      { navn: "Utleieoversikt", adresse: "/utleie?omrade=oversikt" },
+      { navn: "Mine boliger", adresse: "/utleie?omrade=boliger" },
+      { navn: "Leieforhold", adresse: "/utleie?omrade=leieforhold" },
+      { navn: "Økonomi", adresse: "/utleie?omrade=okonomi" },
+      { navn: "Vedlikehold", adresse: "/utleie?omrade=vedlikehold" },
+    ] }] : gammelUtleie;
     if (!epost) {
       if (demoModus === "privat") return [...privat, om];
       if (demoModus === "utleie") return [...utleie, om];
       if (pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer") return [...privat, om];
-      if (pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator") return [...utleie, om];
+      if (pathname === "/utleie" || pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator") return [...utleie, om];
       return [om];
     }
     if (modus === "privat") return [...privat, om];
     if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Privat bolig", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
     return [...utleie, om];
-  }, [epost, modus, demoModus, pathname]);
+  }, [epost, modus, demoModus, pathname, erSamletUtleie]);
 
   const erAktiv = (adresse: string) => {
     const sti = adresse.split("?")[0];
+    if (sti === "/utleie") return pathname === "/utleie" && (typeof window === "undefined" || (new URLSearchParams(window.location.search).get("omrade") || "oversikt") === new URL(adresse, "https://eiendomsoversikten.no").searchParams.get("omrade"));
     return sti === "/" ? pathname === "/" : pathname.startsWith(sti);
   };
   const lenkeAdresse = (adresse: string) => {

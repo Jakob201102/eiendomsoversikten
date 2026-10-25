@@ -1,0 +1,7 @@
+/* Deliberately scoped: no private page, shared stylesheet or modal is restyled. */
+.utleie-arbeidsflate > main { min-height: 0; background: transparent; }
+.utleie-arbeidsflate > main > header:not(.relative) { background: white; color: #173b2d; padding-top: 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid #e7e5e4; }
+.utleie-arbeidsflate > main > header:not(.relative) h1 { font-size: 1.5rem; line-height: 2rem; }
+.utleie-arbeidsflate > main > header:not(.relative) p { color: #526358; }
+.utleie-arbeidsflate > main > header:not(.relative) a { color: #173b2d; }
+@media print { .utleie-topp { display: none; } }

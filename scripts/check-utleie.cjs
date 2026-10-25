@@ -1,0 +1,18 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),crypto=require('crypto');
+const root=path.resolve(__dirname,'..'),ts=require(path.join(root,'node_modules/typescript'));
+const hashes=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/privat-uendret-v80.json'),'utf8'));
+for(const [file,hash] of Object.entries(hashes))assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex'),hash,'Uventet endring i '+file);
+console.log('PASS: '+Object.keys(hashes).length+' originalfiler er uendret, inkludert private sider, API-er, datalagring, felles stilark og layout.');
+function load(file,stubs={}){const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;new Function('require','module','exports',code)(name=>{if(name in stubs)return stubs[name];throw Error('Unexpected import '+name)},m,m.exports);return m.exports;}
+const routes=load('app/lib/utleie-ruter.ts');assert.equal(routes.utleieOmrader.length,5);
+for(const [href,area,view] of [['/oversikt','oversikt',''],['/boliger','boliger','liste'],['/alt-om-boligen','boliger','informasjon'],['/rom','boliger','rom'],['/dokumentarkiv','boliger','dokumenter'],['/bolighistorikk','boliger','historikk'],['/leietakere','leieforhold','leietakere'],['/kontrakter','leieforhold','kontrakter'],['/okonomi','okonomi','poster'],['/skatterapport','okonomi','arsrapport'],['/vedlikehold','vedlikehold','oppgaver'],['/kalender','vedlikehold','kalender']]){const u=new URL(routes.utleieAdresse(href,'rental-a'),'https://example.com');assert.equal(u.pathname,'/utleie');assert.equal(u.searchParams.get('omrade'),area);assert.equal(u.searchParams.get('visning')||'',view);assert.equal(u.searchParams.get('bolig'),'rental-a');}
+const linked=new URL(routes.utleieAdresse('/dokumentarkiv?type=bilder&bolig=explicit#photos','other'),'https://example.com');assert.equal(linked.searchParams.get('type'),'bilder');assert.equal(linked.searchParams.get('bolig'),'explicit');assert.equal(linked.hash,'#photos');
+assert.equal(routes.utleieAdresse('https://example.com/test','r1'),'https://example.com/test');assert.equal(routes.utleieAdresse('//example.com/test','r1'),'//example.com/test');assert.equal(routes.utleieAdresse('/mitt-hjem','r1'),'/mitt-hjem');assert.equal(routes.valgtUtleieVisning(new URLSearchParams('omrade=unknown&visning=unknown')).omrade.id,'oversikt');
+const en=load('app/lib/translations-en.ts').english;for(const o of routes.utleieOmrader){assert(en[o.navn],o.navn);for(const v of o.visninger)assert(en[v.navn],v.navn);}
+console.log('PASS: ruter, boligkontekst, gamle lenker, fem hovedområder og engelske menytekster.');
+(async()=>{
+ const scope=load('app/lib/utleie-data/omfang.ts',{'../boliger':{hentBoliger:async()=>[{id:'r1'},{id:'r2',brukstype:'utleie'},{id:'p1',brukstype:'privat'}]},'../utleie-ruter':routes});
+ const original=JSON.stringify([{id:'1',boligId:'r1'},{id:'2',boligId:'r2'},{id:'3',boligId:'p1'},{id:'4',boligId:''}]);
+ for(const selected of ['', 'r1','r2','p1','invalid']){global.window={location:{search:selected?'?bolig='+selected:''}};const rows=JSON.parse(original),out=await scope.avgrensTilUtleie(rows);assert(out.every(x=>x.boligId!=='p1'));if(selected)assert(out.every(x=>x.boligId===selected));if(selected==='p1'||selected==='invalid')assert.equal(out.length,0);assert.equal(JSON.stringify(rows),original);}
+ console.log('PASS: utleiedata blandes ikke med privat bolig eller andre valgte boliger; ugyldig bolig gir tomt resultat.');
+})().catch(e=>{console.error(e);process.exitCode=1});
