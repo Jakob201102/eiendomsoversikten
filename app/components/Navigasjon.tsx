@@ -22,7 +22,7 @@ const gammelUtleie: Gruppe[] = [
   { navn: "Verktøy", lenker: [{ navn: "Boligkalkulator", adresse: "/kalkulator" }] },
 ];
 const privat: Gruppe[] = [
-  { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender?modus=privat" }] },
+  { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Økonomi", adresse: "/privat-okonomi" }, { navn: "Vedlikehold", adresse: "/vedlikehold" }, { navn: "Kalender", adresse: "/kalender?modus=privat" }] },
   { navn: "Dokumenter", lenker: [{ navn: "Dokumentarkiv", adresse: "/dokumentarkiv" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] },
 ];
 const om: Gruppe = { navn: "Om", lenker: [{ navn: "Om oss", adresse: "/om-oss" }, { navn: "Priser", adresse: "/priser" }, { navn: "Personvern", adresse: "/personvern" }, { navn: "Bruksvilkår", adresse: "/bruksvilkar" }] };
@@ -65,7 +65,7 @@ export default function Navigasjon() {
   useEffect(() => { setApenGruppe(""); }, [pathname]);
 
   useEffect(() => {
-    const privatSide = pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
+    const privatSide = pathname === "/mitt-hjem" || pathname === "/privat-okonomi" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer";
     const utleieSide = pathname === "/utleie" || pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator";
     if (privatSide) { lagreDemoModus("privat"); setDemoModus("privat"); }
     if (utleieSide) { lagreDemoModus("utleie"); setDemoModus("utleie"); }
@@ -83,12 +83,12 @@ export default function Navigasjon() {
     if (!epost) {
       if (demoModus === "privat") return [...privat, om];
       if (demoModus === "utleie") return [...utleie, om];
-      if (pathname === "/mitt-hjem" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer") return [...privat, om];
+      if (pathname === "/mitt-hjem" || pathname === "/privat-okonomi" || pathname === "/bolighistorikk" || pathname === "/rom" || pathname === "/kontakter" || pathname === "/garantier" || pathname === "/forsikringer") return [...privat, om];
       if (pathname === "/utleie" || pathname === "/oversikt" || pathname === "/boliger" || pathname === "/leietakere" || pathname === "/okonomi" || pathname === "/skatterapport" || pathname === "/kontrakter" || pathname === "/kalkulator") return [...utleie, om];
       return [om];
     }
     if (modus === "privat") return [...privat, om];
-    if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Privat bolig", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
+    if (modus === "begge") return [{ navn: "Mine områder", lenker: [{ navn: "Utleieoversikt", adresse: "/oversikt" }, { navn: "Mitt hjem", adresse: "/mitt-hjem" }] }, { navn: "Boligen", lenker: [{ navn: "Mitt hjem", adresse: "/mitt-hjem" }, { navn: "Alt om boligen", adresse: "/alt-om-boligen" }, { navn: "Økonomi", adresse: "/privat-okonomi" }, { navn: "Vedlikehold", adresse: "/vedlikehold?modus=privat" }, { navn: "Boligens historikk", adresse: "/bolighistorikk" }, { navn: "Rom", adresse: "/rom" }, { navn: "Håndverkere / kontakter", adresse: "/kontakter" }, { navn: "Garantier", adresse: "/garantier" }, { navn: "Forsikringer", adresse: "/forsikringer" }] }, ...utleie, om];
     return [...utleie, om];
   }, [epost, modus, demoModus, pathname, erSamletUtleie]);
 

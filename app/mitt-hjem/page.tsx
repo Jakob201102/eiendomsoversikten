@@ -191,6 +191,7 @@ function MittHjemIPad({
     .slice(0, 3);
   const lenker = [
     ["🏠", "Alt om boligen", `/alt-om-boligen?bolig=${boligId}`],
+    ["💰", "Økonomi", `/privat-okonomi?bolig=${boligId}`],
     ["🛏️", "Rom", `/rom?bolig=${boligId}`],
     ["🕘", "Boligens historikk", `/bolighistorikk?bolig=${boligId}`],
     ["🔧", "Vedlikehold", `/vedlikehold?modus=privat&bolig=${boligId}`],
