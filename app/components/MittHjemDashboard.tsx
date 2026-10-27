@@ -1,4 +1,5 @@
 "use client";
+import UiIcon from "./UiIcon";
 import { formatMoney, parseNok, formatMoneyRange } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText  } from "../lib/language";
 
@@ -930,7 +931,7 @@ export default function MittHjemDashboard({
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <section className="mh-kort mh-kort-anbefalinger rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           <div className="flex items-start justify-between gap-3">
-            <div><p className="text-2xl">💡</p><h2 className="mt-2 text-xl font-bold"><UiText text="Anbefalinger til boligen"/></h2></div>
+            <div><p className="text-2xl"><UiIcon symbol="💡"/></p><h2 className="mt-2 text-xl font-bold"><UiText text="Anbefalinger til boligen"/></h2></div>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800"><UiText text="Forslag"/></span>
           </div>
           <p className="mt-2 text-sm text-slate-500"><UiText text="Vanlige intervaller – vurder alltid tilstand, produkt og lokale forhold."/></p>
@@ -939,7 +940,7 @@ export default function MittHjemDashboard({
               const anbefalingId = anbefaling.tittel.trim().toLocaleLowerCase("nb-NO");
               const registrertOppgave = boligOppgaver.find((oppgave) => String(oppgave.anbefalingId || "").trim().toLocaleLowerCase("nb-NO") === anbefalingId || String(oppgave.tittel || "").trim().toLocaleLowerCase("nb-NO") === anbefalingId);
               return <article key={anbefaling.tittel} className="rounded-xl border border-stone-200 p-4">
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-bold">{anbefaling.ikon} <UiText text={String(anbefaling.tittel ?? "")}/></h3><p className="mt-1 text-sm text-slate-500"><UiText text={String(anbefaling.intervall ?? "")}/><UiText text=" · ca. "/>{formatMoneyRange(anbefaling.pris)}</p></div></div>
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="font-bold"><UiIcon symbol={anbefaling.ikon}/> <UiText text={String(anbefaling.tittel ?? "")}/></h3><p className="mt-1 text-sm text-slate-500"><UiText text={String(anbefaling.intervall ?? "")}/><UiText text=" · ca. "/>{formatMoneyRange(anbefaling.pris)}</p></div></div>
                 {Boolean(registrertOppgave?.frist) && <p className="mt-2 text-xs text-slate-500"><UiText text="Neste dato: "/>{formatDato(String(registrertOppgave?.frist || ""))}</p>}
                 {kanRedigere && <div className="mt-3 flex flex-wrap gap-4 text-sm font-bold">{registrertOppgave ? <><span className="text-emerald-700"><UiText text="✓ Lagt til i vedlikeholdsplan"/></span><Link href={`/vedlikehold?modus=privat&bolig=${bolig.id}`} className="text-slate-700"><UiText text="Åpne i vedlikeholdsplan →"/></Link></> : <><Link href={`/vedlikehold?modus=privat&ny=1&bolig=${bolig.id}&tittel=${encodeURIComponent(anbefaling.tittel)}&gjentakelse=${anbefaling.gjentakelse}&anbefaling=${encodeURIComponent(anbefalingId)}`} className="text-emerald-700"><UiText text="Legg til i vedlikeholdsplan →"/></Link><button type="button" onClick={() => void skjulAnbefaling(anbefaling.tittel)} className="text-slate-500"><UiText text="Ikke relevant"/></button></>}</div>}
               </article>
@@ -953,7 +954,7 @@ export default function MittHjemDashboard({
         </section>
 
         <section className="mh-kort mh-kort-handleliste rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-          <p className="text-2xl">🛒</p><h2 className="mt-2 text-xl font-bold"><UiText text="Handleliste"/></h2>
+          <p className="text-2xl"><UiIcon symbol="🛒"/></p><h2 className="mt-2 text-xl font-bold"><UiText text="Handleliste"/></h2>
           <p className="mt-2 text-sm text-slate-500"><UiText text="En enkel liste for ting boligen trenger."/></p>
           {canRenderList(data.handleliste) ? <div className="mt-4 divide-y divide-stone-100">{data.handleliste.map((punkt) => <div key={punkt.id} className="flex min-w-0 items-center gap-3 py-3"><input type="checkbox" checked={punkt.ferdig} disabled={!kanRedigere || jobber} onChange={() => void lagreHandleliste(data.handleliste.map((verdi) => verdi.id === punkt.id ? { ...verdi, ferdig: !verdi.ferdig } : verdi))} className="h-5 w-5 shrink-0 accent-emerald-500" /><span className={`min-w-0 flex-1 break-words text-sm ${punkt.ferdig ? "text-slate-400 line-through" : ""}`}><UiText text={String(punkt.tekst ?? "")}/></span>{kanRedigere && <button type="button" onClick={() => void lagreHandleliste(data.handleliste.filter((verdi) => verdi.id !== punkt.id))} className="shrink-0 text-xs font-bold text-red-600"><UiText text="Fjern"/></button>}</div>)}</div> : <p className="mt-4 rounded-xl bg-stone-50 p-4 text-sm text-slate-500"><UiText text="Listen er tom."/></p>}
           {kanRedigere && <form onSubmit={(event) => { event.preventDefault(); const tekst = nyttHandlepunkt.trim(); if (tekst) void lagreHandleliste([...data.handleliste, { id: crypto.randomUUID(), tekst, ferdig: false }]); }} className="mt-4 flex gap-2"><input value={nyttHandlepunkt} onChange={(event) => setNyttHandlepunkt(event.target.value)} placeholder={uiText("For eksempel røykvarslerbatteri")} className="felt min-w-0 flex-1" /><button disabled={jobber} className="shrink-0 rounded-xl bg-emerald-500 px-4 font-bold text-white"><UiText text="Legg til"/></button></form>}
@@ -1133,7 +1134,7 @@ export default function MittHjemDashboard({
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center">
-                  <span className="text-3xl">📷</span>
+                  <span className="text-3xl"><UiIcon symbol="📷"/></span>
                   <span className="mt-2 block font-bold"><UiText text="Ta nye bilder"/></span>
                   <span className="mt-1 block text-xs text-slate-500"><UiText text="Åpner kameraet på mobilen"/></span>
                   <input
@@ -1151,7 +1152,7 @@ export default function MittHjemDashboard({
                   />
                 </label>
                 <label className="block rounded-2xl border-2 border-dashed border-stone-300 p-5 text-center">
-                  <span className="text-3xl">📁</span>
+                  <span className="text-3xl"><UiIcon symbol="📁"/></span>
                   <span className="mt-2 block font-bold"><UiText text="Last opp fra Bilder eller Filer"/></span>
                   <span className="mt-1 block text-xs text-slate-500"><UiText text="Velg eksisterende bildefiler"/></span>
                   <input
@@ -1726,7 +1727,7 @@ function Historikkrad({
               onClick={() => onAapne(dokument)}
               className="text-sm font-semibold text-emerald-700"
             >
-              {dokument.filtype.startsWith("image/") ? "📸" : "📄"}{" "}
+              <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/>{" "}
               {uiDemoText(dokument.navn, dokument.id)}
             </button>
           ))}
@@ -1762,7 +1763,7 @@ function Filrader({
           onClick={() => onAapne(fil)}
           className="flex w-full items-center gap-3 rounded-xl border border-stone-200 p-3 text-left hover:bg-stone-50"
         >
-          <span>{fil.filtype.startsWith("image/") ? "📸" : "📄"}</span>
+          <span><UiIcon symbol={fil.filtype.startsWith("image/") ? "📸" : "📄"}/></span>
           <span className="min-w-0">
             <strong className="block truncate text-sm">{uiDemoText(fil.navn, fil.id)}</strong>
             <span className="text-xs text-slate-500">
@@ -1796,7 +1797,7 @@ function Dashboardkort({
     <section className={`mh-kort mh-kort-${tema} rounded-3xl bg-white p-5 shadow-sm sm:p-6`}>
       <div className="mh-kort-heading mb-5 flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold">
-          <span className="mr-2">{ikon}</span>
+          <span className="mr-2"><UiIcon symbol={ikon}/></span>
           <UiText text={String(tittel ?? "")}/>
         </h2>
         {lenke && lenketekst && (
@@ -1854,7 +1855,7 @@ function Valg({
       onClick={onClick}
       className="min-h-28 rounded-2xl border border-stone-200 p-5 text-left hover:border-emerald-300 hover:bg-emerald-50"
     >
-      <span className="text-2xl">{ikon}</span>
+      <span className="text-2xl"><UiIcon symbol={ikon}/></span>
       <strong className="mt-2 block"><UiText text={String(tittel ?? "")}/></strong>
       <span className="mt-1 block text-sm text-slate-500"><UiText text={String(tekst ?? "")}/></span>
     </button>

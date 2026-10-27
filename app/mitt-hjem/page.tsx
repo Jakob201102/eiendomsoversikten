@@ -1,4 +1,5 @@
 "use client";
+import UiIcon from "../components/UiIcon";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText } from "../lib/language";
 
 
@@ -225,7 +226,7 @@ function MittHjemIPad({
 
     <section className="rounded-3xl bg-white p-5 shadow-sm">
       <h2 className="text-xl font-bold"><UiText text="Boligoversikt"/></h2>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">{lenker.map(([ikon, navn, adresse]) => <Link key={adresse} href={adresse} className="flex min-h-14 items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 font-bold text-slate-800"><span className="text-xl">{ikon}</span><span><UiText text={String(navn ?? "")}/></span><span className="ml-auto text-slate-400">→</span></Link>)}</div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">{lenker.map(([ikon, navn, adresse]) => <Link key={adresse} href={adresse} className="flex min-h-14 items-center gap-3 rounded-xl bg-stone-50 px-4 py-3 font-bold text-slate-800"><span className="text-xl"><UiIcon symbol={ikon}/></span><span><UiText text={String(navn ?? "")}/></span><span className="ml-auto text-slate-400">→</span></Link>)}</div>
     </section>
 
     <section className="rounded-3xl bg-white p-5 shadow-sm">

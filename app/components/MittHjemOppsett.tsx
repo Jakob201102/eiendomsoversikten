@@ -1,4 +1,6 @@
 "use client";
+import UiIcon from "./UiIcon";
+import UiIconText from "./UiIconText";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
 
@@ -1230,7 +1232,7 @@ export default function MittHjemOppsett({
                   className="rounded-2xl border border-stone-200 p-4"
                 >
                   <span className="font-bold">
-                    {ikon} <UiText text={navn}/>
+                    <UiIcon symbol={ikon}/> <UiText text={navn}/>
                   </span>
                   <span className="mt-1 block text-xs text-slate-500">
                     <UiText text={hjelp}/>
@@ -1254,7 +1256,7 @@ export default function MittHjemOppsett({
                 </label>
               ))}
               <label className="rounded-2xl border border-stone-200 p-4">
-                <span className="font-bold"><UiText text="🔥 Oppvarming"/></span>
+                <span className="font-bold"><UiIconText text="🔥 Oppvarming"/></span>
                 <span className="mt-1 block text-xs text-slate-500"><UiText text="Type oppvarming"/></span>
                 <input
                   value={delerData.oppvarming || ""}
@@ -1406,7 +1408,7 @@ export default function MittHjemOppsett({
           <div>
             <p className="text-slate-600"><UiText text="Samle fakturaer, kvitteringer, garantier, samsvarserklæringer, tegninger og rapporter. Du kan også gjøre dette senere."/></p>
             <label className="mt-5 block rounded-2xl border-2 border-dashed border-stone-300 p-6 text-center">
-              <span className="text-3xl">📄</span>
+              <span className="text-3xl"><UiIcon symbol="📄"/></span>
               <span className="mt-2 block font-bold"><UiText text="Velg dokumenter eller bilder"/></span>
               <span className="mt-1 block text-sm text-slate-500"><UiText text="Du kan velge flere filer"/></span>
               <input

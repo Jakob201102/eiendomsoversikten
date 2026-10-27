@@ -1,4 +1,5 @@
 "use client";
+import UiIcon from "../components/UiIcon";
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
 
@@ -498,7 +499,7 @@ export default function Bolighistorikk() {
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
                     <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {uiDemoText(dokument.navn, dokument.id)}
+                      <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/> {uiDemoText(dokument.navn, dokument.id)}
                     </button>
                     <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
@@ -574,7 +575,7 @@ export default function Bolighistorikk() {
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
                     <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      {dokument.filtype.startsWith("image/") ? "📸" : "📄"} {uiDemoText(dokument.navn, dokument.id)}
+                      <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/> {uiDemoText(dokument.navn, dokument.id)}
                     </button>
                     <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
@@ -683,7 +684,7 @@ function Historikkrad({
               onClick={() => onAapne(dokument)}
               className="min-w-0 max-w-full break-words text-left text-sm font-bold text-emerald-700"
             >
-              {dokument.filtype.startsWith("image/") ? "📸" : "📄"}{" "}
+              <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/>{" "}
               {uiDemoText(dokument.navn, dokument.id)}
             </button>
           ))}

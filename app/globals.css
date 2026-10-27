@@ -363,3 +363,28 @@ footer.vedlikeholdsfot {
 .kontakt-person.kontakt-tema-hvac { --mh-photo: url("/card-details/teknisk-v90.webp"); --mh-drawing: url("/card-details/teknisk-v90.svg"); }
 .kontakt-person.kontakt-tema-entreprenor { --mh-photo: url("/card-details/arealer-v90.webp"); --mh-drawing: url("/card-details/bolig-v89.svg"); }
 .kontakt-person.kontakt-tema-annet { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
+
+/* v97: calm forest-green actions with readable text and consistent line icons. */
+@theme {
+  --color-emerald-50: #f0f5f0;
+  --color-emerald-100: #e1ece2;
+  --color-emerald-200: #c5d9ca;
+  --color-emerald-300: #aacbb6;
+  --color-emerald-400: #92bca1;
+  --color-emerald-500: #30694f;
+  --color-emerald-600: #285b45;
+  --color-emerald-700: #214e3a;
+  --color-emerald-800: #1c4232;
+  --color-emerald-900: #173729;
+  --color-emerald-950: #0d241b;
+}
+.bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .knapp-lys {
+  background-color: #285b45;
+  color: #fff;
+}
+:is(.hover\:bg-emerald-400, .hover\:bg-emerald-500, .hover\:bg-emerald-600):hover {
+  background-color: #214e3a;
+  color: #fff;
+}
+.felt:focus { border-color: #30694f; box-shadow: 0 0 0 3px rgb(48 105 79 / 14%); }
+.ui-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -.13em; flex-shrink: 0; }

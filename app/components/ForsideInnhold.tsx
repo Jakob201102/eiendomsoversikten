@@ -1,4 +1,5 @@
 "use client";
+import UiIcon from "./UiIcon";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
 
@@ -115,7 +116,7 @@ function PrivatForside() {
                 className="group rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:-translate-y-0.5 hover:border-emerald-300/60 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-xl">{ikon}</span>
+                  <span className="text-xl"><UiIcon symbol={ikon}/></span>
                   <span
                     aria-hidden="true"
                     className="text-sm text-emerald-300 opacity-0 transition group-hover:opacity-100"
@@ -228,12 +229,12 @@ function PrivatStartpanel() {
     <div className="mx-auto max-w-6xl space-y-6">
       <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Neste handling"/></p><h2 className="mt-1 text-2xl font-bold"><UiText text="Dette bør du se på"/></h2></div>{oppmerksomhet.length > 3 && <Link href="/kalender?modus=privat" className="text-sm font-bold text-emerald-700"><UiText text="Se alle →"/></Link>}</div>
-        {laster ? <p className="mt-5 text-sm text-slate-500"><UiText text="Henter kommende oppgaver…"/></p> : oppmerksomhet.length ? <div className="mt-5 grid gap-3 md:grid-cols-3">{oppmerksomhet.slice(0, 3).map((punkt) => <Link key={punkt.id} href={punkt.lenke} className="min-w-0 rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-emerald-300"><span className="text-xl">{punkt.ikon}</span><h3 className="mt-2 break-words font-bold"><UiText text={String(punkt.tittel ?? "")}/></h3><p className="mt-1 break-words text-sm text-slate-500"><UiText text={String(punkt.detalj ?? "")}/></p></Link>)}</div> : <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="font-bold text-emerald-900"><UiText text="✓ Alt ser bra ut"/></p><p className="mt-1 text-sm text-emerald-800"><UiText text="Ingen kommende oppgaver eller åpne avvik akkurat nå."/></p></div>}
+        {laster ? <p className="mt-5 text-sm text-slate-500"><UiText text="Henter kommende oppgaver…"/></p> : oppmerksomhet.length ? <div className="mt-5 grid gap-3 md:grid-cols-3">{oppmerksomhet.slice(0, 3).map((punkt) => <Link key={punkt.id} href={punkt.lenke} className="min-w-0 rounded-2xl border border-stone-200 bg-stone-50 p-4 transition hover:border-emerald-300"><span className="text-xl"><UiIcon symbol={punkt.ikon}/></span><h3 className="mt-2 break-words font-bold"><UiText text={String(punkt.tittel ?? "")}/></h3><p className="mt-1 break-words text-sm text-slate-500"><UiText text={String(punkt.detalj ?? "")}/></p></Link>)}</div> : <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4"><p className="font-bold text-emerald-900"><UiText text="✓ Alt ser bra ut"/></p><p className="mt-1 text-sm text-emerald-800"><UiText text="Ingen kommende oppgaver eller åpne avvik akkurat nå."/></p></div>}
       </section>
 
       {!laster && (!hovedbolig ? <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:p-7"><h2 className="text-xl font-bold"><UiText text="Opprett ditt første hjem"/></h2><p className="mt-2 text-sm text-slate-600"><UiText text="Legg inn adressen først. Resten kan du fylle ut senere."/></p><Link href="/mitt-hjem" className="mt-4 inline-block rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white"><UiText text="Opprett bolig"/></Link></section> : fullforing.prosent < 80 ? <section className="rounded-3xl border border-stone-200 bg-white p-5 shadow-sm sm:p-7"><div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Fortsett med boligen"/></p><h2 className="mt-1 text-xl font-bold"><UiText text="Gjør boligen mer komplett"/></h2><p className="mt-2 text-sm text-slate-600">{String(hovedbolig.adresse || uiText("Boligen"))}<UiText text=" er omtrent "/>{fullforing.prosent}<UiText text=" % utfylt."/></p><div className="mt-3 h-2 max-w-md overflow-hidden rounded-full bg-stone-200"><div className="h-full rounded-full bg-emerald-500" style={{ width: `${fullforing.prosent}%` }} /></div>{fullforing.mangler.length > 0 && <p className="mt-3 text-sm text-slate-500"><UiText text="Mangler blant annet: "/><UiText text={String(fullforing.mangler.slice(0, 3).map(uiText).join(", ") ?? "")}/>.</p>}</div><Boligveileder kompakt knappTekst="Fortsett gjennomgangen" /></div></section> : <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-900"><UiText text="✓ Boligen din er godt dokumentert"/></div>)}
 
-      <section><h2 className="text-2xl font-bold"><UiText text="Hva vil du gjøre?"/></h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{snarveier.map(([ikon, navn, tekst, lenke]) => <Link key={navn} href={lenke} className="group min-w-0 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300"><div className="flex items-start gap-3"><span className="text-xl">{ikon}</span><div className="min-w-0"><h3 className="font-bold"><UiText text={navn}/> <span aria-hidden="true" className="text-emerald-600">→</span></h3><p className="mt-1 break-words text-sm text-slate-500"><UiText text={tekst}/></p></div></div></Link>)}</div></section>
+      <section><h2 className="text-2xl font-bold"><UiText text="Hva vil du gjøre?"/></h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{snarveier.map(([ikon, navn, tekst, lenke]) => <Link key={navn} href={lenke} className="group min-w-0 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300"><div className="flex items-start gap-3"><span className="text-xl"><UiIcon symbol={ikon}/></span><div className="min-w-0"><h3 className="font-bold"><UiText text={navn}/> <span aria-hidden="true" className="text-emerald-600">→</span></h3><p className="mt-1 break-words text-sm text-slate-500"><UiText text={tekst}/></p></div></div></Link>)}</div></section>
 
       <section className="flex flex-col gap-4 rounded-3xl bg-slate-950 p-5 text-white sm:flex-row sm:items-center sm:justify-between sm:p-7"><div><p className="text-xs font-bold uppercase tracking-wider text-emerald-300"><UiText text="Rask registrering"/></p><h2 className="mt-1 text-xl font-bold"><UiText text="Legg til noe"/></h2><p className="mt-1 text-sm text-slate-300"><UiText text="Skade, utført arbeid, vedlikehold, dokument, bilde eller håndverker."/></p></div><Link href="/mitt-hjem?leggtil=1" className="shrink-0 rounded-xl bg-emerald-500 px-6 py-3 text-center font-bold text-white hover:bg-emerald-400"><UiText text="+ Legg til"/></Link></section>
 
@@ -441,7 +442,7 @@ function Forsidesteg({ nummer, tittel, tekst }: { nummer: string; tittel: string
 
 function Produktforhandsvisning({ ikon, tittel, tekst }: { ikon: string; tittel: string; tekst: string }) {
   useLanguage();
-  return <article className="rounded-2xl border border-white/10 bg-white/5 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold"><UiText text={String(tittel ?? "")}/></h3><p className="mt-2 text-sm leading-6 text-slate-300"><UiText text={tekst}/></p></article>;
+  return <article className="rounded-2xl border border-white/10 bg-white/5 p-5"><span className="text-2xl"><UiIcon symbol={ikon}/></span><h3 className="mt-3 font-bold"><UiText text={String(tittel ?? "")}/></h3><p className="mt-2 text-sm leading-6 text-slate-300"><UiText text={tekst}/></p></article>;
 }
 
 function Mini({ tittel, verdi }: { tittel: string; verdi: string }) {
@@ -466,7 +467,7 @@ function Flytpunkt({
   return (
     <article className="flex gap-4 rounded-2xl border border-stone-200 p-5">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-xl">
-        {ikon}
+        <UiIcon symbol={ikon}/>
       </span>
       <div>
         <h3 className="font-bold"><UiText text={String(tittel ?? "")}/></h3>

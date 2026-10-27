@@ -1,3 +1,4 @@
+import UiIcon from "../components/UiIcon";
 
 import { UiText } from "../lib/language";
 import Link from "next/link";
@@ -53,7 +54,7 @@ export default function OmOss() {
                 ["📁", "Dokumentasjon", "Finn igjen kvitteringer, garantier, bilder og viktige dokumenter."],
                 ["👨‍👩‍👧", "Delt hjem", "Gi familien tilgang til den samme oppdaterte boligoversikten."],
                 ["🏘️", "Utleie", "Få egne verktøy for boliger, leietakere, økonomi og årsrapport."],
-              ].map(([ikon, tittel, tekst]) => <article key={tittel} className="rounded-2xl bg-stone-50 p-5"><span className="text-2xl">{ikon}</span><h3 className="mt-3 font-bold"><UiText text={String(tittel ?? "")}/></h3><p className="mt-2 text-sm leading-6 text-slate-600"><UiText text={tekst}/></p></article>)}
+              ].map(([ikon, tittel, tekst]) => <article key={tittel} className="rounded-2xl bg-stone-50 p-5"><span className="text-2xl"><UiIcon symbol={ikon}/></span><h3 className="mt-3 font-bold"><UiText text={String(tittel ?? "")}/></h3><p className="mt-2 text-sm leading-6 text-slate-600"><UiText text={tekst}/></p></article>)}
             </div>
           </section>
 

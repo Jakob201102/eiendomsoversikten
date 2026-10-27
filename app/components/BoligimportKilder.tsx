@@ -1,4 +1,6 @@
 "use client";
+import UiIcon from "./UiIcon";
+import UiIconText from "./UiIconText";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
 
@@ -350,7 +352,7 @@ export default function BoligimportKilder({
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {kildevalg.map((valg) => (
           <button key={valg.type} type="button" onClick={() => setAktiv(valg.type)} className={`min-h-12 min-w-0 rounded-xl border px-3 py-2 text-left text-sm font-bold ${aktiv === valg.type ? "border-emerald-600 bg-emerald-600 text-white" : "border-emerald-200 bg-white text-emerald-950"}`}>
-            <span className="mr-1">{valg.ikon}</span> <UiText text={String(valg.navn ?? "")}/>
+            <span className="mr-1"><UiIcon symbol={valg.ikon}/></span> <UiText text={String(valg.navn ?? "")}/>
           </button>
         ))}
       </div>
@@ -410,7 +412,7 @@ function Kilderad({ navn, detalj, onSlett }: { navn: string; detalj: string; onS
 
 function Kontrollfelt({ label, verdi, konflikt, onChange, onVelgKonflikt }: { label: string; verdi: string; konflikt?: BoligimportKonflikt; onChange: (verdi: string) => void; onVelgKonflikt: (verdi: string) => void }) {
   useLanguage();
-  return <label className="min-w-0 text-sm"><span className="font-semibold"><UiText text={String(label ?? "")}/></span><input value={verdi} onChange={(e) => onChange(e.target.value)} className="felt mt-1" />{konflikt && <div className="mt-2 min-w-0 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-950"><p className="font-bold"><UiText text="⚠️ Dobbelsjekk dette feltet"/></p>{konflikt.verdier.map((funn) => <button key={`${funn.kilde}-${funn.verdi}`} type="button" onClick={() => onVelgKonflikt(funn.verdi)} className="mt-1 block max-w-full break-words text-left underline"><strong>{funn.kilde}:</strong> {funn.verdi}</button>)}</div>}</label>;
+  return <label className="min-w-0 text-sm"><span className="font-semibold"><UiText text={String(label ?? "")}/></span><input value={verdi} onChange={(e) => onChange(e.target.value)} className="felt mt-1" />{konflikt && <div className="mt-2 min-w-0 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-950"><p className="font-bold"><UiIconText text="⚠️ Dobbelsjekk dette feltet"/></p>{konflikt.verdier.map((funn) => <button key={`${funn.kilde}-${funn.verdi}`} type="button" onClick={() => onVelgKonflikt(funn.verdi)} className="mt-1 block max-w-full break-words text-left underline"><strong>{funn.kilde}:</strong> {funn.verdi}</button>)}</div>}</label>;
 }
 
 function RedigerListe({ tittel, tomTekst, verdier, onChange }: { tittel: string; tomTekst: string; verdier: string[]; onChange: (verdier: string[]) => void }) {
