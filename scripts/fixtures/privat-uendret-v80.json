@@ -1,6 +1,6 @@
 {
   "app/favicon.ico": "feffee2afbd3cc23413ed01dc8b515ac3344b5ed83731474c0fdede8f83081f0",
-  "app/globals.css": "c5bfcb012d85e02d9915001e37f57820ef3dbe65ebae8fbe68abd11546e52381",
+  "app/globals.css": "87f4345be966faae90c43885f797e2d289ad1449e0bd711c58c12e2e6b59efc3",
   "app/layout.tsx": "26c45e15508e218270848e169a0a393bed6f72e2e198daefa7f45e2a2a8dcaa6",
   "app/manifest.ts": "65326cf80fd6cd1eed25ac336c3af682064a58ce63ea1dfd3340e18c3054e754",
   "app/page.tsx": "fd9f17e887bc3d94e58979ab82aade32abd6aa889b745ed96f9832bf9b499875",
@@ -20,7 +20,7 @@
   "app/bolighistorikk/layout.tsx": "1aead03e5a96e189533e781c12b96e90c984ead436b58d2c032948f786c4c3df",
   "app/bolighistorikk/page.tsx": "fc59421ccecaf8fe57284aaecd3c826b7362d847268909cace998f55c3c5e126",
   "app/bruksvilkar/page.tsx": "0b663619a7a78517980280ab13dc7a7bb577d7dc674472942a071bef2bd7a563",
-  "app/components/Boligadministrasjon.tsx": "29140560afae0af6169fefd0390641cd50f2725da3c73526e741536e47a1c3bd",
+  "app/components/Boligadministrasjon.tsx": "231ab8cf5b80d3eccdb4ee95aef37e804dc5c899a50f89daa357a9a600926dfb",
   "app/components/BoligbildeBakgrunn.tsx": "866f1ca40d25c3ccca68c6ec1cdc44236ed959b601f5368eb22de713934ba9a3",
   "app/components/BoligimportKilder.tsx": "4601fa66dbcad492391f9e76e98d8af3a71aaf017065c9dbb39d7bd578961d48",
   "app/components/BoligoverforingKort.tsx": "0b2e20c77cacccaca6e9917b9db5a50fbb837fcbdd6c030946c2783f5c10c177",

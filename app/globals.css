@@ -350,3 +350,16 @@ footer.vedlikeholdsfot {
   :is(section, article, div, aside).mh-kort.kalender-rutenett::before { height: 64px; opacity: .1; }
 }
 @media print { .historikk-filter { background: white; box-shadow: none; } }
+
+/* v94: category themes affect contact cards only. */
+.kontakt-person.kontakt-tema-rorlegger { --mh-photo: url("/card-details/rorlegger-v94.webp"); --mh-drawing: url("/card-details/rorlegger-v94.svg"); }
+.kontakt-person.kontakt-tema-elektriker { --mh-photo: url("/card-details/plasseringer-v89.webp"); --mh-drawing: url("/card-details/elektriker-v94.svg"); }
+.kontakt-person.kontakt-tema-snekker { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/snekker-v94.svg"); }
+.kontakt-person.kontakt-tema-tomrer { --mh-photo: url("/card-details/historikk-v88.webp"); --mh-drawing: url("/card-details/tomrer-v94.svg"); }
+.kontakt-person.kontakt-tema-murer { --mh-photo: url("/card-details/murer-v94.webp"); --mh-drawing: url("/card-details/murer-v94.svg"); }
+.kontakt-person.kontakt-tema-maler { --mh-photo: url("/card-details/maler-v94.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
+.kontakt-person.kontakt-tema-taktekker { --mh-photo: url("/card-details/vedlikehold-v88.webp"); --mh-drawing: url("/card-details/tak-v94.svg"); }
+.kontakt-person.kontakt-tema-gartner { --mh-photo: url("/card-details/ute-v90.webp"); --mh-drawing: url("/card-details/ute-v90.svg"); }
+.kontakt-person.kontakt-tema-hvac { --mh-photo: url("/card-details/teknisk-v90.webp"); --mh-drawing: url("/card-details/teknisk-v90.svg"); }
+.kontakt-person.kontakt-tema-entreprenor { --mh-photo: url("/card-details/arealer-v90.webp"); --mh-drawing: url("/card-details/bolig-v89.svg"); }
+.kontakt-person.kontakt-tema-annet { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
