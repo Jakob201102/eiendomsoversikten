@@ -928,7 +928,7 @@ export default function MittHjemDashboard({
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+        <section className="mh-kort mh-kort-anbefalinger rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           <div className="flex items-start justify-between gap-3">
             <div><p className="text-2xl">💡</p><h2 className="mt-2 text-xl font-bold"><UiText text="Anbefalinger til boligen"/></h2></div>
             <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800"><UiText text="Forslag"/></span>
@@ -952,7 +952,7 @@ export default function MittHjemDashboard({
           <p className="mt-4 text-xs leading-5 text-slate-400"><UiText text="Prisene er grove eksempler og kan variere mye med størrelse, tilstand, sted og hvem som utfører arbeidet."/></p>
         </section>
 
-        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+        <section className="mh-kort mh-kort-handleliste rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           <p className="text-2xl">🛒</p><h2 className="mt-2 text-xl font-bold"><UiText text="Handleliste"/></h2>
           <p className="mt-2 text-sm text-slate-500"><UiText text="En enkel liste for ting boligen trenger."/></p>
           {canRenderList(data.handleliste) ? <div className="mt-4 divide-y divide-stone-100">{data.handleliste.map((punkt) => <div key={punkt.id} className="flex min-w-0 items-center gap-3 py-3"><input type="checkbox" checked={punkt.ferdig} disabled={!kanRedigere || jobber} onChange={() => void lagreHandleliste(data.handleliste.map((verdi) => verdi.id === punkt.id ? { ...verdi, ferdig: !verdi.ferdig } : verdi))} className="h-5 w-5 shrink-0 accent-emerald-500" /><span className={`min-w-0 flex-1 break-words text-sm ${punkt.ferdig ? "text-slate-400 line-through" : ""}`}><UiText text={String(punkt.tekst ?? "")}/></span>{kanRedigere && <button type="button" onClick={() => void lagreHandleliste(data.handleliste.filter((verdi) => verdi.id !== punkt.id))} className="shrink-0 text-xs font-bold text-red-600"><UiText text="Fjern"/></button>}</div>)}</div> : <p className="mt-4 rounded-xl bg-stone-50 p-4 text-sm text-slate-500"><UiText text="Listen er tom."/></p>}

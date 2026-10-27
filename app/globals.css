@@ -335,3 +335,7 @@ footer.vedlikeholdsfot {
 @media print {
   :is(section, article, div).mh-kort.vh-tall::before { display: none; }
 }
+
+/* v92: recommendation and shopping cards in Mitt hjem. */
+.mh-kort-anbefalinger { --mh-photo: url("/card-details/bolig-v89.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
+.mh-kort-handleliste { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/handleliste-v92.svg"); }
