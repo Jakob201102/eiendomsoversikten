@@ -71,3 +71,85 @@ html {
     max-width: 100%;
   }
 }
+
+/* v83: responsive background artwork only; existing UI remains untouched. */
+main.min-h-screen {
+  --boligbakgrunn: url("/backgrounds/lin-v82.webp");
+  background-color: #f4eee3;
+  background-image: var(--boligbakgrunn);
+  background-position: center top;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+  --boligbakgrunn: url("/backgrounds/arkitektur-v82.webp");
+  background-position: center 420px;
+}
+/* Keep existing dark pages, hero images, modal backdrops and cards intact. */
+main.min-h-screen.bg-slate-950 {
+  background-color: #020617;
+  background-image: none;
+}
+main.min-h-screen.bg-slate-900 {
+  background-color: #0f172a;
+  background-image: none;
+}
+main.min-h-screen > header.bg-gradient-to-br {
+  background-image: none;
+  background-color: transparent;
+}
+.utleie-arbeidsflate > main.min-h-screen {
+  background: transparent;
+}
+.utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+  background-color: #f4eee3;
+  background-image: var(--boligbakgrunn);
+  background-position: center 360px;
+  background-size: 100% auto;
+  background-repeat: no-repeat;
+}
+/* Tablet: show both edges without desktop-width cropping, more subdued. */
+@media screen and (min-width: 640px) and (max-width: 1180px) {
+  main.min-h-screen:not(.bg-slate-950):not(.bg-slate-900),
+  .utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-image: linear-gradient(to bottom, rgb(244 238 227 / 38%), #f4eee3 680px), var(--boligbakgrunn);
+    background-size: 100% 680px, 100% auto;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+  main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-position: center 420px;
+  }
+  .utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-position: center 360px;
+  }
+  .utleie-arbeidsflate > main.min-h-screen:not(.boligbakgrunn-arkitektur) {
+    background: transparent;
+  }
+}
+/* Phone: just a faint right-hand detail, fading into the linen ground.
+   No fixed layers, blur filters, animations or extra document width. */
+@media screen and (max-width: 639px) {
+  main.min-h-screen:not(.bg-slate-950):not(.bg-slate-900),
+  .utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-image: linear-gradient(to bottom, rgb(244 238 227 / 78%), #f4eee3 430px), var(--boligbakgrunn);
+    background-position: right top;
+    background-size: 100% 430px, 760px auto;
+    background-repeat: no-repeat;
+  }
+  main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900),
+  .utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-position: right 350px;
+  }
+  .utleie-arbeidsflate > main.min-h-screen:not(.boligbakgrunn-arkitektur) {
+    background: transparent;
+  }
+}
+@media print {
+  main.min-h-screen,
+  .utleie-arbeidsflate > main.min-h-screen.boligbakgrunn-arkitektur:not(.bg-slate-950):not(.bg-slate-900) {
+    background-image: none !important;
+    background-color: white !important;
+  }
+}

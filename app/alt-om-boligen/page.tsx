@@ -400,7 +400,7 @@ export default function AltOmBoligen() {
   }
 
   return (
-    <main className="privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
+    <main className="boligbakgrunn-arkitektur privat-omrade min-h-screen overflow-x-hidden bg-slate-100 text-slate-900">
       <Navigasjon />
       <header className="relative min-h-[260px] overflow-hidden bg-slate-950 px-4 py-10 text-white sm:min-h-[360px] sm:px-6 sm:py-14">
         {toppbildeUrl && <><img src={toppbildeUrl} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-slate-950/25" /></>}
