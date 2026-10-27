@@ -604,7 +604,7 @@ function Oversiktsvisning({
           />
         </InfoKort>
 
-        <InfoKort id="teknisk-sikkerhet" tittel={uiText("Teknisk informasjon")} merke="TEKNISK">
+        <InfoKort dekor="teknisk" id="teknisk-sikkerhet" tittel={uiText("Teknisk informasjon")} merke="TEKNISK">
           <Detaljliste
             rader={[
               ["Oppvarming", data.teknisk.oppvarming],
@@ -614,7 +614,7 @@ function Oversiktsvisning({
           />
         </InfoKort>
 
-        <InfoKort tittel={uiText("Brann og sikkerhet")} merke="SIKKERHET">
+        <InfoKort dekor="brann" tittel={uiText("Brann og sikkerhet")} merke="SIKKERHET">
           <Detaljliste
             rader={[
               ["Røykvarslere", data.sikkerhet.roykvarslere],
@@ -628,7 +628,7 @@ function Oversiktsvisning({
         </InfoKort>
       </div>
 
-      <SamlingKort id="uteomrader" tittel={uiText("Uteområder og boder")} antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
+      <SamlingKort dekor="ute" id="uteomrader" tittel={uiText("Uteområder og boder")} antall={data.uteomrader.length} tomtekst="Ingen uteområder eller boder er registrert.">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.uteomrader.map((omrade) => (
             <article key={omrade.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
@@ -646,7 +646,7 @@ function Oversiktsvisning({
       </SamlingKort>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <SamlingKort id="nokler-utstyr" tittel={uiText("Nøkkeloversikt")} antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
+        <SamlingKort dekor="nokler" id="nokler-utstyr" tittel={uiText("Nøkkeloversikt")} antall={data.nokler.length} tomtekst="Ingen nøkkeltyper er registrert.">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead className="border-b text-xs uppercase tracking-wide text-slate-500">
@@ -661,7 +661,7 @@ function Oversiktsvisning({
           </div>
         </SamlingKort>
 
-        <SamlingKort tittel={uiText("Utstyr og installasjoner")} antall={data.utstyr.length} tomtekst="Ingen installasjoner er registrert.">
+        <SamlingKort dekor="utstyr" tittel={uiText("Utstyr og installasjoner")} antall={data.utstyr.length} tomtekst="Ingen installasjoner er registrert.">
           <div className="space-y-3">
             {data.utstyr.map((utstyr) => (
               <article key={utstyr.id} className="rounded-xl border p-4">
@@ -675,17 +675,17 @@ function Oversiktsvisning({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <InfoKort id="tilleggsarealer" tittel={uiText("Tilleggsarealer og tilbehør")} merke="TILHØRER BOLIGEN">
+        <InfoKort dekor="arealer" id="tilleggsarealer" tittel={uiText("Tilleggsarealer og tilbehør")} merke="TILHØRER BOLIGEN">
           <Detaljliste rader={[
             ["Bod", data.tilleggsarealer.bod], ["Parkering", data.tilleggsarealer.parkering], ["Garasje", data.tilleggsarealer.garasje], ["Balkong/terrasse", data.tilleggsarealer.balkong], ["Postkasse", data.tilleggsarealer.postkasse], ["Fellesareal", data.tilleggsarealer.fellesareal], ["Fast inventar", data.tilleggsarealer.fastInventar],
           ]} />
         </InfoKort>
-        <SamlingKort tittel={uiText("Nyttige mål")} antall={data.mal.length} tomtekst="Ingen mål er registrert.">
+        <SamlingKort dekor="mal" tittel={uiText("Nyttige mål")} antall={data.mal.length} tomtekst="Ingen mål er registrert.">
           <div className="space-y-3">{data.mal.map((mal) => <article key={mal.id} className="rounded-xl border p-4"><div className="flex justify-between gap-4"><strong>{mal.navn || uiText("Mål")}</strong><span className="font-semibold text-emerald-700">{mal.mal || "–"}</span></div>{mal.notat && <p className="mt-2 text-sm text-slate-500">{uiDemoText(mal.notat, mal.id)}</p>}</article>)}</div>
         </SamlingKort>
       </div>
 
-      <SamlingKort id="historikk" tittel={uiText("Oppussingshistorikk")} antall={data.oppussing.length} tomtekst="Ingen oppussing er registrert.">
+      <SamlingKort dekor="historikk" id="historikk" tittel={uiText("Oppussingshistorikk")} antall={data.oppussing.length} tomtekst="Ingen oppussing er registrert.">
         <div className="space-y-3">
           {[...data.oppussing].sort((a, b) => b.dato.localeCompare(a.dato)).map((oppussing) => (
             <article key={oppussing.id} className="grid gap-2 rounded-xl border p-4 sm:grid-cols-[130px_1fr]">
@@ -696,7 +696,7 @@ function Oversiktsvisning({
         </div>
       </SamlingKort>
 
-      {data.notater && <InfoKort tittel={uiText("Egne notater")} merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
+      {data.notater && <InfoKort dekor="notater" tittel={uiText("Egne notater")} merke="NOTATER"><p className="whitespace-pre-wrap leading-7 text-slate-700">{data.notater}</p></InfoKort>}
 
       <Filoversikt
         boligId={String(bolig.id)}
@@ -916,8 +916,8 @@ function Filoversikt({ boligId, bilder, plantegninger, filLenker, innlogget }: {
   const alleFiler = [...bilder, ...plantegninger];
   const visteFiler = visAlle ? alleFiler : alleFiler.slice(0, 8);
   return (
-    <section id="bilder-dokumenter" className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700"><UiText text="BILDER OG TEGNINGER"/></p><h2 className="mt-2 text-xl font-bold"><UiText text="Visuelt arkiv"/></h2></div>{innlogget && <Link href={`/dokumentarkiv?type=bilder&bolig=${encodeURIComponent(boligId)}`} className="text-sm font-semibold text-emerald-700"><UiText text="Åpne dokumentarkivet →"/></Link>}</div>
+    <section id="bilder-dokumenter" className="mh-kort aob-kort aob-kort-visuelt scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7">
+      <div className="aob-kort-heading flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold tracking-wider text-emerald-700"><UiText text="BILDER OG TEGNINGER"/></p><h2 className="mt-2 text-xl font-bold"><UiText text="Visuelt arkiv"/></h2></div>{innlogget && <Link href={`/dokumentarkiv?type=bilder&bolig=${encodeURIComponent(boligId)}`} className="text-sm font-semibold text-emerald-700"><UiText text="Åpne dokumentarkivet →"/></Link>}</div>
       {!harFiler && innlogget ? <TomInnhold tekst="Ingen bilder eller plantegninger er lastet opp." /> : !innlogget ? <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Eksempelbilde tittel={uiText("Stue")} farge="from-emerald-200 to-slate-200" /><Eksempelbilde tittel={uiText("Kjøkken")} farge="from-amber-100 to-slate-300" /><Eksempelbilde tittel={uiText("Plantegning")} farge="from-blue-100 to-slate-200" /></div> : <><div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{visteFiler.map((dokument) => <Filkort key={dokument.id} dokument={dokument} url={filLenker[dokument.id]} />)}</div>{alleFiler.length > 8 && <button type="button" onClick={() => setVisAlle((verdi) => !verdi)} className="mt-5 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{visAlle ? uiText("Vis færre") : uiFormat("Se resten ({0})", [alleFiler.length - 8])}</button>}</>}
     </section>
   );
@@ -938,10 +938,10 @@ function Filkort({ dokument, url }: { dokument: Dokument; url?: string }) {
 
 function Eksempelbilde({ tittel, farge }: { tittel: string; farge: string }) {
   useLanguage(); return <div className="overflow-hidden rounded-2xl border bg-white"><div className={`flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${farge}`}><span className="rounded-lg bg-white/80 px-3 py-2 text-xs font-bold text-slate-600"><UiText text="EKSEMPELBILDE"/></span></div><p className="p-3 font-semibold"><UiText text={String(tittel ?? "")}/></p></div>; }
-function InfoKort({ id, tittel, merke, children, dekor }: { dekor?: "bolig" | "plasseringer"; id?: string; tittel: string; merke: string; children: React.ReactNode }) {
+function InfoKort({ id, tittel, merke, children, dekor }: { dekor?: "bolig" | "plasseringer" | "teknisk" | "brann" | "ute" | "nokler" | "utstyr" | "arealer" | "mal" | "historikk" | "notater" | "visuelt"; id?: string; tittel: string; merke: string; children: React.ReactNode }) {
   useLanguage(); return <section id={id} className={`scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7${dekor ? ` mh-kort aob-kort aob-kort-${dekor}` : ""}`}><p className="text-xs font-bold tracking-wider text-emerald-700"><UiText text={String(merke ?? "")}/></p><h2 className="mt-2 text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><div className="mt-5">{children}</div></section>; }
-function SamlingKort({ id, tittel, antall, tomtekst, children }: { id?: string; tittel: string; antall: number; tomtekst: string; children: React.ReactNode }) {
-  useLanguage(); return <section id={id} className="scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{antall}</span></div><div className="mt-5">{antall ? children : <TomInnhold tekst={tomtekst} />}</div></section>; }
+function SamlingKort({ id, tittel, antall, tomtekst, children, dekor }: { dekor: "bolig" | "plasseringer" | "teknisk" | "brann" | "ute" | "nokler" | "utstyr" | "arealer" | "mal" | "historikk" | "notater" | "visuelt"; id?: string; tittel: string; antall: number; tomtekst: string; children: React.ReactNode }) {
+  useLanguage(); return <section id={id} className={`scroll-mt-32 rounded-3xl bg-white p-6 shadow-sm sm:p-7 mh-kort aob-kort aob-kort-${dekor}`}><div className="aob-kort-heading flex items-center justify-between gap-3"><h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{antall}</span></div><div className="mt-5">{antall ? children : <TomInnhold tekst={tomtekst} />}</div></section>; }
 
 function Seksjonsmeny() {
   useLanguage();

@@ -303,3 +303,18 @@ section.mh-kort::after {
 }
 .aob-kort > h2 { box-shadow: 0 1px 0 rgb(185 157 111 / 27%); }
 @media print { .aob-kort > h2 { box-shadow: none; } }
+
+/* v90: a matching subject for every remaining property overview section. */
+.aob-kort-teknisk { --mh-photo: url("/card-details/teknisk-v90.webp"); --mh-drawing: url("/card-details/teknisk-v90.svg"); }
+.aob-kort-brann { --mh-photo: url("/card-details/brann-v90.webp"); --mh-drawing: url("/card-details/brann-v90.svg"); }
+.aob-kort-ute { --mh-photo: url("/card-details/ute-v90.webp"); --mh-drawing: url("/card-details/ute-v90.svg"); }
+.aob-kort-nokler { --mh-photo: url("/card-details/nokler-v90.webp"); --mh-drawing: url("/card-details/nokler-v90.svg"); }
+.aob-kort-utstyr { --mh-photo: url("/card-details/utstyr-v90.webp"); --mh-drawing: url("/card-details/utstyr-v90.svg"); }
+.aob-kort-arealer { --mh-photo: url("/card-details/arealer-v90.webp"); --mh-drawing: url("/card-details/arealer-v90.svg"); }
+.aob-kort-mal { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/mal-v90.svg"); }
+.aob-kort-historikk { --mh-photo: url("/card-details/historikk-v88.webp"); --mh-drawing: url("/card-details/historikk-v88.svg"); }
+.aob-kort-notater { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/dokumenter-v88.svg"); }
+.aob-kort-visuelt { --mh-photo: url("/card-details/bilder-v88.webp"); --mh-drawing: url("/card-details/bilder-v88.svg"); }
+.aob-kort-heading { box-shadow: 0 1px 0 rgb(185 157 111 / 27%); }
+.aob-kort-heading a { background-color: rgb(252 248 240 / 94%); box-shadow: 0 0 12px 6px rgb(252 248 240 / 94%); }
+@media print { .aob-kort-heading, .aob-kort-heading a { background: transparent; box-shadow: none; } }
