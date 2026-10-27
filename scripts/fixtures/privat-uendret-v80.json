@@ -38,7 +38,7 @@
   "app/components/SkaderAvvik.tsx": "06bfbc0d1d7fd22d2b5281405fbb4ac12c042b4fd401ac1cb4898ce2b8eabbfb",
   "app/components/Tilbakemelding.tsx": "2522bc3b842b88b1a74106799d8fb8ec34533bbb214c2198954eec37d7086cb8",
   "app/dokumentarkiv/layout.tsx": "f5db1a5af136c8495108b70c0a03d2cab69bdf0438ae21c65c62afa85437605e",
-  "app/dokumentarkiv/page.tsx": "60156358798b3f0922dddd87eb2840e2512aa311e87580f20d78a9d6782142e3",
+  "app/dokumentarkiv/page.tsx": "b59559e27b3399702d1fcb248116c7bcb03afdcdddf7a2a2e6d0fbbe16593631",
   "app/forsikringer/layout.tsx": "af117fc0eb4491d36b36963db717a558a62ace541cd8230ce1cc049a6d44deb8",
   "app/forsikringer/page.tsx": "48f2484934cf5fa962b968fbe857b4baa277cbec9941cdb8384da4328e9b95fe",
   "app/garantier/page.tsx": "4db9bd455b3871a1b1dbb4eb0154ead883fa3a09ad89e88c301d00d5911e4929",
