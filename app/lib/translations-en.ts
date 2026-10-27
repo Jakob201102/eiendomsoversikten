@@ -1,5 +1,26 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Budsjett": "Budget",
+
+  "Oversikt over hva boligen koster.": "An overview of your home costs.",
+  "Boligkostnader": "Home costs",
+  "Budsjett · eksempelbeløp": "Budget · sample amounts",
+  "Forsikring og vedlikehold": "Insurance and maintenance",
+  "Fra valgte forsikringer": "From selected insurance policies",
+  "Ingen kostnader er lagt inn her ennå.": "No costs have been entered here yet.",
+  "Inkludert i felleskostnadene": "Included in common charges",
+  "Renter og avdrag inkludert.": "Includes interest and principal repayments.",
+  "Slik fordeles kostnadene": "Cost breakdown",
+  "Kontroller budsjettet for å se fordelingen.": "Check the budget to see the breakdown.",
+  "Legg inn kostnader for å se fordelingen.": "Enter costs to see the breakdown.",
+  "Årlige kostnader": "Annual costs",
+  "Ingen kvartals- eller årsbeløp er lagt inn.": "No quarterly or annual amounts have been entered.",
+  "Årsbeløp er fordelt på 12 måneder i oversikten.": "Annual amounts are spread over 12 months in this overview.",
+  "Du har ulagrede endringer.": "You have unsaved changes.",
+  "Ingen endringer å lagre.": "No changes to save.",
+  "Du har lesetilgang til denne boligen.": "You have view-only access to this home.",
+  "Logg inn for å lagre": "Sign in to save",
+
   "Du har ulagrede endringer. Vil du forlate siden uten å lagre?": "You have unsaved changes. Leave without saving?",
   "Fjern forsikring som ikke lenger finnes": "Remove policy that no longer exists",
   "Se hva boligen koster per måned og per år.": "See what your home costs per month and per year.",
