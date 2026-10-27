@@ -153,3 +153,36 @@ main.min-h-screen > header.bg-gradient-to-br {
     background-color: white !important;
   }
 }
+
+/* v84: the homepage has opaque section backgrounds above its main ground. */
+main.forside-bakgrunn > :is(section, div):is(.bg-stone-50, .bg-white) {
+  background-color: #f4eee3;
+  background-image: inherit;
+  background-position: center top;
+  background-size: inherit;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+/* Keep white text readable, including before a personal hero image loads. */
+main.forside-bakgrunn > section:is(.bg-slate-950, .from-emerald-950) {
+  background-color: #020617;
+  background-image: linear-gradient(rgb(2 6 23 / 88%), rgb(2 6 23 / 94%)), var(--boligbakgrunn);
+  background-position: center top;
+  background-size: 100% 100%, 100% auto;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+@media screen and (max-width: 639px) {
+  main.forside-bakgrunn > :is(section, div):is(.bg-stone-50, .bg-white) {
+    background-position: right top;
+  }
+  main.forside-bakgrunn > section:is(.bg-slate-950, .from-emerald-950) {
+    background-size: 100% 100%, 760px auto;
+    background-position: right top;
+  }
+}
+@media print {
+  main.forside-bakgrunn > :is(section, div) {
+    background-image: none !important;
+  }
+}

@@ -1,9 +1,9 @@
 {
   "app/favicon.ico": "feffee2afbd3cc23413ed01dc8b515ac3344b5ed83731474c0fdede8f83081f0",
-  "app/globals.css": "f96558e2809364d4ea7cb07c33257d3377eec5667a27d34fb922dd6fac7b32e7",
+  "app/globals.css": "4b76217f0a4e3b089d5de8cb8ea5ddc3e0cbc58cb3977daa831abe27be434c6e",
   "app/layout.tsx": "26c45e15508e218270848e169a0a393bed6f72e2e198daefa7f45e2a2a8dcaa6",
   "app/manifest.ts": "65326cf80fd6cd1eed25ac336c3af682064a58ce63ea1dfd3340e18c3054e754",
-  "app/page.tsx": "1b78b5a60940b4addd6315cc59690fd7a8c4a64823a7483292cc5ba82bc4b32a",
+  "app/page.tsx": "fd9f17e887bc3d94e58979ab82aade32abd6aa889b745ed96f9832bf9b499875",
   "app/robots.ts": "61e4afb6f5e3bf41d5fe605abd908aef96492d0d6e68367c4262dc142d479beb",
   "app/sitemap.ts": "8e768dbcc8b2bf062539a3ea2a9c8b7158cb3f4c6247791efaa70ae4da83fe14",
   "app/alt-om-boligen/layout.tsx": "9fde9054941c0236bbab0c67f9c76c61ac6008d4076319d2c3b42144fcccd116",
