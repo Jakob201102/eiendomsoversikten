@@ -215,7 +215,7 @@ export default function Kalender() {
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {nesteHendelser.map((hendelse) => {
                 const kort = <div className="h-full min-w-0 rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300"><div className="flex items-center gap-2"><span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPEINFO[hendelse.type].prikk}`} /><span className="text-xs font-bold uppercase text-slate-500">{fullDato(hendelse.dato)}</span></div><h3 className="mt-2 break-words font-bold">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</h3>{hendelse.boligAdresse && <p className="mt-1 break-words text-sm text-slate-500">{hendelse.boligAdresse}</p>}</div>;
-                return hendelse.kildeUrl ? <Link key={hendelse.id} href={hendelse.kildeUrl}><UiText text={String(kort ?? "")}/></Link> : <button key={hendelse.id} type="button" onClick={() => { setValgtDato(hendelse.dato); setMaaned(startMaaned(new Date(`${hendelse.dato}T12:00:00`))); }} className="min-w-0 text-left"><UiText text={String(kort ?? "")}/></button>;
+                return hendelse.kildeUrl ? <Link key={hendelse.id} href={hendelse.kildeUrl}>{kort}</Link> : <button key={hendelse.id} type="button" onClick={() => { setValgtDato(hendelse.dato); setMaaned(startMaaned(new Date(`${hendelse.dato}T12:00:00`))); }} className="min-w-0 text-left">{kort}</button>;
               })}
             </div>
           ) : <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500"><UiText text="Ingen kommende hendelser er registrert."/></p>}

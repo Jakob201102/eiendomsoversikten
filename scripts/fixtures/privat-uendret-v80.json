@@ -43,7 +43,7 @@
   "app/forsikringer/page.tsx": "48f2484934cf5fa962b968fbe857b4baa277cbec9941cdb8384da4328e9b95fe",
   "app/garantier/page.tsx": "4db9bd455b3871a1b1dbb4eb0154ead883fa3a09ad89e88c301d00d5911e4929",
   "app/kalender/layout.tsx": "082275cf1159ddbdcb318def2a2236b9122f09a02d6a8c7300244741da160cd4",
-  "app/kalender/page.tsx": "4ca312946bbbd9a883ff4a5320583dd0eeaea69503a95b9d8a252fd995175beb",
+  "app/kalender/page.tsx": "8b2738189cb21bf8b7102df95b9617c3324c15c2772ee21575fdcb1bc0d13afe",
   "app/kalkulator/layout.tsx": "8b189f75032a45a6d87f5453aa0bd80b8094a45cbde6da03c09dcba74a2ca8ac",
   "app/kalkulator/page.tsx": "605c595356c2df614ca543d9636f1679377735a90de54418944fc3ec4d41fe62",
   "app/kontakter/layout.tsx": "3abff1c955c8be18fe8e430cc3d1cd8ea14f14722bb6272b1b8e01930c2382af",
