@@ -500,7 +500,7 @@ export default function Vedlikehold() {
         {visSkjema && (
           <form
             onSubmit={leggTilOppgave}
-            className="mt-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6"
+            className="mh-kort mh-kort-vedlikehold mt-5 rounded-2xl bg-white p-5 shadow-sm sm:p-6"
           >
             <h2 className="text-xl font-bold">
               {redigererId ? uiText("Rediger vedlikeholdsoppgave") : uiText("Ny vedlikeholdsoppgave")}
@@ -727,7 +727,7 @@ function Oppgavekort({
   const utlopt = erUtlopt(oppgave);
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-white shadow-sm">
+    <article className="mh-kort mh-kort-vedlikehold vh-oppgave overflow-hidden rounded-2xl bg-white shadow-sm">
       <div
         className={`h-1.5 ${prioritetFarge(
           oppgave.prioritet,
@@ -929,7 +929,7 @@ function Nokkeltall({
 }) {
   useLanguage();
   return (
-    <div className="rounded-xl bg-white p-4 shadow-sm">
+    <div className="mh-kort mh-kort-vedlikehold vh-tall rounded-xl bg-white p-4 shadow-sm">
       <p className="text-xs text-slate-500"><UiText text={String(label ?? "")}/></p>
       <p className={`mt-1 text-xl font-bold ${farge}`}>
         {value}
@@ -960,7 +960,7 @@ function TomTilstand({
 }) {
   useLanguage();
   return (
-    <div className="mt-5 rounded-2xl bg-white px-6 py-14 text-center shadow-sm">
+    <div className="mh-kort mh-kort-vedlikehold mt-5 rounded-2xl bg-white px-6 py-14 text-center shadow-sm">
       <h3 className="text-2xl font-bold">
         {harOppgaver
           ? uiText("Ingen oppgaver i dette filteret")

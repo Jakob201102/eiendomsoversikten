@@ -233,7 +233,7 @@ footer.vedlikeholdsfot {
 }
 
 /* v88: approved photo + engraving card surfaces, scoped to four My home cards. */
-section.mh-kort {
+:is(section, article, div).mh-kort {
   position: relative;
   isolation: isolate;
   background-color: #fcf8f0;
@@ -244,13 +244,13 @@ section.mh-kort {
 .mh-kort-vedlikehold { --mh-photo: url("/card-details/vedlikehold-v88.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
 .mh-kort-dokumenter { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/dokumenter-v88.svg"); }
 .mh-kort-bilder { --mh-photo: url("/card-details/bilder-v88.webp"); --mh-drawing: url("/card-details/bilder-v88.svg"); }
-section.mh-kort::before, section.mh-kort::after {
+:is(section, article, div).mh-kort::before, :is(section, article, div).mh-kort::after {
   content: "";
   position: absolute;
   pointer-events: none;
   z-index: -1;
 }
-section.mh-kort::before {
+:is(section, article, div).mh-kort::before {
   top: 0;
   right: 0;
   width: 48%;
@@ -261,7 +261,7 @@ section.mh-kort::before {
   -webkit-mask-image: linear-gradient(to right, transparent, black 65%);
   mask-image: linear-gradient(to right, transparent, black 65%);
 }
-section.mh-kort::after {
+:is(section, article, div).mh-kort::after {
   right: 10px;
   bottom: 8px;
   width: 190px;
@@ -279,16 +279,16 @@ section.mh-kort::after {
   box-shadow: 0 0 12px 6px rgb(252 248 240 / 94%);
 }
 @media (max-width: 1023px) {
-  section.mh-kort::before { width: 40%; height: 76px; opacity: .3; }
-  section.mh-kort::after { width: 140px; height: 105px; opacity: .17; }
+  :is(section, article, div).mh-kort::before { width: 40%; height: 76px; opacity: .3; }
+  :is(section, article, div).mh-kort::after { width: 140px; height: 105px; opacity: .17; }
 }
 @media (max-width: 639px) {
-  section.mh-kort::before { width: 36%; height: 64px; opacity: .19; }
-  section.mh-kort::after { width: 105px; height: 78px; opacity: .13; }
+  :is(section, article, div).mh-kort::before { width: 36%; height: 64px; opacity: .19; }
+  :is(section, article, div).mh-kort::after { width: 105px; height: 78px; opacity: .13; }
 }
 @media print {
-  section.mh-kort { background: white; box-shadow: none; }
-  section.mh-kort::before, section.mh-kort::after { display: none; }
+  :is(section, article, div).mh-kort { background: white; box-shadow: none; }
+  :is(section, article, div).mh-kort::before, :is(section, article, div).mh-kort::after { display: none; }
   .mh-kort-heading, .mh-kort-heading > a { background: transparent; box-shadow: none; }
 }
 
@@ -318,3 +318,20 @@ section.mh-kort::after {
 .aob-kort-heading { box-shadow: 0 1px 0 rgb(185 157 111 / 27%); }
 .aob-kort-heading a { background-color: rgb(252 248 240 / 94%); box-shadow: 0 0 12px 6px rgb(252 248 240 / 94%); }
 @media print { .aob-kort-heading, .aob-kort-heading a { background: transparent; box-shadow: none; } }
+
+/* v91: scoped decorative themes, no layout or interaction changes. */
+.ok-kort-laan { --mh-photo: url("/card-details/bolig-v89.webp"); --mh-drawing: url("/card-details/bolig-v89.svg"); }
+.ok-kort-faste { --mh-photo: url("/card-details/teknisk-v90.webp"); --mh-drawing: url("/card-details/teknisk-v90.svg"); }
+.ok-kort-forsikring { --mh-photo: url("/card-details/vedlikehold-v88.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
+.ok-kort-andre, .ok-kort-oversikt { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/budsjett-v91.svg"); }
+.kontakt-kort { --mh-photo: url("/card-details/plasseringer-v89.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
+:is(section, article, div).mh-kort.vh-tall::before { width: 38%; height: 48px; opacity: .16; }
+:is(section, article, div).mh-kort.vh-tall::after { display: none; }
+:is(section, article, div).mh-kort.kontakt-person::before { height: 60px; opacity: .22; }
+:is(section, article, div).mh-kort.kontakt-person::after { width: 100px; height: 75px; opacity: .13; }
+@media (max-width: 639px) {
+  :is(section, article, div).mh-kort.kontakt-person::before { opacity: .13; }
+}
+@media print {
+  :is(section, article, div).mh-kort.vh-tall::before { display: none; }
+}
