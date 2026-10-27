@@ -794,6 +794,7 @@ export default function MittHjemDashboard({
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Dashboardkort
+          tema="historikk"
           ikon="🔨"
           tittel={uiText("Boligens historikk")}
           lenke={`/bolighistorikk?bolig=${bolig.id}`}
@@ -825,6 +826,7 @@ export default function MittHjemDashboard({
           )}
         </Dashboardkort>
         <Dashboardkort
+          tema="vedlikehold"
           ikon="📅"
           tittel={uiText("Kommende vedlikehold")}
           lenke={`/vedlikehold?bolig=${bolig.id}`}
@@ -884,6 +886,7 @@ export default function MittHjemDashboard({
           )}
         </Dashboardkort>
         <Dashboardkort
+          tema="dokumenter"
           ikon="📁"
           tittel={uiText("Dokumenter")}
           lenke={`/dokumentarkiv?bolig=${bolig.id}`}
@@ -903,6 +906,7 @@ export default function MittHjemDashboard({
           )}
         </Dashboardkort>
         <Dashboardkort
+          tema="bilder"
           ikon="📸"
           tittel={uiText("Bilder")}
           lenke={`/alt-om-boligen?bolig=${bolig.id}`}
@@ -1773,12 +1777,14 @@ function Filrader({
   );
 }
 function Dashboardkort({
+  tema,
   ikon,
   tittel,
   lenke,
   lenketekst,
   children,
 }: {
+  tema: "historikk" | "vedlikehold" | "dokumenter" | "bilder";
   ikon: string;
   tittel: string;
   lenke?: string;
@@ -1787,8 +1793,8 @@ function Dashboardkort({
 }) {
   useLanguage();
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
-      <div className="mb-5 flex items-center justify-between gap-3">
+    <section className={`mh-kort mh-kort-${tema} rounded-3xl bg-white p-5 shadow-sm sm:p-6`}>
+      <div className="mh-kort-heading mb-5 flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold">
           <span className="mr-2">{ikon}</span>
           <UiText text={String(tittel ?? "")}/>

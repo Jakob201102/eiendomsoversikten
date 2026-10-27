@@ -1,6 +1,6 @@
 {
   "app/favicon.ico": "feffee2afbd3cc23413ed01dc8b515ac3344b5ed83731474c0fdede8f83081f0",
-  "app/globals.css": "fe61c9e14fef9d7835569b12e1cbbc6cf14ee62aa4685a10265f055270587410",
+  "app/globals.css": "96d7a44ec2b024a68179bff73855de1ddaba0e348c9cf2987e9aad5c3d347407",
   "app/layout.tsx": "26c45e15508e218270848e169a0a393bed6f72e2e198daefa7f45e2a2a8dcaa6",
   "app/manifest.ts": "65326cf80fd6cd1eed25ac336c3af682064a58ce63ea1dfd3340e18c3054e754",
   "app/page.tsx": "fd9f17e887bc3d94e58979ab82aade32abd6aa889b745ed96f9832bf9b499875",
@@ -31,7 +31,7 @@
   "app/components/ForsideInnhold.tsx": "d19f865b0c7a71f2b71af9e4289c2f18e65cd8bb2eaab850a6d8deb89f32cee2",
   "app/components/ForsidePortefolje.tsx": "818f53c4a9aa4104104d3f2a5652e632167d11381846fcfe8c191b7139d2c691",
   "app/components/Garantier.tsx": "641ffa5c95b65feb6085aac588e5d96a6639c2847c4730dc1479bb9e667e06c7",
-  "app/components/MittHjemDashboard.tsx": "bdc1cdbc42574f0196f22806901da0c914d25b989aeae8bdaeefba74c640df18",
+  "app/components/MittHjemDashboard.tsx": "f73a17dafe8d2e39d25a161e80a355c32857c2e0b0ff15ab618adfb6876dcc87",
   "app/components/MittHjemDetaljer.tsx": "19f398c3ea6821a1c583f72f078ad77c8b532fdb05beab9723b2204489170356",
   "app/components/MittHjemOppsett.tsx": "cd7a09d7e019a89b5fea2a2e4eab2f3b8af092a34a6a4ddb1019197230904832",
   "app/components/Navigasjon.tsx.backup-20261016-221824": "252fd2e78c7d2e342769d61fff12b87a0b48063f36b1c5f5efa98c4602ada53d",
