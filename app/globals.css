@@ -291,3 +291,15 @@ section.mh-kort::after {
   section.mh-kort::before, section.mh-kort::after { display: none; }
   .mh-kort-heading, .mh-kort-heading > a { background: transparent; box-shadow: none; }
 }
+
+/* v89: only the two approved property information cards gain decoration. */
+.aob-kort-bolig {
+  --mh-photo: url("/card-details/bolig-v89.webp");
+  --mh-drawing: url("/card-details/bolig-v89.svg");
+}
+.aob-kort-plasseringer {
+  --mh-photo: url("/card-details/plasseringer-v89.webp");
+  --mh-drawing: url("/card-details/plasseringer-v89.svg");
+}
+.aob-kort > h2 { box-shadow: 0 1px 0 rgb(185 157 111 / 27%); }
+@media print { .aob-kort > h2 { box-shadow: none; } }
