@@ -27,7 +27,7 @@ export function uiText(value: string): string {
   if (translated) return value.slice(0, value.indexOf(clean)) + translated + value.slice(value.indexOf(clean) + clean.length);
   return value;
 }
-export function uiDemoText(value: string, recordId: string): string { return /^demo[-_]/i.test(recordId) ? uiText(value) : value; }
+export function uiDemoText(value: string, recordId: string): string { return /^demo[-_]/i.test(recordId) ? uiCalendarText(value, true) : value; }
 /** Translate a copy of built-in demo content; never mutate saved property data. */
 export function uiDemoData<T>(value: T, recordId: string): T {
   if (language === "nb" || !/^demo[-_]/i.test(recordId)) return value;

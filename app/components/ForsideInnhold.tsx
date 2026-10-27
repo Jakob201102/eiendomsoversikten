@@ -407,7 +407,7 @@ function OffentligForside() {
       </section>
       <section className="bg-white px-4 py-16 sm:px-6 sm:py-24">
         <div className="mx-auto max-w-7xl">
-          <p className="text-center text-sm font-bold text-emerald-700"><UiText text="SLIK FUNGER DET"/></p>
+          <p className="text-center text-sm font-bold text-emerald-700"><UiText text="SLIK FUNGERER DET"/></p>
           <h2 className="mt-2 text-center text-3xl font-bold sm:text-4xl"><UiText text="Fra boligpapirer til ryddig oversikt"/></h2>
           <div className="mt-9 grid gap-4 md:grid-cols-3">
             <Forsidesteg nummer="1" tittel={uiText("Legg inn det du har")} tekst="Bruk adresse, en offentlig FINN-lenke eller last opp salgsoppgaven." />

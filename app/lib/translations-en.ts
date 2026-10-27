@@ -2310,4 +2310,13 @@ export const english: Record<string, string> = {
   "Filen er flyttet til Dokumenter.": "The file has been moved to Documents.",
   "Dokumentkategorien er oppdatert.": "The document category has been updated.",
   "Kunne ikke flytte filen. Prøv igjen eller kontroller at du har redigeringstilgang.": "Could not move the file. Try again or check that you have editing access.",
+  "SLIK FUNGERER DET": "HOW IT WORKS",
+  "Forfalt": "Overdue",
+  "Dine kontakter": "Your contacts",
+  "{0} hendelse": "{0} event",
+  "{0} hendelser": "{0} events",
+  "{0} aktivt leieforhold": "{0} active tenancy",
+  "{0} aktive leieforhold": "{0} active tenancies",
+  "Underlag for {0}": "Supporting records for {0}",
+  "/mnd.": "/month",
 };

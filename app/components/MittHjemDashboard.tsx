@@ -33,6 +33,7 @@ import {
   type Vedlikeholdsdata,
 } from "../lib/vedlikehold";
 import Boligveileder from "./Boligveileder";
+import { erVedlikeholdForfalt } from "../lib/vedlikehold-visning";
 
 type Visning =
   | "valg"
@@ -843,15 +844,14 @@ export default function MittHjemDashboard({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="font-bold">
-                        {String(
-                          oppgave.tittel || oppgave.navn || uiText("Vedlikehold"),
-                        )}
+                        {uiDemoText(String(oppgave.tittel || oppgave.navn || uiText("Vedlikehold")), String(oppgave.id))}
                       </h3>
+                      {erVedlikeholdForfalt({ frist: oppgave.frist, status: oppgave.status }) && <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900"><UiText text="Forfalt"/></span>}
                       <p className="mt-1 text-sm text-slate-500">
                         {oppgave.frist
                           ? formatDato(String(oppgave.frist))
                           : uiText("Ingen dato")}
-                        {oppgave.omrade ? ` · ${String(oppgave.omrade)}` : ""}
+                        {oppgave.omrade ? ` · ${uiDemoText(String(oppgave.omrade), String(oppgave.id))}` : ""}
                       </p>
                     </div>
                   </div>

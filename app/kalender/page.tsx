@@ -22,6 +22,7 @@ import {
 } from "../lib/kalender";
 import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade } from "../lib/bruksomrade";
+import { privatDemoBolig, avgrensPrivatDemo } from "../lib/privat-demo";
 
 const TOMT_SKJEMA: KalenderhendelseSkjema = {
   tittel: "",
@@ -67,17 +68,19 @@ export default function Kalender() {
       const supabase = createClient();
       const { data } = await supabase.auth.getUser();
       setInnlogget(Boolean(data.user));
-      setPrivatModus(lesBruksomrade(data.user) === "privat" || search.get("modus") === "privat");
+      setPrivatModus(!data.user || lesBruksomrade(data.user) === "privat" || search.get("modus") === "privat");
       const [boligdata, leietakerdata, vedlikeholdsdata] = await Promise.all([
         hentBoliger(),
         hentLeietakere(),
         hentVedlikeholdsoppgaver(),
       ]);
-      const kalenderdata = await hentManuelleKalenderhendelser(boligdata, leietakerdata);
-      setBoliger(boligdata);
-      setLeietakere(leietakerdata);
-      setVedlikehold(vedlikeholdsdata);
-      setManuelle(kalenderdata);
+      const visningsboliger = data.user ? boligdata : [privatDemoBolig()];
+      const visningsleietakere = data.user ? leietakerdata : [];
+      const kalenderdata = await hentManuelleKalenderhendelser(visningsboliger, visningsleietakere);
+      setBoliger(visningsboliger);
+      setLeietakere(visningsleietakere);
+      setVedlikehold(avgrensPrivatDemo(vedlikeholdsdata, Boolean(data.user)));
+      setManuelle(avgrensPrivatDemo(kalenderdata, Boolean(data.user)));
     } catch (error) {
       console.error(error);
       setFeil("Kunne ikke hente kalenderen. Kontroller at kalenderdatabasen er satt opp.");

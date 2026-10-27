@@ -777,7 +777,7 @@ function Oppgavekort({
 
           <Datokort
             label={uiText("Status")}
-            verdi={statusTekst(oppgave.status)}
+            verdi={uiText(statusTekst(oppgave.status))}
           />
         </div>
 

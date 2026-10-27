@@ -14,6 +14,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import SkaderAvvik from "../components/SkaderAvvik";
 import { hentBoliger } from "../lib/boliger";
+import { createClient } from "../lib/supabase/client";
+import { privatDemoBolig, avgrensPrivatDemo } from "../lib/privat-demo";
 import {
   fullforVedlikeholdsoppgave,
   hentVedlikeholdsoppgaver,
@@ -91,17 +93,14 @@ export default function Vedlikehold() {
 
     async function lastInn() {
       try {
-        const boligdata = await hentBoliger();
-        const oppgavedata = await hentVedlikeholdsoppgaver();
-
+        const [{ data: auth }, boligdata, oppgavedata] = await Promise.all([
+          createClient().auth.getUser(), hentBoliger(), hentVedlikeholdsoppgaver(),
+        ]);
         if (!aktiv) return;
-        const brukerboliger = (search.get("bolig") === "demo-privat-hjem"
-          ? [{ id: "demo-privat-hjem", adresse: "Eksempelveien 12, Bergen", brukstype: "privat", tilgang: "leser" as const }]
-          : boligdata) as unknown as Bolig[];
+        const erInnlogget = Boolean(auth.user);
+        const brukerboliger = (erInnlogget ? boligdata : [privatDemoBolig()]) as unknown as Bolig[];
         setBoliger(brukerboliger);
-        setOppgaver(
-          oppgavedata as unknown as Vedlikeholdsoppgave[],
-        );
+        setOppgaver(avgrensPrivatDemo(oppgavedata, erInnlogget) as unknown as Vedlikeholdsoppgave[]);
 
         if (brukerboliger.length > 0) {
           const onsketBolig = search.get("bolig");
@@ -776,7 +775,7 @@ function Oppgavekort({
 
           <Datokort
             label={uiText("Status")}
-            verdi={statusTekst(oppgave.status)}
+            verdi={uiText(statusTekst(oppgave.status))}
           />
         </div>
 

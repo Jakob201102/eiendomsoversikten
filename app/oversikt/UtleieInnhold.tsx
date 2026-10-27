@@ -1,7 +1,7 @@
 "use client";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { formatMoney, parseNok } from "../lib/currency";
-import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
+import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
 
 
 import Link from "../components/UtleieLink";
@@ -155,14 +155,14 @@ export default function Oversikt() {
             )}
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <Oversiktskort tittel={uiText("Kommende 7 dager")} undertittel={`${kommende.length} hendelser`} href="/kalender">
+              <Oversiktskort tittel={uiText("Kommende 7 dager")} undertittel={uiFormat(kommende.length === 1 ? "{0} hendelse" : "{0} hendelser", [kommende.length])} href="/kalender">
                 {kommende.length === 0 ? <Tomtekst tekst="Ingen hendelser den kommende uken." /> : (
                   <div className="space-y-3">
                     {kommende.map((hendelse) => (
                       <Link href="/kalender" key={hendelse.id} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-4 hover:bg-slate-100">
                         <span className={`h-3 w-3 shrink-0 rounded-full ${hendelsesfarge(hendelse.type)}`} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{uiDemoText(hendelse.tittel, hendelse.id)}</p>
+                          <p className="truncate font-semibold">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</p>
                           <p className="mt-1 truncate text-sm text-slate-500">{hendelse.boligAdresse || uiText("Ingen bolig valgt")}</p>
                         </div>
                         <div className="shrink-0 text-right text-sm">
@@ -175,12 +175,12 @@ export default function Oversikt() {
                 )}
               </Oversiktskort>
 
-              <Oversiktskort tittel={uiText("Leieforhold")} undertittel={`${aktiveLeietakere.length} aktive`} href="/leietakere">
+              <Oversiktskort tittel={uiText("Leieforhold")} undertittel={uiFormat(aktiveLeietakere.length === 1 ? "{0} aktivt leieforhold" : "{0} aktive leieforhold", [aktiveLeietakere.length])} href="/leietakere">
                 <div className="grid grid-cols-2 gap-3">
                   <Minikort label={uiText("Aktive leietakere")} verdi={String(aktiveLeietakere.length)} />
                   <Minikort label={uiText("Utløper innen 90 dager")} verdi={String(kontrakterSnart.length)} gul={kontrakterSnart.length > 0} />
                   <Minikort label={uiText("Kontrakter lagret")} verdi={`${leietakere.filter((verdi) => verdi.kontraktSti).length}/${leietakere.length}`} />
-                  <Minikort label={uiText("Avtalt leie")} verdi={`${kroner(aktiveLeietakere.reduce((sum, verdi) => sum + Number(verdi.manedsleie || 0), 0))}/mnd.`} />
+                  <Minikort label={uiText("Avtalt leie")} verdi={`${kroner(aktiveLeietakere.reduce((sum, verdi) => sum + Number(verdi.manedsleie || 0), 0))}${uiText("/mnd.")}`} />
                 </div>
               </Oversiktskort>
 
@@ -197,7 +197,7 @@ export default function Oversikt() {
                 )}
               </Oversiktskort>
 
-              <Oversiktskort tittel={uiText("Årsrapport")} undertittel={`Underlag for ${new Date().getFullYear()}`} href="/skatterapport">
+              <Oversiktskort tittel={uiText("Årsrapport")} undertittel={uiFormat("Underlag for {0}", [new Date().getFullYear()])} href="/skatterapport">
                 <div className="rounded-2xl bg-slate-50 p-5">
                   <p className="font-semibold"><UiText text="Inntekter, kostnader og vedlikehold samlet automatisk."/></p>
                   <p className="mt-2 text-sm leading-6 text-slate-600"><UiText text="Åpne rapporten for å kontrollere registrerte poster og laste ned underlaget."/></p>
