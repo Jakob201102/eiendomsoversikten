@@ -205,7 +205,7 @@ export default function Kalender() {
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>
         )}
 
-        <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+        <section className="mh-kort mh-kort-plan mt-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700"><UiText text="Fremover"/></p><h2 className="mt-1 text-xl font-bold"><UiText text="Neste hendelser"/></h2></div>
             <span className="text-sm text-slate-400">{nesteHendelser.length}<UiText text=" vist"/></span>
@@ -221,7 +221,7 @@ export default function Kalender() {
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
-          <section className="overflow-hidden rounded-3xl bg-white shadow-sm">
+          <section className="mh-kort mh-kort-plan kalender-rutenett overflow-hidden rounded-3xl bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-slate-200 p-4 sm:p-6">
               <button type="button" onClick={() => setMaaned(flyttMaaned(maaned, -1))} className="rounded-lg border px-3 py-2" aria-label={uiText("Forrige måned")}>←</button>
               <h2 className="text-lg font-bold capitalize sm:text-2xl">{maanedsnavn(maaned)}</h2>
@@ -270,7 +270,7 @@ export default function Kalender() {
             )}
           </section>
 
-          <aside className="rounded-3xl bg-white p-5 shadow-sm sm:p-6">
+          <aside className="mh-kort mh-kort-plan rounded-3xl bg-white p-5 shadow-sm sm:p-6">
             <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700"><UiText text="Valgt dag"/></p>
             <h2 className="mt-1 text-2xl font-bold">{fullDato(valgtDato)}</h2>
             <button type="button" onClick={() => aapneNytt(valgtDato)} className="mt-4 w-full rounded-xl border border-emerald-500 px-4 py-2.5 font-semibold text-emerald-700"><UiText text="Legg til denne dagen"/></button>

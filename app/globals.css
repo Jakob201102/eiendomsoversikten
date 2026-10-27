@@ -233,7 +233,7 @@ footer.vedlikeholdsfot {
 }
 
 /* v88: approved photo + engraving card surfaces, scoped to four My home cards. */
-:is(section, article, div).mh-kort {
+:is(section, article, div, aside).mh-kort {
   position: relative;
   isolation: isolate;
   background-color: #fcf8f0;
@@ -244,13 +244,13 @@ footer.vedlikeholdsfot {
 .mh-kort-vedlikehold { --mh-photo: url("/card-details/vedlikehold-v88.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
 .mh-kort-dokumenter { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/dokumenter-v88.svg"); }
 .mh-kort-bilder { --mh-photo: url("/card-details/bilder-v88.webp"); --mh-drawing: url("/card-details/bilder-v88.svg"); }
-:is(section, article, div).mh-kort::before, :is(section, article, div).mh-kort::after {
+:is(section, article, div, aside).mh-kort::before, :is(section, article, div, aside).mh-kort::after {
   content: "";
   position: absolute;
   pointer-events: none;
   z-index: -1;
 }
-:is(section, article, div).mh-kort::before {
+:is(section, article, div, aside).mh-kort::before {
   top: 0;
   right: 0;
   width: 48%;
@@ -261,7 +261,7 @@ footer.vedlikeholdsfot {
   -webkit-mask-image: linear-gradient(to right, transparent, black 65%);
   mask-image: linear-gradient(to right, transparent, black 65%);
 }
-:is(section, article, div).mh-kort::after {
+:is(section, article, div, aside).mh-kort::after {
   right: 10px;
   bottom: 8px;
   width: 190px;
@@ -279,16 +279,16 @@ footer.vedlikeholdsfot {
   box-shadow: 0 0 12px 6px rgb(252 248 240 / 94%);
 }
 @media (max-width: 1023px) {
-  :is(section, article, div).mh-kort::before { width: 40%; height: 76px; opacity: .3; }
-  :is(section, article, div).mh-kort::after { width: 140px; height: 105px; opacity: .17; }
+  :is(section, article, div, aside).mh-kort::before { width: 40%; height: 76px; opacity: .3; }
+  :is(section, article, div, aside).mh-kort::after { width: 140px; height: 105px; opacity: .17; }
 }
 @media (max-width: 639px) {
-  :is(section, article, div).mh-kort::before { width: 36%; height: 64px; opacity: .19; }
-  :is(section, article, div).mh-kort::after { width: 105px; height: 78px; opacity: .13; }
+  :is(section, article, div, aside).mh-kort::before { width: 36%; height: 64px; opacity: .19; }
+  :is(section, article, div, aside).mh-kort::after { width: 105px; height: 78px; opacity: .13; }
 }
 @media print {
-  :is(section, article, div).mh-kort { background: white; box-shadow: none; }
-  :is(section, article, div).mh-kort::before, :is(section, article, div).mh-kort::after { display: none; }
+  :is(section, article, div, aside).mh-kort { background: white; box-shadow: none; }
+  :is(section, article, div, aside).mh-kort::before, :is(section, article, div, aside).mh-kort::after { display: none; }
   .mh-kort-heading, .mh-kort-heading > a { background: transparent; box-shadow: none; }
 }
 
@@ -325,17 +325,28 @@ footer.vedlikeholdsfot {
 .ok-kort-forsikring { --mh-photo: url("/card-details/vedlikehold-v88.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
 .ok-kort-andre, .ok-kort-oversikt { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/budsjett-v91.svg"); }
 .kontakt-kort { --mh-photo: url("/card-details/plasseringer-v89.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
-:is(section, article, div).mh-kort.vh-tall::before { width: 38%; height: 48px; opacity: .16; }
-:is(section, article, div).mh-kort.vh-tall::after { display: none; }
-:is(section, article, div).mh-kort.kontakt-person::before { height: 60px; opacity: .22; }
-:is(section, article, div).mh-kort.kontakt-person::after { width: 100px; height: 75px; opacity: .13; }
+:is(section, article, div, aside).mh-kort.vh-tall::before { width: 38%; height: 48px; opacity: .16; }
+:is(section, article, div, aside).mh-kort.vh-tall::after { display: none; }
+:is(section, article, div, aside).mh-kort.kontakt-person::before { height: 60px; opacity: .22; }
+:is(section, article, div, aside).mh-kort.kontakt-person::after { width: 100px; height: 75px; opacity: .13; }
 @media (max-width: 639px) {
-  :is(section, article, div).mh-kort.kontakt-person::before { opacity: .13; }
+  :is(section, article, div, aside).mh-kort.kontakt-person::before { opacity: .13; }
 }
 @media print {
-  :is(section, article, div).mh-kort.vh-tall::before { display: none; }
+  :is(section, article, div, aside).mh-kort.vh-tall::before { display: none; }
 }
 
 /* v92: recommendation and shopping cards in Mitt hjem. */
 .mh-kort-anbefalinger { --mh-photo: url("/card-details/bolig-v89.webp"); --mh-drawing: url("/card-details/vedlikehold-v88.svg"); }
 .mh-kort-handleliste { --mh-photo: url("/card-details/mal-v90.webp"); --mh-drawing: url("/card-details/handleliste-v92.svg"); }
+
+/* v93: calendar planning and history archive. */
+.mh-kort-plan { --mh-photo: url("/card-details/dokumenter-v88.webp"); --mh-drawing: url("/card-details/kalender-v93.svg"); }
+.historikk-filter { background-color: #fcf8f0; box-shadow: inset 0 0 0 1px #ded3c0, 0 3px 9px rgb(70 53 30 / 8%); }
+/* Keep dates and event text on a calm surface; only the month header has a photo. */
+:is(section, article, div, aside).mh-kort.kalender-rutenett::before { height: 72px; opacity: .18; }
+:is(section, article, div, aside).mh-kort.kalender-rutenett::after { display: none; }
+@media (max-width: 639px) {
+  :is(section, article, div, aside).mh-kort.kalender-rutenett::before { height: 64px; opacity: .1; }
+}
+@media print { .historikk-filter { background: white; box-shadow: none; } }

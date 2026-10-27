@@ -384,7 +384,7 @@ export default function Bolighistorikk() {
           href={bolig ? `/mitt-hjem?bolig=${bolig.id}` : "/mitt-hjem"}
           className="text-sm font-bold text-emerald-700"
         ><UiText text="← Tilbake til Mitt hjem"/></Link>
-        <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+        <section className="mh-kort mh-kort-historikk mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Digital servicebok"/></p>
           <div className="mt-1 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -426,7 +426,7 @@ export default function Bolighistorikk() {
             <UiText text={String(feil ?? "")}/>
           </p>
         )}
-        <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
+        <div className="historikk-filter mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
           {(
             [
               ["alle", "Alle"],
@@ -445,7 +445,7 @@ export default function Bolighistorikk() {
             </button>
           ))}
         </div>
-        <div className="mt-3 grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2">
+        <div className="historikk-filter mt-3 grid gap-3 rounded-2xl bg-white p-4 shadow-sm sm:grid-cols-2">
           <label className="min-w-0 text-sm font-semibold"><UiText text="År"/><select value={aarFilter} onChange={(event) => setAarFilter(event.target.value)} className="felt mt-2">
               <option value="alle"><UiText text="Alle år"/></option>
               {[...new Set(hendelser.map((hendelse) => hendelse.dato?.slice(0, 4)).filter(Boolean))].sort().reverse().map((aar) => <option key={aar} value={aar}>{aar}</option>)}
@@ -458,7 +458,7 @@ export default function Bolighistorikk() {
             </select>
           </label>
         </div>
-        <section className="mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+        <section className="mh-kort mh-kort-historikk mt-5 rounded-3xl bg-white p-5 shadow-sm sm:p-7">
           {viste.length ? (
             <div className="divide-y divide-stone-100">
               {viste.map((hendelse) => (
