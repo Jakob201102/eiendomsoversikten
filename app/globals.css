@@ -186,3 +186,48 @@ main.forside-bakgrunn > section:is(.bg-slate-950, .from-emerald-950) {
     background-image: none !important;
   }
 }
+
+/* v85: maintenance engraving in the existing header/footer backgrounds only.
+   CSS backgrounds cannot intercept clicks and do not change element dimensions. */
+nav.vedlikeholdsmeny {
+  background-image: linear-gradient(to right, rgb(2 6 23 / 45%), #020617 23%, #020617 77%, rgb(2 6 23 / 45%)), url("/backgrounds/vedlikehold-venstre-v85.webp"), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+  background-size: 100% 100%, 180px auto, 180px auto;
+  background-position: center, left center, right center;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 -1px 0 rgb(188 169 139 / 55%);
+}
+footer.vedlikeholdsfot {
+  border-top-color: rgb(188 169 139 / 55%);
+  background-image: linear-gradient(to right, rgb(2 6 23 / 35%), #020617 28%, #020617 72%, rgb(2 6 23 / 35%)), url("/backgrounds/vedlikehold-venstre-v85.webp"), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+  background-size: 100% 100%, 240px auto, 220px auto;
+  background-position: center, left bottom, right bottom;
+  background-repeat: no-repeat;
+}
+@media screen and (min-width: 640px) and (max-width: 1180px) {
+  nav.vedlikeholdsmeny {
+    background-image: linear-gradient(to right, rgb(2 6 23 / 72%), #020617 24%, #020617 76%, rgb(2 6 23 / 72%)), url("/backgrounds/vedlikehold-venstre-v85.webp"), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+    background-size: 100% 100%, 130px auto, 130px auto;
+  }
+  footer.vedlikeholdsfot {
+    background-image: linear-gradient(to right, rgb(2 6 23 / 70%), #020617 30%, #020617 70%, rgb(2 6 23 / 70%)), url("/backgrounds/vedlikehold-venstre-v85.webp"), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+    background-size: 100% 100%, 180px auto, 170px auto;
+  }
+}
+@media screen and (max-width: 639px) {
+  nav.vedlikeholdsmeny {
+    background-image: linear-gradient(rgb(2 6 23 / 85%), rgb(2 6 23 / 85%)), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+    background-size: 100% 100%, 96px auto;
+    background-position: center, right center;
+  }
+  footer.vedlikeholdsfot {
+    background-image: linear-gradient(rgb(2 6 23 / 74%), rgb(2 6 23 / 74%)), url("/backgrounds/vedlikehold-hoyre-v85.webp");
+    background-size: 100% 100%, 140px auto;
+    background-position: center, right bottom;
+  }
+}
+@media print {
+  nav.vedlikeholdsmeny, footer.vedlikeholdsfot {
+    background-image: none;
+    box-shadow: none;
+  }
+}
