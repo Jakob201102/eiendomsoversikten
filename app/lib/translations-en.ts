@@ -2302,5 +2302,12 @@ export const english: Record<string, string> = {
   "Valutakurs mangler. Viser NOK. Skjemaer og rapporter: NOK.": "Exchange rate unavailable. Showing NOK. Forms and reports: NOK.",
   "Eksempeldata.": "Sample data.",
   "Planlagt innflytting etter visning.": "Move-in scheduled after the viewing.",
-  "Automatisk kontraktsvarsel.": "Automatic tenancy-agreement reminder."
+  "Automatisk kontraktsvarsel.": "Automatic tenancy-agreement reminder.",
+  "Kategori og plassering for {0}": "Category and location for {0}",
+  "Dokumentkategori / plassering": "Document category / location",
+  "Flytter…": "Moving\u2026",
+  "Filen er flyttet til Bilder.": "The file has been moved to Photos.",
+  "Filen er flyttet til Dokumenter.": "The file has been moved to Documents.",
+  "Dokumentkategorien er oppdatert.": "The document category has been updated.",
+  "Kunne ikke flytte filen. Prøv igjen eller kontroller at du har redigeringstilgang.": "Could not move the file. Try again or check that you have editing access.",
 };

@@ -85,8 +85,9 @@ export async function dokumentLenke(sti: string) {
 }
 export async function oppdaterDokumentkategori(id: string, kategori: string) {
   const { supabase } = await bruker();
-  const { error } = await supabase.from("dokumenter").update({ kategori }).eq("id", id);
+  const { data, error } = await supabase.from("dokumenter").update({ kategori }).eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("DOKUMENT_IKKE_OPPDATERT");
 }
 export async function slettDokument(dokument: Dokument) { const { supabase } = await bruker(); if (dokument.filsti) { const { error: filfeil } = await supabase.storage.from(BUCKET).remove([dokument.filsti]); if (filfeil) throw filfeil; } const { error } = await supabase.from("dokumenter").delete().eq("id", dokument.id); if (error) throw error; }
 
