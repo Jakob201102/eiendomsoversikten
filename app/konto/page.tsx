@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import styles from "../components/konto-kort.module.css";
 import KontoSeksjon from "../components/KontoSeksjon";
 import KontoBoliger from "../components/KontoBoliger";
 import KontoValg from "../components/KontoValg";
@@ -236,14 +237,14 @@ export default function Konto() {
       <Navigasjon />
 
       <header className="bg-slate-900 px-4 py-5 text-white">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-7xl">
           <p className="font-semibold text-emerald-400"><UiText text="MIN KONTO"/></p>
           <h1 className="mt-1 text-2xl font-bold"><UiText text="Kontoinnstillinger"/></h1>
           <p className="mt-2 text-slate-400"><UiText text="Innlogget som "/>{epost}</p>
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl space-y-3 px-4 py-5">
+      <div className="mx-auto max-w-7xl space-y-3 px-4 py-5">
         {melding && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
             <UiText text={String(melding ?? "")}/>
@@ -256,7 +257,9 @@ export default function Konto() {
           </div>
         )}
 
-        <Kontokort
+        <div className={styles.layout}>
+          <div className={styles.column}>
+<Kontokort
           tittel={uiText("Profilopplysninger")}
           beskrivelse="Navn og mobilnummer er valgfritt."
         >
@@ -295,25 +298,7 @@ export default function Konto() {
             </button>
           </form>
         </Kontokort>
-
-        <Kontokort
-          tittel={uiText("Bruksområde")}
-          beskrivelse="Tilpass startsiden og menyen. Du kan bytte når som helst uten at lagrede data slettes."
-        >
-          <form onSubmit={lagreBruksomrade} className="mt-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              {([['utleie','Utleie','Portefølje, leietakere, økonomi og skatt'],['privat','Privat bolig','Boligmappe, oppussing og vedlikehold'],['begge','Begge deler','Tilgang til begge områdene']] as const).map(([id,tittel,tekst]) => (
-                <label key={id} className={`cursor-pointer rounded-xl border-2 p-4 ${bruksomrade===id?'border-emerald-500 bg-emerald-50':'border-slate-200'}`}>
-                  <input type="radio" name="bruksomrade" value={id} checked={bruksomrade===id} onChange={() => setBruksomrade(id)} className="sr-only" />
-                  <span className="block font-bold"><UiText text={String(tittel ?? "")}/></span><span className="mt-1 block text-xs leading-5 text-slate-500"><UiText text={String(tekst ?? "")}/></span>
-                </label>
-              ))}
-            </div>
-            <button type="submit" disabled={arbeider} className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60"><UiText text="Lagre bruksområde"/></button>
-          </form>
-        </Kontokort>
-
-        <Kontokort tittel={uiText("Endre e-post")}>
+<Kontokort tittel={uiText("Endre e-post")}>
           <form onSubmit={endreEpost} className="mt-4 flex flex-col gap-3 sm:flex-row">
             <input
               type="email"
@@ -329,8 +314,7 @@ export default function Konto() {
             ><UiText text="Lagre e-post"/></button>
           </form>
         </Kontokort>
-
-        <Kontokort tittel={uiText("Endre passord")}>
+<Kontokort tittel={uiText("Endre passord")}>
           <form onSubmit={endrePassord} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input
               type="password"
@@ -355,11 +339,28 @@ export default function Konto() {
             ><UiText text="Lagre passord"/></button>
           </form>
         </Kontokort>
-
-        <KontoValg />
-        <KontoBoliger />
-
-        <KontoSeksjon tittel="Slett konto" fare>
+            <KontoValg visning="sikkerhet" />
+          </div>
+          <div className={styles.column}><KontoBoliger /></div>
+          <div className={styles.column}>
+<Kontokort
+          tittel={uiText("Bruksområde")}
+          beskrivelse="Tilpass startsiden og menyen. Du kan bytte når som helst uten at lagrede data slettes."
+        >
+          <form onSubmit={lagreBruksomrade} className="mt-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([['utleie','Utleie','Portefølje, leietakere, økonomi og skatt'],['privat','Privat bolig','Boligmappe, oppussing og vedlikehold'],['begge','Begge deler','Tilgang til begge områdene']] as const).map(([id,tittel,tekst]) => (
+                <label key={id} className={`cursor-pointer rounded-xl border-2 p-4 ${bruksomrade===id?'border-emerald-500 bg-emerald-50':'border-slate-200'}`}>
+                  <input type="radio" name="bruksomrade" value={id} checked={bruksomrade===id} onChange={() => setBruksomrade(id)} className="sr-only" />
+                  <span className="block font-bold"><UiText text={String(tittel ?? "")}/></span><span className="mt-1 block text-xs leading-5 text-slate-500"><UiText text={String(tekst ?? "")}/></span>
+                </label>
+              ))}
+            </div>
+            <button type="submit" disabled={arbeider} className="mt-4 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white disabled:opacity-60"><UiText text="Lagre bruksområde"/></button>
+          </form>
+        </Kontokort>
+<KontoValg visning="preferanser" />
+<KontoSeksjon tittel="Slett konto" fare>
           <p className="mt-2 text-sm leading-6 text-slate-600"><UiText text="Dette sletter kontoen og alle tilknyttede data permanent. Handlingen kan ikke angres."/></p>
           <label className="mt-4 block">
             <span className="mb-2 block text-sm font-medium"><UiText text="Skriv SLETT for å bekrefte"/></span>
@@ -376,6 +377,8 @@ export default function Konto() {
             className="mt-4 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           ><UiText text="Slett kontoen permanent"/></button>
         </KontoSeksjon>
+          </div>
+        </div>
       </div>
     </main>
   );

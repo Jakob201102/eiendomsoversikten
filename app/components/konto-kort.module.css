@@ -1,0 +1,27 @@
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.column { display: grid; min-width: 0; gap: 16px; align-content: start; }
+.card { min-width: 0; border: 1px solid #e5dece; border-radius: 16px; background: linear-gradient(135deg, #fffefb, #f8f5ee); box-shadow: 0 3px 15px #322d2210; }
+.cardHeader { position: relative; isolation: isolate; padding: 20px 18px 8px; border-radius: 16px 16px 0 0; }
+.rule { display: block; width: 30px; height: 2px; margin-bottom: 9px; background: #285b45; }
+.keys::before { content: ""; position: absolute; z-index: -1; inset: 0 0 0 auto; width: 42%; border-radius: 0 16px 0 0; background: linear-gradient(90deg, #fbf9f3, #fbf9f355), url('/card-details/nokler-v90.webp') right center / cover; opacity: .35; pointer-events: none; }
+.content { min-width: 0; padding: 0 18px 20px; overflow-wrap: anywhere; }
+.danger { border-color: #e9cccc; background: #fff9f5; }
+.danger .rule { background: #a12b2b; }
+.content input:not([type=radio]):not([type=checkbox]), .content select { max-width: 100%; min-width: 0; min-height: 44px; font-size: 16px; }
+.content input:not([type=radio]):not([type=checkbox]) { width: 100%; }
+.content button, .content a { overflow-wrap: anywhere; white-space: normal; }
+.content button { min-height: 44px; }
+/* Existing shared forms use viewport breakpoints. Inside narrow account cards,
+   keep fields stacked even when the overall screen is wide. */
+.content :global(.sm\:grid-cols-2), .content :global(.sm\:grid-cols-3), .content [class*="sm:grid-cols-["] { grid-template-columns: minmax(0, 1fr); }
+.content :global(.sm\:col-span-2) { grid-column: auto; }
+.content :global(.sm\:flex-row) { flex-direction: column; align-items: stretch; }
+.content :global(.sm\:p-7) { padding: 14px; }
+.content :global(.sm\:p-6) { padding: 14px; }
+.content :global(.flex.gap-4), .content :global(.flex.gap-3) { flex-wrap: wrap; }
+@media (min-width: 768px) {
+  .layout { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .column { gap: 20px; }
+}
+@media (min-width: 1280px) { .layout { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media print { .layout { display: block; } .column { display: block; } .card { margin-bottom: 12px; box-shadow: none; } .keys::before { display: none; } }
