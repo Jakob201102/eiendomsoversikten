@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import KontoSeksjon from "../components/KontoSeksjon";
 import KontoBoliger from "../components/KontoBoliger";
 import KontoValg from "../components/KontoValg";
 import Navigasjon from "../components/Navigasjon";
@@ -234,15 +235,15 @@ export default function Konto() {
     <main className="min-h-screen bg-slate-100 text-slate-900">
       <Navigasjon />
 
-      <header className="bg-slate-900 px-4 py-8 text-white">
+      <header className="bg-slate-900 px-4 py-5 text-white">
         <div className="mx-auto max-w-4xl">
           <p className="font-semibold text-emerald-400"><UiText text="MIN KONTO"/></p>
-          <h1 className="mt-2 text-3xl font-bold"><UiText text="Kontoinnstillinger"/></h1>
+          <h1 className="mt-1 text-2xl font-bold"><UiText text="Kontoinnstillinger"/></h1>
           <p className="mt-2 text-slate-400"><UiText text="Innlogget som "/>{epost}</p>
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl space-y-5 px-4 py-7">
+      <div className="mx-auto max-w-4xl space-y-3 px-4 py-5">
         {melding && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
             <UiText text={String(melding ?? "")}/>
@@ -358,8 +359,7 @@ export default function Konto() {
         <KontoValg />
         <KontoBoliger />
 
-        <section className="rounded-2xl border border-red-200 bg-white p-5 sm:p-6">
-          <h2 className="text-xl font-bold text-red-700"><UiText text="Slett konto"/></h2>
+        <KontoSeksjon tittel="Slett konto" fare>
           <p className="mt-2 text-sm leading-6 text-slate-600"><UiText text="Dette sletter kontoen og alle tilknyttede data permanent. Handlingen kan ikke angres."/></p>
           <label className="mt-4 block">
             <span className="mb-2 block text-sm font-medium"><UiText text="Skriv SLETT for å bekrefte"/></span>
@@ -375,7 +375,7 @@ export default function Konto() {
             disabled={arbeider || bekreftelse !== "SLETT"}
             className="mt-4 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           ><UiText text="Slett kontoen permanent"/></button>
-        </section>
+        </KontoSeksjon>
       </div>
     </main>
   );
@@ -391,15 +391,7 @@ function Kontokort({
   children: ReactNode;
 }) {
   useLanguage();
-  return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-bold"><UiText text={String(tittel ?? "")}/></h2>
-      {beskrivelse && (
-        <p className="mt-1 text-sm text-slate-500"><UiText text={String(beskrivelse ?? "")}/></p>
-      )}
-      {children}
-    </section>
-  );
+  return <KontoSeksjon tittel={tittel} beskrivelse={beskrivelse}>{children}</KontoSeksjon>;
 }
 
 function Felt({ label, children }: { label: string; children: ReactNode }) {

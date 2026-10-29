@@ -1,4 +1,5 @@
 "use client";
+import KontoSeksjon from "./KontoSeksjon";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { hentBoliger, type BoligData } from "../lib/boliger";
@@ -24,8 +25,7 @@ export default function KontoBoliger() {
     return () => { aktiv = false; };
   }, [forsok]);
   const valgt = boliger.find(b => b.id === valgtId);
-  return <section id="boligtilgang" className="rounded-2xl bg-white p-5 shadow-sm sm:p-6">
-    <h2 className="text-xl font-bold">{uiText("Boliger, medlemmer og overlevering")}</h2>
+  return <KontoSeksjon id="boligtilgang" tittel="Boliger, medlemmer og overlevering">
     <p className="mt-2 text-sm text-slate-600">{uiText("Velg en bolig for å se medlemmer, rettigheter og deling. De samme innstillingene er tilgjengelige under boligen.")}</p>
     {laster ? <p role="status" className="mt-4">{uiText("Laster boligene…")}</p> : feil ? <div role="alert" className="mt-4 text-red-700"><p>{uiText(feil)}</p><button type="button" className="mt-2 underline" onClick={() => setForsok(v => v + 1)}>{uiText("Prøv igjen")}</button></div> : !valgt ? <p className="mt-4">{uiText("Du har ingen boliger eller delte boliger ennå.")}</p> : <>
       <label className="mt-5 block text-sm font-semibold">{uiText("Bolig")}<select value={valgtId} onChange={e => setValgtId(e.target.value)} className="felt mt-2 w-full min-w-0">{boliger.map(b => <option key={b.id} value={b.id}>{String(b.adresse || uiText("Bolig"))}</option>)}</select></label>
@@ -34,7 +34,7 @@ export default function KontoBoliger() {
       <Boligadministrasjon key={valgt.id} bolig={valgt} innlogget onOppdatert={async () => setForsok(v => v + 1)} visning="deling" />
       {valgt.tilgang === "eier" && valgt.brukstype === "privat" ? <KontoOverlevering key={`overfor-${valgt.id}`} bolig={valgt} /> : <p className="mt-5 rounded-xl bg-stone-50 p-4 text-sm">{uiText(valgt.tilgang === "eier" ? "Digital overlevering er tilgjengelig for private boliger." : "Bare eieren kan overlevere boligen til ny eier.")}</p>}
     </>}
-  </section>;
+  </KontoSeksjon>;
 }
 function KontoOverlevering({ bolig }: { bolig: BoligData }) {
   const [dokumenter, setDokumenter] = useState<Dokument[] | null>(null);

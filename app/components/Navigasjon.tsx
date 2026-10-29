@@ -1,5 +1,5 @@
 "use client";
-import { CurrencySettings, CurrencyNotice } from "../lib/currency";
+import { CurrencyNotice } from "../lib/currency";
 import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
 
 
@@ -119,7 +119,7 @@ export default function Navigasjon() {
     <nav className="vedlikeholdsmeny relative z-40 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-3 sm:px-6"><div className={`flex flex-nowrap items-center justify-between gap-1 py-2 sm:gap-2 ${kompaktPrivatMobil ? "min-h-14 lg:min-h-16" : "min-h-16"}`}>
       <Link href={logoLenke} className="flex min-w-0 items-center gap-1 text-xs font-bold sm:text-lg xl:text-xl"><BrandLogo variant="mark" decorative className="h-6 w-6 shrink-0 rounded-full sm:h-9 sm:w-9" /><span className="truncate">Eiendomsoversikten</span></Link>
       <div className="hidden items-center gap-1 2xl:flex">
-        <LanguageSelector /><details className="relative"><summary className="cursor-pointer list-none rounded-lg border border-slate-700 px-2 py-2 text-xs font-semibold">{uiText("Valuta")}</summary><div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-slate-700 bg-slate-950 p-3 shadow-xl"><CurrencySettings /></div></details>
+        <LanguageSelector />
         <Link href="/" className={erAktiv("/") ? aktivKlasse : vanligKlasse}><UiText text="Forside"/></Link>
         {!epost && <div className="mx-2 flex items-center gap-2"><Link href="/mitt-hjem?eksempel=1" className={demoModus === "privat" ? eksempelAktiv : eksempelVanlig}><span><UiText text="Mitt hjem"/></span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400"><UiText text="EKSEMPEL"/></span></Link><Link href="/oversikt" className={demoModus === "utleie" ? eksempelAktiv : eksempelVanlig}><span><UiText text="Utleieoversikten"/></span><span className="ml-2 text-[10px] font-bold tracking-wider text-emerald-400"><UiText text="EKSEMPEL"/></span></Link></div>}
         {epost && modus !== "privat" && <Link href="/oversikt" className={erAktiv("/oversikt") ? aktivKlasse : vanligKlasse}><UiText text="Oversikt"/></Link>}
@@ -135,7 +135,7 @@ export default function Navigasjon() {
             <Link href="/" className={mobilVanlig}><UiText text="Forside"/></Link>
             {!epost && <><Link href="/mitt-hjem?eksempel=1" className={mobilVanlig}><UiText text="Mitt hjem "/><span className="ml-2 text-[10px] font-bold text-emerald-400"><UiText text="EKSEMPEL"/></span></Link><Link href="/oversikt" className={mobilVanlig}><UiText text="Utleieoversikten "/><span className="ml-2 text-[10px] font-bold text-emerald-400"><UiText text="EKSEMPEL"/></span></Link></>}
             {grupper.map((gruppe) => <section key={gruppe.navn} className="mt-3 border-t border-slate-800 pt-3"><p className="px-4 text-xs font-bold uppercase tracking-wider text-slate-500"><UiText text={String(gruppe.navn ?? "")}/></p><div className="mt-1">{gruppe.lenker.map((lenke) => <Link key={lenke.adresse} href={lenkeAdresse(lenke.adresse)} className={erAktiv(lenke.adresse) ? mobilAktiv : mobilVanlig}><UiText text={String(lenke.navn ?? "")}/></Link>)}</div></section>)}
-            <div className="mt-3 border-t border-slate-800 pt-3"><CurrencySettings /></div><div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}><UiText text="Min konto"/></Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950"><UiText text="Logg inn / opprett konto"/></Link>}</div>
+            <div className="mt-3 border-t border-slate-800 pt-3">{epost ? <Link href="/konto" className={mobilVanlig}><UiText text="Min konto"/></Link> : <Link href="/logg-inn" className="block rounded-xl bg-emerald-400 px-4 py-3 text-center font-bold text-slate-950"><UiText text="Logg inn / opprett konto"/></Link>}</div>
           </div>
         </details>
       </div>
