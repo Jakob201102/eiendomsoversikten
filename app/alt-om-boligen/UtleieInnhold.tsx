@@ -521,7 +521,7 @@ export default function AltOmBoligen() {
             startRedigering={startRedigering}
           />
           <div id="del-tilgang" className="scroll-mt-24">
-            <Boligadministrasjon bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
+            <Boligadministrasjon key={valgtBolig.id} bolig={valgtBolig} innlogget={innlogget} onOppdatert={lastInn} visning="deling" />
           </div>
           </>
         )}

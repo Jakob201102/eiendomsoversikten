@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import KontoBoliger from "../components/KontoBoliger";
+import KontoValg from "../components/KontoValg";
 import Navigasjon from "../components/Navigasjon";
 import { createClient } from "../lib/supabase/client";
 import { lesBruksomrade, startsideFor, type Bruksomrade } from "../lib/bruksomrade";
@@ -352,6 +354,9 @@ export default function Konto() {
             ><UiText text="Lagre passord"/></button>
           </form>
         </Kontokort>
+
+        <KontoValg />
+        <KontoBoliger />
 
         <section className="rounded-2xl border border-red-200 bg-white p-5 sm:p-6">
           <h2 className="text-xl font-bold text-red-700"><UiText text="Slett konto"/></h2>
