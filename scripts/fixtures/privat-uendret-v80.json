@@ -71,7 +71,7 @@
   "app/lib/hjemmedeling.ts": "7bab353d981247a51c5aab16ce27469173882e5a3e828cb31ed57d701d7cdf3a",
   "app/lib/import-image-pipeline.ts": "9d8de8b16ea9dec348f8ec10dedb70d60105440879538917e7d0038aeedcf74f",
   "app/lib/import-ocr-session.ts": "afdeced3ed21924df1fa4da9266309f9e885b33083029f0beffc159332ff97df",
-  "app/lib/kalender.ts": "45a56546b9a54e7cb32a12af9409190caafad857d943dcb1d1d527f5dc46df99",
+  "app/lib/kalender.ts": "0b0b32d162d6c67e8a43c0fa8bd7f9e80ef434092019834d83d4d67cd7f3d8db",
   "app/lib/language.tsx": "8ce728e544aa9e0efdcc48d987775bfb6bd9575f96200e41342d6ce331b47040",
   "app/lib/leietakere.ts": "f35d86a006aed5bfb99e57a5cdc1c452a26b226d9cbe941501bc05fdc5f098dd",
   "app/lib/megler-rapport.ts": "7f150522eb2ae9d377b5852f7eb65414a6ab7680e38537945a3c763a094d9b15",

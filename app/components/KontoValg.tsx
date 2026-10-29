@@ -1,4 +1,5 @@
 "use client";
+import KontoKalender from "./KontoKalender";
 import KontoSeksjon from "./KontoSeksjon";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -36,7 +37,7 @@ export default function KontoValg({ visning = "alle" }: { visning?: "alle" | "pr
   }
   return <>
     {visning !== "sikkerhet" && <><KontoSeksjon tittel="Språk og valuta"><p className="mt-2 text-sm text-slate-600">{uiText("Valgene huskes i denne nettleseren og gjelder hele nettsiden.")}</p><div className="mt-4 rounded-xl bg-slate-900 p-4 text-white"><LanguageSelector /><CurrencySettings /></div></KontoSeksjon>
-    <KontoSeksjon tittel="Varsler"><p className="mt-2 text-sm text-slate-600">{uiText("Vedlikehold, garantier og avtaler vises i kalenderen. Automatiske e-postpåminnelser er ikke aktivert ennå.")}</p><a href="/kalender" className="mt-3 inline-block font-semibold text-emerald-700 underline">{uiText("Åpne kalender →")}</a></KontoSeksjon>
+    <KontoSeksjon tittel="Varsler"><KontoKalender /></KontoSeksjon>
     </>}{visning !== "preferanser" && <KontoSeksjon tittel="Sikkerhet og kontodata">
       <p className="mt-2 text-sm text-slate-600">{uiText("Last ned dine registrerte opplysninger som JSON. Boliginformasjon, budsjett, vedlikehold og dokumentmetadata følger med. Selve bildefilene og vedleggene lastes ned fra dokumentarkivet.")}</p>
       <div className="mt-4 flex flex-col gap-3"><button type="button" disabled={!!jobber} onClick={eksporter} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold disabled:opacity-50">{uiText(jobber === "eksport" ? "Lager eksport…" : "Last ned kontodata (JSON)")}</button><button type="button" disabled={!!jobber} onClick={loggUtAlle} className="min-h-11 rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold disabled:opacity-50">{uiText(jobber === "ut" ? "Logger ut…" : "Logg ut alle enheter")}</button></div>
