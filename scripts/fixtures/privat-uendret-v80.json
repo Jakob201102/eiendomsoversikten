@@ -94,7 +94,7 @@
   "app/oversikt/layout.tsx": "7d949c1a3e815a7e329736a9ea479c363cd6612b7e786c53b075c73371e61d6f",
   "app/personvern/page.tsx": "78f10b79b8412b007eb4b275e508a9638bd7b5d3f6e9e9ba7b6b2cbcf59fbe65",
   "app/priser/layout.tsx": "250cc4a78049efd86752453dd4cb82b97fafd5eee6f47793b359d07b1b3e24bf",
-  "app/priser/page.tsx": "3d48a9d668a8a7b66b0c66021adae37da8865748e87674a1419379aa21716bed",
+  "app/priser/page.tsx": "8bd7c2ac2ddecd1c90d863c3c98bfc7a3dfb92ce1e28526b55af50b8774a16c9",
   "app/rom/layout.tsx": "278d54e3adf52060d6cc666f06ac9bb9d698496f50332abb435e7a507ccac7f7",
   "app/rom/page.tsx": "9f79c41bb1eb8971f84b2ddac298cb91d7a94eab202d1b2c9041481879ab7cb6",
   "app/skatterapport/layout.tsx": "7d99258a7b9937bd3ec26b0c009cf166fbd9979352eda3da2347197abad821fe",

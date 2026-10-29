@@ -2329,4 +2329,12 @@ export const english: Record<string, string> = {
   "Tallet må være minst {0}.": "The number must be at least {0}.",
   "Tallet kan ikke være større enn {0}.": "The number must not exceed {0}.",
   "Bruk trinn på {0}.": "Use increments of {0}.",
+  "Gratis så lenge som mulig": "Free for as long as possible",
+  "Målet vårt er å holde Eiendomsoversikten gratis så lenge som mulig – og rimelig også i fremtiden.": "Our goal is to keep Eiendomsoversikten free for as long as possible — and affordable in the future too.",
+  "GRATIS I DAG": "FREE TODAY",
+  "for å bruke tjenesten i dag": "to use the service today",
+  "✓ Tilgang til funksjonene i tjenesten": "✓ Access to the service’s features",
+  "Vi ønsker å finansiere drift og videreutvikling gjennom sponsorer og andre inntekter.": "We aim to fund running costs and further development through sponsors and other sources of income.",
+  "Hvis disse inntektene ikke dekker kostnadene, kan vi bli nødt til å ta betalt. Målet vil fortsatt være å holde prisen så lav som mulig.": "If that income does not cover the costs, we may need to introduce a charge. Our goal will still be to keep the price as low as possible.",
+  "Du får beskjed i god tid dersom betaling blir aktuelt. Det starter ikke noe betalt abonnement automatisk.": "We will let you know well in advance if payment becomes necessary. A paid subscription will not start automatically.",
 };
