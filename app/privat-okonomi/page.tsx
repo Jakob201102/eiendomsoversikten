@@ -9,7 +9,7 @@ import { lesAltOmBoligen, demoAltOmBoligen } from "../lib/alt-om-boligen";
 import { UiText, uiText, useLanguage } from "../lib/language";
 import { formatMoney } from "../lib/currency";
 import { budsjettPoster, tomtBudsjett, lesBudsjett, beregnBoligbudsjett, lesBudsjettbelop, type Budsjett, type Belopsfelt, type Budsjettrad } from "../lib/privat-okonomi";
-import { lagrePrivatOkonomi } from "../lib/lagre-privat-okonomi";
+import { useBudsjettAutolagring } from "../lib/use-budsjett-autolagring";
 const eksempelGrunnlag: BoligData = { id: "demo-privat-hjem", brukstype: "privat", adresse: "Eksempelveien 12, Bergen" };
 const eksempelBudsjett = tomtBudsjett();
 for (const [id, belop] of Object.entries({ laan: "14000", felleskost: "2500", kommunale: "12000", strom: "1500", internett: "699", forsikring: "4800", buffer: "1000" })) eksempelBudsjett.poster[id] = { belop, periode: id === "kommunale" || id === "forsikring" ? "aar" : "maaned" };
@@ -41,25 +41,19 @@ export default function PrivatOkonomi() {
 function BudsjettForBolig({ bolig, innlogget, onDirty, onBusy, onSaved }: { bolig: BoligData; innlogget: boolean; onDirty: (v:boolean)=>void; onBusy:(v:boolean)=>void; onSaved:(b:BoligData)=>void }) {
   const [lesefeil] = useState(() => { try { lesBudsjett(bolig.privatOkonomi); return ""; } catch (e) { return e instanceof Error ? e.message : "Kunne ikke lese boligbudsjettet."; } });
   const [budsjett,setBudsjett] = useState(() => { try { return lesBudsjett(bolig.privatOkonomi); } catch { return tomtBudsjett(); } });
-  const [jobber,setJobber] = useState(false); const [feil,setFeil] = useState(""); const [lagret,setLagret] = useState(false);
   const [rediger,setRediger] = useState<"laan"|"faste"|"forsikring"|"andre"|null>(null);
-  const [endret,setEndret] = useState(false);
-  const sistLagret = useRef(JSON.stringify(budsjett));
   const forRedigering = useRef(budsjett);
   function aapne(del: NonNullable<typeof rediger>) { forRedigering.current = budsjett; setRediger(del); }
   function avbryt() { endre(forRedigering.current); setRediger(null); }
 
   const forsikringer = lesAltOmBoligen(bolig).forsikringer; const summer = beregnBoligbudsjett(budsjett,forsikringer); const leser = bolig.tilgang === "leser";
-  function endre(ny: Budsjett) { setBudsjett(ny); const harEndring = JSON.stringify(ny) !== sistLagret.current; setEndret(harEndring); onDirty(harEndring); setLagret(false); setFeil(""); }
+  const { status, feil, endret, jobber, lagreNaa, provIgjen } = useBudsjettAutolagring({
+    boligId: bolig.id, budsjett, aktiv: innlogget && !leser && !lesefeil, gyldig: !summer.harFeil,
+    onLagret: onSaved, onDirty, onBusy,
+  });
+  function endre(ny: Budsjett) { setBudsjett(ny); }
   function felt(id:string, value:Belopsfelt) { endre({ ...budsjett, poster: { ...budsjett.poster, [id]: value } }); }
-  async function lagre(e:React.FormEvent) {
-    e.preventDefault(); if (jobber || !innlogget || leser || lesefeil) return;
-    if (summer.harFeil) { setFeil("Kontroller beløp, navn og valgte forsikringer før du lagrer."); return; }
-    setJobber(true); onBusy(true); setFeil("");
-    try { const b = await lagrePrivatOkonomi(bolig.id,budsjett); onSaved(b); sistLagret.current = JSON.stringify(budsjett); setEndret(false); setRediger(null); setLagret(true); onDirty(false); }
-    catch (e) { setFeil(e instanceof Error ? e.message : "Kunne ikke lagre boligbudsjettet."); }
-    finally { setJobber(false); onBusy(false); }
-  }
+  function lagre(e:React.FormEvent) { e.preventDefault(); void lagreNaa(); }
   if (lesefeil) return <p role="alert" className="mt-6 text-red-700"><UiText text={lesefeil}/></p>;
   const aktiveRader = summer.rader.filter((rad) => rad.aar > 0 || rad.inkludert || rad.feil);
   const laanIder = ["laan", "renter", "avdrag"];
@@ -87,9 +81,9 @@ function BudsjettForBolig({ bolig, innlogget, onDirty, onBusy, onSaved }: { boli
     </section>
     <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
       <div className="min-w-0 space-y-4">
-        {grupper.filter((g)=>g.id!=="andre" || budsjett.andre.length || rediger === "andre").map((gruppe)=><BudsjettKort key={gruppe.id} tema={gruppe.id} tittel={gruppe.navn} redigerer={rediger===gruppe.id} kanRedigere={!leser} disabled={jobber || !!rediger} onRediger={()=>aapne(gruppe.id as NonNullable<typeof rediger>)} onAvbryt={avbryt} onFerdig={()=>setRediger(null)} ugyldig={gruppe.rader.some((rad)=>rad.feil)} jobber={jobber}
+        {grupper.filter((g)=>g.id!=="andre" || budsjett.andre.length || rediger === "andre").map((gruppe)=><BudsjettKort key={gruppe.id} tema={gruppe.id} tittel={gruppe.navn} redigerer={rediger===gruppe.id} kanRedigere={!leser} disabled={jobber || !!rediger} onRediger={()=>aapne(gruppe.id as NonNullable<typeof rediger>)} onAvbryt={avbryt} onFerdig={()=>{setRediger(null);void lagreNaa()}} ugyldig={gruppe.rader.some((rad)=>rad.feil)} jobber={jobber}
           oversikt={<>{oversikt(gruppe.rader)}{gruppe.id==="laan" && budsjett.laanmodus==="samlet" && gruppe.rader.length>0 && <p className="mt-1 text-xs text-slate-500"><UiText text="Renter og avdrag inkludert."/></p>}</>}>
-          <fieldset disabled={jobber || leser} className="min-w-0">
+          <fieldset disabled={leser} className="min-w-0">
             {rediger === "laan" && <><div className="mt-4 flex flex-wrap gap-4 text-sm">{([['samlet','Samlet lånebetaling'],['delt','Renter og avdrag hver for seg']] as const).map(([id,label]) => <label key={id} className="flex items-center gap-2"><input type="radio" name="laanmodus" checked={budsjett.laanmodus===id} onChange={()=>endre({...budsjett,laanmodus:id})}/><UiText text={label}/></label>)}</div><div className="mt-4 space-y-3">{(budsjett.laanmodus === "samlet" ? [["laan","Samlet lånebetaling"]] : [["renter","Renter på boliglån"],["avdrag","Avdrag på boliglån"]]).map(([id,label]) => <Belopsrad key={id} label={label} value={budsjett.poster[id]} onChange={(v)=>felt(id,v)}/>)}</div></>}
             {(rediger === "faste" || rediger === "forsikring") && <><div className="mt-5 space-y-5">{budsjettPoster.filter(([id]) => rediger === "forsikring" ? ["forsikring","buffer"].includes(id) : !["forsikring","buffer"].includes(id)).map(([id,label]) => <div key={id}>
         {id === "forsikring" ? <><h3 className="text-sm font-semibold"><UiText text="Forsikringer"/></h3><div className="my-3 flex flex-wrap gap-4 text-sm">{([['manuell','Fyll inn forsikringskostnad'],['register','Velg registrerte forsikringer']] as const).map(([k,l])=><label key={k} className="flex items-center gap-2"><input type="radio" name="forsikringKilde" disabled={budsjett.inkludert.includes(id)} checked={budsjett.forsikringKilde===k} onChange={()=>endre({...budsjett,forsikringKilde:k})}/><UiText text={l}/></label>)}</div>{budsjett.forsikringKilde === "register" ? <div className="space-y-2 rounded-xl bg-stone-50 p-3">{forsikringer.length ? forsikringer.map((f)=><label key={f.id} className="flex items-start gap-3 text-sm"><input type="checkbox" disabled={budsjett.inkludert.includes(id)} checked={budsjett.forsikringIder.includes(f.id)} onChange={(e)=>endre({...budsjett,forsikringIder:e.target.checked?[...budsjett.forsikringIder,f.id]:budsjett.forsikringIder.filter((id)=>id!==f.id)})}/><span>{f.type} · {f.selskap} · {f.arspris.trim() && lesBudsjettbelop(f.arspris) !== null ? formatMoney(lesBudsjettbelop(f.arspris)!) + " / " + uiText("Per år") : uiText("Årspris mangler")}</span></label>) : <p className="text-sm text-slate-500"><UiText text="Ingen forsikringer er registrert på denne boligen."/></p>}{budsjett.forsikringIder.filter((id)=>!forsikringer.some((f)=>f.id===id)).map((id)=><button key={id} type="button" onClick={()=>endre({...budsjett,forsikringIder:budsjett.forsikringIder.filter((k)=>k!==id)})} className="block min-h-10 text-sm font-semibold text-red-700"><UiText text="Fjern forsikring som ikke lenger finnes"/></button>)}<Link href={`/forsikringer?bolig=${bolig.id}`} className="inline-block text-sm font-semibold text-emerald-800"><UiText text="Åpne forsikringer →"/></Link></div> : <Belopsrad label={label} value={budsjett.poster[id]} disabled={budsjett.inkludert.includes(id)} onChange={(v)=>felt(id,v)}/>}</> : <Belopsrad label={label} value={budsjett.poster[id]} disabled={budsjett.inkludert.includes(id)} onChange={(v)=>felt(id,v)}/>}
@@ -107,8 +101,12 @@ function BudsjettForBolig({ bolig, innlogget, onDirty, onBusy, onSaved }: { boli
       </aside>
     </div>
     {(feil || summer.harFeil) && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700"><UiText text={feil || "Kontroller beløp, navn og valgte forsikringer før du lagrer."}/></p>}
-    {lagret && <p role="status" className="mt-4 text-sm font-semibold text-emerald-800"><UiText text="Boligbudsjettet er lagret."/></p>}
-    {(endret || rediger) && !leser && <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4"><p className="text-sm text-slate-600"><UiText text={endret ? "Du har ulagrede endringer." : "Ingen endringer å lagre."}/></p>{innlogget ? <button disabled={jobber || summer.harFeil || !endret} className="min-h-12 rounded-xl bg-emerald-700 px-6 py-3 font-bold text-white disabled:opacity-50"><UiText text={jobber?"Lagrer…":"Lagre boligbudsjett"}/></button> : <Link href={`/logg-inn?neste=${encodeURIComponent('/privat-okonomi')}`} className="inline-block rounded-xl bg-emerald-700 px-6 py-3 font-bold text-white"><UiText text="Logg inn for å lagre"/></Link>}</div>}
+    {innlogget && !leser && <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white p-4">
+      <p role="status" aria-live="polite" aria-atomic="true" className={`text-sm ${status === "feil" ? "text-red-700" : "text-emerald-800"}`}><UiText text={jobber ? "Lagrer automatisk…" : status === "feil" ? "Kunne ikke lagre automatisk." : endret ? summer.harFeil ? "Rett feltene for å lagre automatisk." : "Venter på automatisk lagring…" : status === "lagret" ? "Alle endringer er lagret." : "Endringer lagres automatisk."}/></p>
+      {status === "feil" && <button type="button" disabled={jobber || summer.harFeil} onClick={provIgjen} className="min-h-11 rounded-xl border border-stone-300 px-4 text-sm font-semibold disabled:opacity-50"><UiText text="Prøv igjen"/></button>}
+    </div>}
+    {!innlogget && rediger && <Link href={`/logg-inn?neste=${encodeURIComponent('/privat-okonomi')}`} className="mt-6 inline-block rounded-xl bg-emerald-700 px-6 py-3 font-bold text-white"><UiText text="Logg inn for å lagre"/></Link>}
+
   </form>;
 }
 function BudsjettKort({ tema, tittel, redigerer, kanRedigere, disabled, onRediger, onAvbryt, onFerdig, ugyldig, jobber, oversikt, children }: {

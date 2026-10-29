@@ -2319,4 +2319,10 @@ export const english: Record<string, string> = {
   "{0} aktive leieforhold": "{0} active tenancies",
   "Underlag for {0}": "Supporting records for {0}",
   "/mnd.": "/month",
+  "Lagrer automatisk…": "Saving automatically…",
+  "Kunne ikke lagre automatisk.": "Could not save automatically.",
+  "Rett feltene for å lagre automatisk.": "Correct the fields to save automatically.",
+  "Venter på automatisk lagring…": "Waiting to save automatically…",
+  "Alle endringer er lagret.": "All changes are saved.",
+  "Endringer lagres automatisk.": "Changes are saved automatically.",
 };
