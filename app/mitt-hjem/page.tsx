@@ -195,10 +195,10 @@ function MittHjemIPad({
     ["💰", "Økonomi", `/privat-okonomi?bolig=${boligId}`],
     ["🛏️", "Rom", `/rom?bolig=${boligId}`],
     ["🕘", "Boligens historikk", `/bolighistorikk?bolig=${boligId}`],
-    ["🔧", "Vedlikehold", `/vedlikehold?modus=privat&bolig=${boligId}`],
+    ["🔨", "Vedlikehold", `/vedlikehold?modus=privat&bolig=${boligId}`],
     ["📁", "Dokumentarkiv", `/dokumentarkiv?bolig=${boligId}`],
     ["🛡️", "Garantier", `/garantier?bolig=${boligId}`],
-    ["☂️", "Forsikringer", `/forsikringer?bolig=${boligId}`],
+    ["forsikring", "Forsikringer", `/forsikringer?bolig=${boligId}`],
     ["👷", "Håndverkere og kontakter", `/kontakter?bolig=${boligId}`],
   ];
 

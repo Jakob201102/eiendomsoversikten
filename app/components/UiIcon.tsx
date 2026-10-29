@@ -1,5 +1,6 @@
 /** Decorative line icons; original labels and handlers stay with their controls. */
 const paths: Record<string, string> = {
+  "forsikring": "M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6zM8 12l4-3 4 3m-7-1v5h6v-5m-4 5v-3h2v3",
   "🛋️": "M4 12V8c0-4 16-4 16 0v4M3 11h3v7h12v-7h3v9H3zM5 20v2m14-2v2",
   "💻": "M5 3h14v13H5zM2 20l3-4h14l3 4z",
   "🏠": "M3 10 12 3l9 7M5 9v12h14V9M9 21v-7h6v7",

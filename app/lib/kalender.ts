@@ -1,3 +1,4 @@
+import { kalenderLagringsfelt, lesKalendertillegg, type KalenderGjentakelse } from "./kalender-gjentakelse";
 import { createClient } from "./supabase/client";
 import type { BoligData } from "./boliger";
 import type { Leietaker } from "./leietakere";
@@ -10,6 +11,7 @@ export type Hendelsestype =
   | "garanti"
   | "visning"
   | "mote"
+  | "handverker" | "service" | "brannkontroll" | "dugnad" | "sameiemote" | "overlevering" | "rengjoring"
   | "annet";
 
 export type Kalenderhendelse = {
@@ -25,14 +27,18 @@ export type Kalenderhendelse = {
   notat: string;
   automatisk: boolean;
   kildeUrl?: string;
+  gjentakelse?: KalenderGjentakelse;
+  serieId?: string;
+  serieStart?: string;
 };
 
 export type KalenderhendelseSkjema = Pick<
   Kalenderhendelse,
-  "tittel" | "type" | "dato" | "klokkeslett" | "boligId" | "leietakerId" | "notat"
+  "tittel" | "type" | "dato" | "klokkeslett" | "boligId" | "leietakerId" | "notat" | "gjentakelse"
 >;
 
 type KalenderRad = {
+  tillegg?: unknown;
   id: string;
   tittel: string;
   type: Hendelsestype;
@@ -105,7 +111,7 @@ export async function hentManuelleKalenderhendelser(
 
   const { data, error } = await supabase
     .from("kalenderhendelser")
-    .select("id, tittel, type, dato, klokkeslett, bolig_id, leietaker_id, notat")
+    .select("id, tittel, type, dato, klokkeslett, bolig_id, leietaker_id, notat, tillegg")
     .order("dato", { ascending: true });
 
   if (error) throw error;
@@ -116,7 +122,8 @@ export async function hentManuelleKalenderhendelser(
     return {
       id: rad.id,
       tittel: rad.tittel,
-      type: rad.type,
+      type: (lesKalendertillegg(rad.tillegg).hendelsestype || rad.type) as Hendelsestype,
+      gjentakelse: lesKalendertillegg(rad.tillegg).gjentakelse,
       dato: rad.dato,
       klokkeslett: rad.klokkeslett?.slice(0, 5) || "",
       boligId: rad.bolig_id || "",
@@ -144,7 +151,7 @@ export async function opprettKalenderhendelse(hendelse: KalenderhendelseSkjema) 
   const { error } = await supabase.from("kalenderhendelser").insert({
     user_id: bruker.id,
     tittel: hendelse.tittel,
-    type: hendelse.type,
+    ...kalenderLagringsfelt(hendelse.type, hendelse.gjentakelse),
     dato: hendelse.dato,
     klokkeslett: hendelse.klokkeslett || null,
     bolig_id: hendelse.boligId || null,
@@ -163,7 +170,7 @@ export async function oppdaterKalenderhendelse(
     .from("kalenderhendelser")
     .update({
       tittel: hendelse.tittel,
-      type: hendelse.type,
+      ...kalenderLagringsfelt(hendelse.type, hendelse.gjentakelse),
       dato: hendelse.dato,
       klokkeslett: hendelse.klokkeslett || null,
       bolig_id: hendelse.boligId || null,

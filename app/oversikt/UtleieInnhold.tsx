@@ -4,6 +4,7 @@ import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
 
 
+import { utvidGjentakelser } from "../lib/kalender-gjentakelse";
 import Link from "../components/UtleieLink";
 import { useEffect, useMemo, useState } from "react";
 import Navigasjon from "../components/UtleieInnholdHeader";
@@ -101,7 +102,7 @@ export default function Oversikt() {
     const slutt = new Date(start);
     slutt.setDate(slutt.getDate() + 7);
     return sorterHendelser([
-      ...manuelle,
+      ...utvidGjentakelser(manuelle, new Date().toISOString().slice(0,10), `${new Date().getFullYear()+1}-12-31`),
       ...byggAutomatiskeKalenderhendelser(boliger, leietakere, oppgaver),
     ]).filter((hendelse) => {
       const dato = new Date(`${hendelse.dato}T00:00:00`);
@@ -237,4 +238,4 @@ function dagerTil(dato: string) {
 }
 function kroner(verdi: number) { return formatMoney(parseNok(verdi), false); }
 function kortDato(dato: string) { if (!dato) return uiText("Ikke satt"); return new Intl.DateTimeFormat(uiLocale(), { day: "numeric", month: "short" }).format(new Date(`${dato}T12:00:00`)); }
-function hendelsesfarge(type: Kalenderhendelse["type"]) { return { vedlikehold: "bg-red-500", kontrakt: "bg-blue-500", garanti: "bg-amber-500", visning: "bg-emerald-500", mote: "bg-violet-500", annet: "bg-slate-500" }[type]; }
+function hendelsesfarge(type: Kalenderhendelse["type"]) { return ({ vedlikehold: "bg-red-500", kontrakt: "bg-blue-500", garanti: "bg-amber-500", visning: "bg-emerald-500", mote: "bg-violet-500", annet: "bg-slate-500" } as Record<string, string>)[type] || "bg-emerald-600"; }

@@ -3,6 +3,7 @@
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
 
 
+import { utvidGjentakelser, type KalenderGjentakelse } from "../lib/kalender-gjentakelse";
 import Link from "../components/UtleieLink";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -32,6 +33,7 @@ const TOMT_SKJEMA: KalenderhendelseSkjema = {
   boligId: "",
   leietakerId: "",
   notat: "",
+  gjentakelse: "aldri",
 };
 
 const TYPEINFO: Record<Hendelsestype, { navn: string; prikk: string; merke: string }> = {
@@ -40,6 +42,13 @@ const TYPEINFO: Record<Hendelsestype, { navn: string; prikk: string; merke: stri
   garanti: { navn: "Garanti", prikk: "bg-amber-500", merke: "bg-amber-100 text-amber-800" },
   visning: { navn: "Visning", prikk: "bg-emerald-500", merke: "bg-emerald-100 text-emerald-800" },
   mote: { navn: "Møte / befaring", prikk: "bg-violet-500", merke: "bg-violet-100 text-violet-800" },
+  handverker: { navn: "Håndverkerbesøk", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  service: { navn: "Service / kontroll", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  brannkontroll: { navn: "Brann- og sikkerhetskontroll", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  dugnad: { navn: "Dugnad / hagearbeid", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  sameiemote: { navn: "Sameie- / styremøte", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  overlevering: { navn: "Overlevering / nøkkelbytte", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
+  rengjoring: { navn: "Rengjøring / flyttevask", prikk: "bg-emerald-600", merke: "bg-emerald-100 text-emerald-800" },
   annet: { navn: "Annet", prikk: "bg-slate-500", merke: "bg-slate-200 text-slate-800" },
 };
 
@@ -93,13 +102,13 @@ export default function Kalender() {
 
   const hendelser = useMemo(() => {
     const alle = sorterHendelser([
-      ...manuelle,
+      ...utvidGjentakelser(manuelle, `${Math.min(maaned.getFullYear(), new Date().getFullYear()) - 1}-01-01`, `${Math.max(maaned.getFullYear(), new Date().getFullYear()) + 2}-12-31`),
       ...byggAutomatiskeKalenderhendelser(boliger, leietakere, vedlikehold),
     ]);
     return privatModus
       ? alle.filter((hendelse) => hendelse.type !== "kontrakt" && hendelse.type !== "visning")
       : alle;
-  }, [boliger, leietakere, manuelle, privatModus, vedlikehold]);
+  }, [boliger, leietakere, manuelle, privatModus, vedlikehold, maaned]);
 
   const dager = useMemo(() => kalenderdager(maaned), [maaned]);
   const valgteHendelser = hendelser.filter((hendelse) => hendelse.dato === valgtDato);
@@ -122,15 +131,17 @@ export default function Kalender() {
   }
 
   function aapneRedigering(hendelse: Kalenderhendelse) {
-    setRedigererId(hendelse.id);
+    const original = manuelle.find(e => e.id === (hendelse.serieId || hendelse.id)) || hendelse;
+    setRedigererId(original.id);
     setSkjema({
-      tittel: hendelse.tittel,
-      type: hendelse.type,
-      dato: hendelse.dato,
-      klokkeslett: hendelse.klokkeslett,
-      boligId: hendelse.boligId,
-      leietakerId: hendelse.leietakerId,
-      notat: hendelse.notat,
+      tittel: original.tittel,
+      type: original.type,
+      dato: original.dato,
+      klokkeslett: original.klokkeslett,
+      boligId: original.boligId,
+      leietakerId: original.leietakerId,
+      notat: original.notat,
+      gjentakelse: original.gjentakelse || "aldri",
     });
     setFeil("");
     setSkjemaAapent(true);
@@ -158,7 +169,7 @@ export default function Kalender() {
   }
 
   async function slett() {
-    if (!redigererId || !window.confirm(uiText("Vil du slette denne hendelsen?"))) return;
+    if (!redigererId || !window.confirm(uiText(manuelle.some(e => e.id === redigererId && e.gjentakelse && e.gjentakelse !== "aldri") ? "Vil du slette hele den gjentakende serien?" : "Vil du slette denne hendelsen?"))) return;
     setLagrer(true);
     try {
       await slettKalenderhendelse(redigererId);
@@ -298,9 +309,7 @@ export default function Kalender() {
             <label className="mt-6 block text-sm font-semibold"><UiText text="Tittel"/><input value={skjema.tittel} onChange={(e) => setSkjema({ ...skjema, tittel: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" placeholder={uiText("For eksempel visning")} />
             </label>
             <label className="mt-4 block text-sm font-semibold"><UiText text="Type"/><select value={skjema.type} onChange={(e) => setSkjema({ ...skjema, type: e.target.value as Hendelsestype })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
-                {!privatModus && <option value="visning"><UiText text="Visning"/></option>}
-                <option value="mote"><UiText text="Møte / befaring"/></option>
-                <option value="annet"><UiText text="Annet"/></option>
+                {(Object.keys(TYPEINFO) as Hendelsestype[]).filter(t => !privatModus || (t !== "kontrakt" && t !== "visning")).map(t => <option key={t} value={t}>{uiText(TYPEINFO[t].navn)}</option>)}
               </select>
             </label>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -309,6 +318,8 @@ export default function Kalender() {
               <label className="block text-sm font-semibold"><UiText text="Klokkeslett"/><input type="time" value={skjema.klokkeslett} onChange={(e) => setSkjema({ ...skjema, klokkeslett: e.target.value })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
               </label>
             </div>
+            <label className="mt-4 block text-sm font-semibold"><UiText text="Gjentas"/><select value={skjema.gjentakelse || "aldri"} onChange={e => setSkjema({ ...skjema, gjentakelse: e.target.value as KalenderGjentakelse })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal"><option value="aldri">{uiText("Ingen gjentakelse")}</option><option value="maanedlig">{uiText("Hver måned")}</option><option value="aarlig">{uiText("Hvert år")}</option></select></label>
+            {redigererId && (skjema.gjentakelse !== "aldri" || manuelle.some(e => e.id === redigererId && e.gjentakelse && e.gjentakelse !== "aldri")) && <p className="mt-2 text-xs text-slate-500">{uiText("Endringer og sletting gjelder hele serien.")}</p>}
             <label className="mt-4 block text-sm font-semibold"><UiText text="Bolig"/><select value={skjema.boligId} onChange={(e) => setSkjema({ ...skjema, boligId: e.target.value, leietakerId: "" })} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal">
                 <option value=""><UiText text="Ingen bolig"/></option>
                 {boliger.map((bolig) => <option key={bolig.id} value={bolig.id}>{String(bolig.adresse || uiText("Uten adresse"))}</option>)}
@@ -343,6 +354,7 @@ function Hendelseskort({ hendelse, onRediger }: { hendelse: Kalenderhendelse; on
         {hendelse.automatisk && <span className="text-xs text-slate-400"><UiText text="Automatisk"/></span>}
       </div>
       <h3 className="mt-3 font-bold">{uiCalendarText(uiDemoText(hendelse.tittel, hendelse.id), hendelse.automatisk)}</h3>
+      {hendelse.gjentakelse && hendelse.gjentakelse !== "aldri" && <p className="mt-1 text-xs font-semibold text-emerald-700">{uiText(hendelse.gjentakelse === "maanedlig" ? "Gjentas hver måned" : "Gjentas hvert år")}</p>}
       {hendelse.klokkeslett && <p className="mt-1 text-sm text-slate-600"><UiText text="Kl. "/>{hendelse.klokkeslett}</p>}
       {hendelse.boligAdresse && <p className="mt-1 text-sm text-slate-600">{hendelse.boligAdresse}</p>}
       {hendelse.notat && <p className="mt-2 text-sm text-slate-500">{uiDemoText(hendelse.notat, hendelse.id)}</p>}

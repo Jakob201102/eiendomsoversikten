@@ -1,3 +1,4 @@
+import { lesKalendertillegg } from "./kalender-gjentakelse";
 import { createClient } from "@supabase/supabase-js";
 import { byggAutomatiskeKalenderhendelser } from "./kalender-automatikk";
 import type { BoligData } from "./boliger";
@@ -49,10 +50,10 @@ export async function hentAbonnementHendelser(admin: Admin, userId: string, valg
   const leieRader = valg.avtaler ? await alle(fra => admin.from("leietakere").select("id,bolig_id,navn,status,startdato,sluttdato").eq("user_id", userId).order("id").range(fra, fra + 499)) : [];
   const leietakere = leieRader.filter(r => sett.has(String(r.bolig_id))).map(r => ({ id: String(r.id), boligId: String(r.bolig_id), navn: String(r.navn || ""), status: r.status === "avsluttet" ? "avsluttet" as const : r.status === "kommende" ? "kommende" as const : "aktiv" as const, startdato: String(r.startdato || ""), sluttdato: String(r.sluttdato || "") }));
   const hendelser: IcsHendelse[] = byggAutomatiskeKalenderhendelser(boliger, leietakere, vedlikehold);
-  const manuelle = await alle(fra => admin.from("kalenderhendelser").select("id,tittel,type,dato,klokkeslett,bolig_id").eq("user_id", userId).order("id").range(fra, fra + 499));
+  const manuelle = await alle(fra => admin.from("kalenderhendelser").select("id,tittel,type,dato,klokkeslett,bolig_id,tillegg").eq("user_id", userId).order("id").range(fra, fra + 499));
   for (const e of manuelle) {
     if (e.bolig_id && !sett.has(String(e.bolig_id))) continue;
-    hendelser.push({ id: "manuell-" + e.id, tittel: String(e.tittel || "Avtale"), type: String(e.type || "annet"), dato: String(e.dato || ""), klokkeslett: String(e.klokkeslett || "").slice(0, 5), boligId: String(e.bolig_id || ""), boligAdresse: String(boliger.find(b => b.id === e.bolig_id)?.adresse || "") });
+    hendelser.push({ id: "manuell-" + e.id, tittel: String(e.tittel || "Avtale"), type: lesKalendertillegg(e.tillegg).hendelsestype || String(e.type || "annet"), gjentakelse: lesKalendertillegg(e.tillegg).gjentakelse, dato: String(e.dato || ""), klokkeslett: String(e.klokkeslett || "").slice(0, 5), boligId: String(e.bolig_id || ""), boligAdresse: String(boliger.find(b => b.id === e.bolig_id)?.adresse || "") });
   }
   return hendelser;
 }

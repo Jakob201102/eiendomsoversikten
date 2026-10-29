@@ -1,5 +1,6 @@
 "use client";
 import UiIconText from "../components/UiIconText";
+import { dokumentNettlenke } from "../lib/dokument-nettlenke";
 import DokumentMiniatyr, { erBildefil } from "../components/DokumentMiniatyr";
 import DokumentPlassering from "../components/DokumentPlassering";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
@@ -48,7 +49,7 @@ export default function Dokumentarkiv() {
     finally { setFlytterId(""); }
   }
   async function lagre(e: FormEvent) { e.preventDefault(); if (!innlogget) { window.location.assign("/logg-inn"); return; } if (!fil) { setFeil("Velg en fil."); return; } setJobber(true); setFeil(""); try { await lastOppDokument(fil,{ boligId, navn: navn || fil.name, kategori, ar: aar, dokumentdato: dato, notat }); setVisSkjema(false); setFil(null); setNavn(""); setNotat(""); await lastData(); } catch (e) { const kode=e instanceof Error?e.message:""; setFeil(kode==="FIL_FOR_STOR"?"Filen kan ikke være større enn 80 MB.":kode==="UGYLDIG_FILTYPE"?"Bruk PDF, bilde, Word eller Excel.":"Kunne ikke laste opp dokumentet."); } finally { setJobber(false); } }
-  async function aapne(d: Dokument) { if (d.kategori === "finnlenke" && d.filtype === "text/uri-list") { const url=d.notat.split(/\s+/).find((verdi)=>verdi.startsWith("https://")); if(url) window.open(url,"_blank","noopener,noreferrer"); else setFeil("FINN-lenken mangler."); return; } if (!d.filsti) { if (!innlogget) window.location.assign("/logg-inn"); return; } const vindu=window.open("","_blank"); try { const url=d.kilde==="okonomi"?await bilagLenke(d.filsti):await dokumentLenke(d.filsti); if(vindu) vindu.location.href=url; } catch { vindu?.close(); setFeil("Kunne ikke åpne dokumentet."); } }
+  async function aapne(d: Dokument) { if (d.filtype === "text/uri-list") { const url=dokumentNettlenke(d); if(url) window.open(url,"_blank","noopener,noreferrer"); else setFeil("Lenken mangler eller er ugyldig."); return; } if (!d.filsti) { if (!innlogget) window.location.assign("/logg-inn"); return; } const vindu=window.open("","_blank"); try { const url=d.kilde==="okonomi"?await bilagLenke(d.filsti):await dokumentLenke(d.filsti); if(vindu) vindu.location.href=url; } catch { vindu?.close(); setFeil("Kunne ikke åpne dokumentet."); } }
   async function slett(d: Dokument) { if (d.kilde==="okonomi") { setFeil("Dette bilaget slettes eller endres under Økonomi."); return; } if(!confirm(uiFormat("Slett «{0}»?", [d.navn]))) return; try { await slettDokument(d); setDokumenter((gamle)=>gamle.filter((v)=>v.id!==d.id)); } catch { setFeil("Kunne ikke slette dokumentet."); } }
 
   return <main className="min-h-screen bg-slate-100 text-slate-900"><Navigasjon/><header className="bg-slate-950 px-4 py-10 text-white sm:px-6"><div className="mx-auto max-w-7xl"><p className="font-semibold text-emerald-400"><UiText text="ALT PÅ ETT STED"/></p><h1 className="mt-2 text-3xl font-bold sm:text-4xl"><UiText text="Dokumentarkiv"/></h1><p className="mt-3 max-w-3xl text-slate-300"><UiText text="Dokumenter og boligbilder er skilt, slik at du finner riktig innhold raskere."/></p></div></header>

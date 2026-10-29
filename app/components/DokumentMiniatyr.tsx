@@ -1,11 +1,13 @@
 "use client";
 
+import { lenkeIllustrasjon } from "../lib/dokument-nettlenke";
+import UiIcon from "./UiIcon";
 import { useEffect, useRef, useState } from "react";
 import { dokumentLenke, type Dokument } from "../lib/dokumenter";
 import { bilagLenke } from "../lib/okonomi";
 import { uiText } from "../lib/language";
 
-type Fil = Pick<Dokument, "filtype" | "filnavn" | "filsti" | "kilde" | "navn">;
+type Fil = Pick<Dokument, "filtype" | "filnavn" | "filsti" | "kilde" | "navn"> & { notat?: string };
 
 export function erBildefil(fil: Fil): boolean {
   const mime = fil.filtype.split(";")[0].trim().toLowerCase();
@@ -61,6 +63,13 @@ export default function DokumentMiniatyr({ dokument, onAapne }: {
     return () => { aktiv = false; };
   }, [synlig, erBilde, dokument.filsti, dokument.kilde, nokkel]);
 
+  if (dokument.filtype === "text/uri-list") {
+    const lenke = lenkeIllustrasjon(dokument);
+    return <button type="button" onClick={onAapne} aria-label={`${uiText("Åpne")} ${dokument.navn}`} title={`${uiText("Relatert illustrasjon")} · ${lenke.host || uiText("Lenke")}`} className={`${klasse} relative focus-visible:outline-2 focus-visible:outline-emerald-600`}>
+      <img src={lenke.bilde} alt="" width={56} height={56} loading="lazy" className="h-full w-full object-cover" />
+      <span aria-hidden="true" className="absolute bottom-0 right-0 rounded-tl-lg bg-emerald-800 p-1 text-xs text-white"><UiIcon symbol="🔗" /></span>
+    </button>;
+  }
   if (!erBilde || !dokument.filsti) return <div className={klasse}>{merke}</div>;
   return <button ref={element} type="button" onClick={onAapne}
     aria-label={`${uiText("Åpne")} ${dokument.navn}`}

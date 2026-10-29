@@ -1,4 +1,5 @@
 "use client";
+import HistorikkVedlegg from "./HistorikkVedlegg";
 import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
 import { formatMoney, parseNok, formatMoneyRange } from "../lib/currency";
@@ -830,7 +831,7 @@ export default function MittHjemDashboard({
         </Dashboardkort>
         <Dashboardkort
           tema="vedlikehold"
-          ikon="📅"
+          ikon="🔨"
           tittel={uiText("Kommende vedlikehold")}
           lenke={`/vedlikehold?bolig=${bolig.id}`}
           lenketekst="Se hele planen"
@@ -1708,15 +1709,7 @@ function Historikkrad({
       {vedlegg.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-3">
           {vedlegg.map((dokument) => (
-            <button
-              key={dokument.id}
-              type="button"
-              onClick={() => onAapne(dokument)}
-              className="text-sm font-semibold text-emerald-700"
-            >
-              <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/>{" "}
-              {uiDemoText(dokument.navn, dokument.id)}
-            </button>
+            <HistorikkVedlegg key={dokument.id} dokument={dokument} onAapne={() => onAapne(dokument)} />
           ))}
         </div>
       )}

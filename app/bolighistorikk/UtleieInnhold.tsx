@@ -1,4 +1,5 @@
 "use client";
+import HistorikkVedlegg from "../components/HistorikkVedlegg";
 import TallInput from "../components/TallInput";
 import UiIcon from "../components/UiIcon";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
@@ -681,15 +682,7 @@ function Historikkrad({
       {vedlegg.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-3">
           {vedlegg.map((dokument) => (
-            <button
-              key={dokument.id}
-              type="button"
-              onClick={() => onAapne(dokument)}
-              className="min-w-0 max-w-full break-words text-left text-sm font-bold text-emerald-700"
-            >
-              <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/>{" "}
-              {uiDemoText(dokument.navn, dokument.id)}
-            </button>
+            <HistorikkVedlegg key={dokument.id} dokument={dokument} onAapne={() => onAapne(dokument)} />
           ))}
         </div>
       )}
