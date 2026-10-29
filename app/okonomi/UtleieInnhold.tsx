@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { velgUtleieBolig } from "../lib/utleie-data/omfang";
 import { formatMoney, parseNok } from "../lib/currency";
@@ -128,7 +129,7 @@ export default function Okonomi({ kunLeiebetalinger = false }: { kunLeiebetaling
       <Felt label={uiText("Bolig")}><select value={boligId} onChange={(e) => setBoligId(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value=""><UiText text="Ingen bestemt bolig"/></option>{boliger.map((b) => <option key={b.id} value={b.id}>{String(b.adresse || uiText("Uten adresse"))}</option>)}</select></Felt>
       <Felt label={uiText("Dato")}><input type="date" value={dato} onChange={(e) => setDato(e.target.value)} className="w-full rounded-xl border px-4 py-3" /></Felt>
       <Felt label={uiText("Kategori")}><select value={kategori} onChange={(e) => { const verdi = e.target.value; setKategori(verdi); setFradrag((kategorier.find((k) => k[0] === verdi)?.[2] || "vurder") as Fradragsstatus); }} className="w-full rounded-xl border px-4 py-3">{kategorier.map((k) => <option key={k[0]} value={k[0]}><UiText text={String(k[1] ?? "")}/></option>)}</select></Felt>
-      <Felt label={uiText("Beløp")}><input type="number" min="0" value={belop} onChange={(e) => setBelop(Number(e.target.value))} className="w-full rounded-xl border px-4 py-3" /></Felt>
+      <Felt label={uiText("Beløp")}><TallInput min="0" value={belop} className="w-full rounded-xl border px-4 py-3" onValueChange={(raw)=>setBelop(Number(raw))}/></Felt>
       <Felt label={uiText("Beskrivelse")}><input value={beskrivelse} onChange={(e) => setBeskrivelse(e.target.value)} className="w-full rounded-xl border px-4 py-3" /></Felt>
       <Felt label={uiText("Betalingsstatus")}><select value={status} onChange={(e) => setStatus(e.target.value as "apen" | "betalt")} className="w-full rounded-xl border px-4 py-3"><option value="betalt"><UiText text="Betalt"/></option><option value="apen"><UiText text="Ikke betalt"/></option></select></Felt>
       <Felt label={uiText("Skattevurdering")}><select value={fradrag} onChange={(e) => setFradrag(e.target.value as Fradragsstatus)} className="w-full rounded-xl border px-4 py-3"><option value="normalt"><UiText text="Normalt fradrag"/></option><option value="vurder"><UiText text="Må vurderes"/></option><option value="ikke"><UiText text="Ikke løpende fradrag"/></option></select></Felt>

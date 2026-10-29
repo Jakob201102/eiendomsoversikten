@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 import Link from "next/link";
 import { useEffect, useState, useRef, useId, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -125,5 +126,5 @@ function BudsjettKort({ tema, tittel, redigerer, kanRedigere, disabled, onRedige
 }
 
 function Belopsrad({ label, value, disabled=false, onChange }: {label:string;value:Belopsfelt;disabled?:boolean;onChange:(v:Belopsfelt)=>void}) {
-  return <div className="grid items-end gap-2 sm:grid-cols-[1fr_160px]"><label className="block text-sm font-semibold"><UiText text={label}/><input type="text" inputMode="decimal" maxLength={30} disabled={disabled} value={value.belop} onChange={(e)=>onChange({...value,belop:e.target.value})} placeholder="0" className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 font-normal disabled:bg-stone-100 disabled:text-slate-400"/></label><label className="block text-xs text-slate-500"><UiText text="Periode"/><select aria-label={uiText(label)+" – "+uiText("Periode")} value={value.periode} disabled={disabled} onChange={(e)=>onChange({...value,periode:e.target.value as Belopsfelt['periode']})} className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm text-slate-800"><option value="maaned"><UiText text="Per måned"/></option><option value="kvartal"><UiText text="Per kvartal"/></option><option value="aar"><UiText text="Per år"/></option></select></label></div>;
+  return <div className="grid items-end gap-2 sm:grid-cols-[1fr_160px]"><label className="block text-sm font-semibold"><UiText text={label}/><TallInput maxLength={30} disabled={disabled} value={value.belop} placeholder="0" className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 font-normal disabled:bg-stone-100 disabled:text-slate-400" onValueChange={(raw)=>onChange({...value,belop:raw})}/></label><label className="block text-xs text-slate-500"><UiText text="Periode"/><select aria-label={uiText(label)+" – "+uiText("Periode")} value={value.periode} disabled={disabled} onChange={(e)=>onChange({...value,periode:e.target.value as Belopsfelt['periode']})} className="mt-1 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 text-sm text-slate-800"><option value="maaned"><UiText text="Per måned"/></option><option value="kvartal"><UiText text="Per kvartal"/></option><option value="aar"><UiText text="Per år"/></option></select></label></div>;
 }

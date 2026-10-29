@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
@@ -826,7 +827,7 @@ function Tallfelt({
       </span>
 
       <div className="flex overflow-hidden rounded-xl border border-slate-300 bg-white">
-        <input
+        {suffix === "NOK" ? <TallInput min="0" step={step} value={value} className="min-w-0 flex-1 px-4 py-3 outline-none" onValueChange={(raw)=>onChange(Number(raw))}/> : <input
           type="number"
           min="0"
           step={step}
@@ -835,7 +836,7 @@ function Tallfelt({
             onChange(Number(event.target.value))
           }
           className="min-w-0 flex-1 px-4 py-3 outline-none"
-        />
+        />}
 
         <span className="border-l border-slate-300 bg-slate-50 px-3 py-3 text-slate-500">
           {suffix}

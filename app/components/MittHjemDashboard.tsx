@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
 import { formatMoney, parseNok, formatMoneyRange } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText  } from "../lib/language";
@@ -1350,14 +1351,7 @@ function Historikkskjema({
         </select>
       </Felt>
       <Felt label={uiText("Kostnad (valgfritt)")}>
-        <input
-          inputMode="numeric"
-          value={verdi.kostnad}
-          onChange={(event) =>
-            onEndre({ ...verdi, kostnad: event.target.value })
-          }
-          className="felt"
-        />
+        <TallInput value={verdi.kostnad} className="felt" onValueChange={(raw)=>onEndre({ ...verdi, kostnad: raw })}/>
       </Felt>
       <Felt label={uiText("Utført av")}>
         <select
@@ -1586,14 +1580,7 @@ function Vedlikeholdsskjema({
         </select>
       </Felt>
       <Felt label={uiText("Estimert kostnad")}>
-        <input
-          inputMode="numeric"
-          value={verdi.kostnad}
-          onChange={(event) =>
-            onEndre({ ...verdi, kostnad: event.target.value })
-          }
-          className="felt"
-        />
+        <TallInput value={verdi.kostnad} className="felt" onValueChange={(raw)=>onEndre({ ...verdi, kostnad: raw })}/>
       </Felt>
       <label className="text-sm font-semibold sm:col-span-2"><UiText text="Notat"/><textarea
           rows={3}

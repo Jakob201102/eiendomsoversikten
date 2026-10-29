@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
 import UiIconText from "./UiIconText";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
@@ -1329,12 +1330,7 @@ export default function MittHjemOppsett({
                   />
                 </Felt>
                 <Felt label={uiText("Kostnad (valgfritt)")}>
-                  <input
-                    inputMode="numeric"
-                    value={kostnad}
-                    onChange={(event) => setKostnad(event.target.value)}
-                    className="felt"
-                  />
+                  <TallInput value={kostnad} className="felt" onValueChange={(raw)=>setKostnad(raw)}/>
                 </Felt>
                 <Felt label={uiText("Utført av")}>
                   <select
@@ -1476,14 +1472,7 @@ export default function MittHjemOppsett({
                   />
                 </Felt>
                 <Felt label={uiText("Estimert kostnad (valgfritt)")}>
-                  <input
-                    inputMode="numeric"
-                    value={vedlikeholdKostnad}
-                    onChange={(event) =>
-                      setVedlikeholdKostnad(event.target.value)
-                    }
-                    className="felt"
-                  />
+                  <TallInput value={vedlikeholdKostnad} className="felt" onValueChange={(raw)=>setVedlikeholdKostnad(raw)}/>
                 </Felt>
                 <label className="sm:col-span-2 text-sm font-semibold"><UiText text="Notat (valgfritt)"/><textarea
                     value={vedlikeholdNotat}

@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
 
@@ -569,17 +570,9 @@ export default function Vedlikehold() {
                   <label>
                     <Felttekst><UiText text="Estimert kostnad"/></Felttekst>
 
-                    <input
-                      type="number"
-                      min="0"
-                      value={kostnad}
-                      onChange={(event) =>
-                        setKostnad(
-                          Number(event.target.value),
-                        )
-                      }
-                      className="w-full rounded-xl border border-slate-300 px-4 py-3"
-                    />
+                    <TallInput min="0" value={kostnad} className="w-full rounded-xl border border-slate-300 px-4 py-3" onValueChange={(raw)=>setKostnad(
+                          Number(raw),
+                        )}/>
                   </label>
 
                   <div className="md:col-span-2">

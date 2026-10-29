@@ -2325,4 +2325,8 @@ export const english: Record<string, string> = {
   "Venter på automatisk lagring…": "Waiting to save automatically…",
   "Alle endringer er lagret.": "All changes are saved.",
   "Endringer lagres automatisk.": "Changes are saved automatically.",
+  "Skriv et gyldig tall.": "Enter a valid number.",
+  "Tallet må være minst {0}.": "The number must be at least {0}.",
+  "Tallet kan ikke være større enn {0}.": "The number must not exceed {0}.",
+  "Bruk trinn på {0}.": "Use increments of {0}.",
 };

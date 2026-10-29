@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
@@ -289,7 +290,7 @@ function Skjema({ boliger, data, redigerer, lagrer, feil, sett, lagre, avbryt }:
         <Felt label={uiText("E-post")}><input type="email" value={data.epost} onChange={(e) => sett("epost", e.target.value)} className={feltstil} /></Felt>
         <Felt label={uiText("Startdato")}><input type="date" value={data.startdato} onChange={(e) => sett("startdato", e.target.value)} className={feltstil} /></Felt>
         <Felt label={uiText("Sluttdato")}><input type="date" value={data.sluttdato} min={data.startdato || undefined} onChange={(e) => sett("sluttdato", e.target.value)} className={feltstil} /></Felt>
-        <Felt label={uiText("Månedlig leie")}><input type="number" min="0" value={data.manedsleie} onChange={(e) => sett("manedsleie", Number(e.target.value))} className={feltstil} /></Felt>
+        <Felt label={uiText("Månedlig leie")}><TallInput min="0" value={data.manedsleie} className={feltstil} onValueChange={(raw)=>sett("manedsleie", Number(raw))}/></Felt>
         <Felt label={uiText("Forfallsdag")}><input type="number" min="1" max="31" value={data.forfallsdag} onChange={(e) => sett("forfallsdag", Number(e.target.value))} className={feltstil} /></Felt>
         <Felt label={uiText("Status")}><select value={data.status} onChange={(e) => sett("status", e.target.value as LeietakerSkjema["status"])} className={feltstil}><option value="kommende"><UiText text="Kommende"/></option><option value="aktiv"><UiText text="Aktiv"/></option><option value="avsluttet"><UiText text="Avsluttet"/></option></select></Felt>
         <Felt label={uiText("Depositum")}><select value={data.depositumsstatus} onChange={(e) => sett("depositumsstatus", e.target.value as LeietakerSkjema["depositumsstatus"])} className={feltstil}><option value="ikke_registrert"><UiText text="Ikke registrert"/></option><option value="venter"><UiText text="Venter"/></option><option value="betalt"><UiText text="Betalt"/></option><option value="tilbakebetalt"><UiText text="Tilbakebetalt"/></option></select></Felt>

@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 import UiIcon from "../components/UiIcon";
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
@@ -783,14 +784,7 @@ function Hendelsesskjema({
         </select>
       </Felt>
       <Felt label={uiText("Kostnad")}>
-        <input
-          inputMode="numeric"
-          value={hendelse.kostnad || ""}
-          onChange={(event) =>
-            onEndre({ ...hendelse, kostnad: Number(event.target.value) || 0 })
-          }
-          className="felt"
-        />
+        <TallInput value={hendelse.kostnad || ""} className="felt" onValueChange={(raw)=>onEndre({ ...hendelse, kostnad: Number(raw) || 0 })}/>
       </Felt>
       <Felt label={uiText("Utført av")}>
         <select

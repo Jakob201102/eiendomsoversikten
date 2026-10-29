@@ -1,4 +1,5 @@
 "use client";
+import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { velgUtleieBolig } from "../lib/utleie-data/omfang";
 import { formatMoney, parseNok } from "../lib/currency";
@@ -445,7 +446,7 @@ export default function Skatterapport() {
               <Felt label={uiText("Bolig")}><select value={boligId} onChange={(e) => setBoligId(e.target.value)} className="w-full rounded-xl border px-4 py-3"><option value=""><UiText text="Ingen bestemt bolig"/></option>{boliger.map((b) => <option key={b.id} value={b.id}>{b.adresse}</option>)}</select></Felt>
               <Felt label={uiText("Dato")}><input type="date" value={dato} onChange={(e) => setDato(e.target.value)} className="w-full rounded-xl border px-4 py-3" /></Felt>
               <Felt label={uiText("Kategori")}><select value={kategori} onChange={(e) => velgKategori(e.target.value)} className="w-full rounded-xl border px-4 py-3">{kategorier.map((k) => <option key={k.verdi} value={k.verdi}><UiText text={String(k.navn ?? "")}/></option>)}</select></Felt>
-              <Felt label={uiText("Beløp")}><input type="number" min="0" step="0.01" value={belop} onChange={(e) => setBelop(Number(e.target.value))} className="w-full rounded-xl border px-4 py-3" /></Felt>
+              <Felt label={uiText("Beløp")}><TallInput min="0" step="0.01" value={belop} className="w-full rounded-xl border px-4 py-3" onValueChange={(raw)=>setBelop(Number(raw))}/></Felt>
               <Felt label={uiText("Beskrivelse")}><input value={beskrivelse} onChange={(e) => setBeskrivelse(e.target.value)} placeholder={uiText("F.eks. maling av stue")} className="w-full rounded-xl border px-4 py-3" /></Felt>
               {type === "kostnad" && <Felt label={uiText("Vurdering")}><select value={fradragsstatus} onChange={(e) => setFradragsstatus(e.target.value as Fradragsstatus)} className="w-full rounded-xl border px-4 py-3"><option value="normalt"><UiText text="Normalt fradragsberettiget"/></option><option value="vurder"><UiText text="Må vurderes"/></option><option value="ikke"><UiText text="Ikke løpende fradrag"/></option></select></Felt>}
             </div>
