@@ -28,7 +28,7 @@
   "app/components/BrandLogo.tsx": "190f2d04f600c83d798d86dfeb62c60ee504ddc32af5d3d5a0fc38d9a5a1ec5c",
   "app/components/Brannkontroll.tsx": "0a88bb9a33e027fd58d17ba9230505c1a01501b8afd0b09f06ee5bf64dfe22bd",
   "app/components/Footer.tsx": "acc35500186cb2acdb049c1eac1137116039e5e14912d030c824964ddff65a3a",
-  "app/components/ForsideInnhold.tsx": "78128199dde9ee1678c33ebee300b995c15999e32456e57c19f02ef40fd37941",
+  "app/components/ForsideInnhold.tsx": "82123f083cc57e48511c69bdf803c0d9537e1efe71950fadc3c924501e91b86a",
   "app/components/ForsidePortefolje.tsx": "818f53c4a9aa4104104d3f2a5652e632167d11381846fcfe8c191b7139d2c691",
   "app/components/Garantier.tsx": "13210dd60acbab843f1b44508e3a3e8b4e322404ea7f5eca321691dd96671b3f",
   "app/components/MittHjemDashboard.tsx": "6454e245dadded0a96d4f2bc51a4c6058fcd11d9ede1bf54ee2abf6b6f3a4235",

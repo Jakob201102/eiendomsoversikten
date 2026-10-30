@@ -105,7 +105,7 @@ function PrivatForside() {
           <h1 className="mt-4 whitespace-nowrap text-[clamp(1.1rem,5.2vw,3.5rem)] font-bold leading-tight tracking-tight"><UiText text="Alt om boligen din. Ett sted."/></h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300"><UiText text="Hold kontroll på vedlikehold, dokumentasjon og alt som skjer med boligen – gjennom hele eiertiden."/></p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/mitt-hjem?eksempel=1" className="knapp-lys"><UiText text="Åpne Mitt hjem"/></Link>
+            <Link href="/mitt-hjem" className="knapp-lys"><UiText text="Åpne Mitt hjem"/></Link>
             <Boligveileder />
           </div>
           <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
