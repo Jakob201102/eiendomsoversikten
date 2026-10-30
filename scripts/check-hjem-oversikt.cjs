@@ -1,0 +1,13 @@
+const fs=require('fs'),path=require('path'),assert=require('node:assert/strict'),ts=require('typescript'),React=require('react');const {renderToStaticMarkup}=require('react-dom/server');const root=path.resolve(__dirname,'..');let lang='nb';
+function compile(file,stubs={}){const out={};const code=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{compilerOptions:{module:1,target:7,jsx:4}}).outputText;new Function('require','exports',code)(n=>n in stubs?stubs[n]:require(n),out);return out;}
+const en=compile('app/lib/translations-en.ts').english;
+const text=s=>lang==='en'?(en[s.trim()]||s):s;
+const lib={useLanguage(){},uiText:text,UiText:({text:s})=>text(s),uiLocale:()=>lang==='en'?'en-GB':'nb-NO',uiFormat:(s,vs)=>text(s).replace(/\{(\d+)\}/g,(_,i)=>vs[+i]),uiDemoText:s=>s};
+const Link=({children,href,...props})=>React.createElement('a',{...props,href},children);
+const source='app/components/HjemOppfolging.tsx';
+const comp=compile(source,{'next/link':{__esModule:true,default:Link},'./UiIcon':{__esModule:true,default:()=>React.createElement('span',null,'icon')},'../lib/language':lib,'../lib/vedlikehold-visning':compile('app/lib/vedlikehold-visning.ts')});
+const rows=[{id:'foreign',boligId:'other',tittel:'FOREIGN PROPERTY',frist:'1999-01-01'},{id:'done',boligId:'home',tittel:'COMPLETED TASK',status:'ferdig',frist:'1999-01-01'},{id:'later',boligId:'home',tittel:'Later task',frist:'2099-01-01'},{id:'late',boligId:'home',tittel:'Overdue task',frist:'2000-01-01'},{id:'undated',boligId:'home',tittel:'Undated task',frist:''}];
+const before=JSON.stringify(rows);assert.deepEqual(comp.prioriterHjemoppgaver(rows,'home').map(o=>o.id),['late','later','undated']);assert.equal(JSON.stringify(rows),before);
+for(lang of['nb','en']){const html=renderToStaticMarkup(React.createElement(comp.default,{boligId:'home',oppgaver:rows}));assert(!html.includes('FOREIGN PROPERTY'));assert(!html.includes('COMPLETED TASK'));assert(html.includes(lang==='en'?'Things to follow up':'Dette bør du følge opp'));assert(html.includes(lang==='en'?'Overdue':'Forfalt'));for(const url of ['/rom?bolig=home','/dokumentarkiv?bolig=home','/privat-okonomi?bolig=home','/kalender?modus=privat&amp;bolig=home','/vedlikehold?modus=privat&amp;bolig=home'])assert(html.includes(url),url);}
+for(const p of [...fs.readFileSync(path.join(root,source),'utf8').matchAll(/"(\/card-details\/[^" ]+)"/g)].map(m=>m[1]))assert(fs.existsSync(path.join(root,'public',p)),p);
+console.log('PASS: selected-home scope, active tasks, stable priority without mutation, NO/EN, contextual links and local illustration assets.');

@@ -1,4 +1,5 @@
 "use client";
+import HjemOppfolging from "./HjemOppfolging";
 import Feiltekst from "./Feiltekst";
 import { meldLagring } from "./Lagringsstatus";
 import DokumentMiniatyr from "./DokumentMiniatyr";
@@ -721,12 +722,11 @@ export default function MittHjemDashboard({
 
   return (
     <>
-      <section className={`relative overflow-hidden rounded-3xl p-5 shadow-sm sm:p-7 ${forsidebildeUrl ? "text-white" : "bg-white"}`}>
-        {forsidebildeUrl && <><img src={forsidebildeUrl} alt="" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/25" /></>}
+      <section className="relative rounded-2xl border border-stone-200 bg-white/95 p-4 text-slate-900 shadow-sm sm:p-5" data-hjem-topp>
         <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-300" : "text-emerald-700"}`}><UiText text="Privat bolig"/></p>
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Privat bolig"/></p>
             {boliger.length > 1 ? (
               <select
                 value={String(bolig.id)}
@@ -740,11 +740,11 @@ export default function MittHjemDashboard({
                 ))}
               </select>
             ) : (
-              <h1 className="mt-1 truncate text-2xl font-bold sm:text-3xl">
+              <h1 className="mt-1 break-words text-2xl font-bold sm:text-3xl">
                 {String(bolig.adresse || uiText("Mitt hjem"))}
               </h1>
             )}
-            <p className={`mt-2 text-sm ${forsidebildeUrl ? "text-slate-200" : "text-slate-500"}`}>
+            <p className="mt-2 text-sm text-slate-500">
               {[
                 String(
                   bolig.boligtype || data.generell.boligtype || "Privat bolig",
@@ -756,6 +756,8 @@ export default function MittHjemDashboard({
                 .join(" · ")}
             </p>
           </div>
+          <div className="flex shrink-0 items-start gap-2">
+            {forsidebildeUrl && <button type="button" disabled={!kanRedigere} onClick={() => setVisBildevalg(true)} aria-label={uiText("Endre toppbilde")} className="h-16 w-20 overflow-hidden rounded-xl border border-stone-200 sm:h-20 sm:w-28"><img src={forsidebildeUrl} alt="" decoding="async" className="h-full w-full object-cover" /></button>}
           <div className="relative">
             <button
               type="button"
@@ -809,18 +811,21 @@ export default function MittHjemDashboard({
             )}
           </div>
         </div>
-        <div className="mt-4">
-          <Boligveileder kompakt />
         </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <Boligveileder kompakt />
         {kanRedigere && (
           <button
             type="button"
             onClick={() => aapne("valg")}
-            className="mt-6 flex min-h-14 w-full items-center justify-center rounded-2xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white shadow-sm hover:bg-emerald-600"
+            className="flex min-h-11 items-center justify-center rounded-xl bg-emerald-500 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-600"
           ><UiText text="+ Legg til"/></button>
         )}
         </div>
+        </div>
       </section>
+
+      <HjemOppfolging boligId={String(bolig.id)} oppgaver={oppgaver} />
 
       {visBildevalg && <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/60 p-4"><div className="mx-auto mt-10 max-w-2xl rounded-3xl bg-white p-6 text-slate-900 shadow-2xl"><div className="flex items-center justify-between gap-4"><div><h2 className="text-2xl font-bold"><UiText text="Velg toppbilde"/></h2><p className="mt-1 text-sm text-slate-500"><UiText text="Velg et bilde fra boligarkivet."/></p></div><button type="button" onClick={() => setVisBildevalg(false)} className="text-sm font-bold text-slate-500"><UiText text="Lukk"/></button></div><div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{bilderIAarkiv.map((dokument) => <button key={dokument.id} type="button" disabled={jobber || !bildeLenker[dokument.id]} onClick={() => void velgForsidebilde(dokument.id)} className={`overflow-hidden rounded-xl border-2 text-left ${data.forsidebildeId === dokument.id || (!data.forsidebildeId && valgtForsidebilde?.id === dokument.id) ? "border-emerald-500" : "border-stone-200"}`}>{bildeLenker[dokument.id] ? <img src={bildeLenker[dokument.id]} alt={dokument.navn} className="aspect-[4/3] w-full object-cover" /> : <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 text-xs text-slate-500"><UiText text="Laster…"/></div>}<span className="block truncate p-2 text-xs font-bold">{uiDemoText(dokument.navn, dokument.id)}</span></button>)}</div></div></div>}
 

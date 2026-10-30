@@ -1,5 +1,13 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Dette bør du følge opp": "Things to follow up",
+  "Vedlikeholdsfrister denne måneden": "Maintenance deadlines this month",
+  "{0}: vedlikeholdsfrist": "{0}: maintenance deadline",
+  "Prikker viser vedlikeholdsfrister. Se alle hendelser i kalenderen.": "Dots mark maintenance deadlines. Open the calendar to see all events.",
+  "Snarveier til boligen": "Property shortcuts",
+  "Farger, materialer og rombilder": "Colours, materials and room photos",
+  "Dokumenter og bilder til boligen": "Documents and photos for your property",
+  "Se boligens faste kostnader": "View your regular home costs",
   "Sluk og inspeksjon": "Drains and inspection",
   "Rapport laget i Eiendomsoversikten.no": "Report created with Eiendomsoversikten.no",
   "Gulv:": "Floor:",

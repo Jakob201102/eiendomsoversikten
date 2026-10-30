@@ -1,4 +1,5 @@
 "use client";
+import HjemOppfolging from "../components/HjemOppfolging";
 import UiIcon from "../components/UiIcon";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText } from "../lib/language";
 
@@ -203,19 +204,15 @@ function MittHjemIPad({
   ];
 
   return <div className="space-y-5">
-    <section className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 text-white shadow-sm">
-      {bakgrunnsbilde && <><img src={bakgrunnsbilde} alt="" fetchPriority="high" decoding="async" className="absolute inset-0 h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/65 to-slate-950/30" /></>}
-      <div className="relative">
-      <p className="text-xs font-bold uppercase tracking-wider text-emerald-300"><UiText text="Mitt hjem"/></p>
-      <h1 className="mt-2 break-words text-3xl font-bold">{String(bolig.adresse || uiText("Privat bolig"))}</h1>
-      <p className="mt-2 text-sm text-slate-300">{[
-        String(bolig.boligtype || data.generell.boligtype || "Privat bolig"),
-        data.generell.totalareal && `${data.generell.totalareal} m²`,
-        data.generell.byggeaar && uiFormat("Byggeår {0}", [data.generell.byggeaar]),
-      ].filter(Boolean).join(" · ")}</p>
-      {boliger.length > 1 && <select value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-5 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-white">{boliger.map((verdi) => <option key={String(verdi.id)} value={String(verdi.id)}>{String(verdi.adresse || uiText("Privat bolig"))}</option>)}</select>}
-      </div>
+    <section className="rounded-2xl border border-stone-200 bg-white/95 p-4 text-slate-900 shadow-sm sm:p-5" data-hjem-topp>
+      <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1">
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Mitt hjem"/></p>
+        <h1 className="mt-1 break-words text-2xl font-bold sm:text-3xl">{String(bolig.adresse || uiText("Privat bolig"))}</h1>
+        <p className="mt-2 text-sm text-slate-500">{[uiText(String(bolig.boligtype || data.generell.boligtype || "Privat bolig")), data.generell.totalareal && `${data.generell.totalareal} m²`, data.generell.byggeaar && uiFormat("Byggeår {0}", [data.generell.byggeaar])].filter(Boolean).join(" · ")}</p>
+      </div>{bakgrunnsbilde && <img src={bakgrunnsbilde} alt="" decoding="async" className="h-16 w-20 shrink-0 rounded-xl border border-stone-200 object-cover sm:h-20 sm:w-28" />}</div>
+      {boliger.length > 1 && <select aria-label={uiText("Bolig")} value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-3 min-h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm">{boliger.map(b => <option key={String(b.id)} value={String(b.id)}>{String(b.adresse || uiText("Privat bolig"))}</option>)}</select>}
     </section>
+    <HjemOppfolging boligId={boligId} oppgaver={oppgaver} />
 
     <section className="grid grid-cols-2 gap-3">
       <div className="rounded-2xl bg-white p-4 shadow-sm"><p className="text-sm text-slate-500"><UiText text="Rom"/></p><strong className="mt-1 block text-2xl">{data.rom.length}</strong></div>
