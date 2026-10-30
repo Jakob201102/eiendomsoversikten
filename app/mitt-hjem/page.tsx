@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import { demoAltOmBoligen, lesAltOmBoligen } from "../lib/alt-om-boligen";
-import { hentBoliger, slettBoligFraDatabase, type BoligData } from "../lib/boliger";
+import { hentBoliger, oppdaterBolig, slettBoligFraDatabase, type BoligData } from "../lib/boliger";
 import { harPrivat, lesBruksomrade } from "../lib/bruksomrade";
 import { dokumentLenker, hentDokumenter, type Dokument } from "../lib/dokumenter";
 import { createClient } from "../lib/supabase/client";
@@ -145,7 +145,7 @@ export default function MittHjem() {
       {search.get("overfort") === "ja" && <p className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><UiText text="Boligmappen er mottatt og ligger nå under Mitt hjem."/></p>}
       {feil && <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><p><UiText text={feil}/></p><button type="button" onClick={() => lastInn(valgtId || forespurtBoligId || undefined)} className="mt-3 min-h-11 rounded-xl border border-red-300 px-4 py-2 font-bold"><UiText text="Prøv igjen"/></button></div>}
 
-      {ipadmodus === null ? <p className="rounded-2xl bg-white p-8 text-center text-slate-500"><UiText text="Åpner Mitt hjem…"/></p> : innlogget && !feil && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : ipadmodus && valgt ? <MittHjemIPad bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? (setFeil(""), setNyBolig(true)) : window.location.assign("/logg-inn")} /> : valgt ? <>
+      {ipadmodus === null ? <p className="rounded-2xl bg-white p-8 text-center text-slate-500"><UiText text="Åpner Mitt hjem…"/></p> : innlogget && !feil && (nyBolig || !boliger.length || aktivOnboarding) ? <MittHjemOppsett key={`oppsett-${nyBolig && boliger.length ? "ny" : valgt?.id || "første"}`} bolig={nyBolig && boliger.length ? null : valgt} onOppdatert={oppsettOppdatert} onAvbryt={boliger.length ? () => setNyBolig(false) : undefined} /> : ipadmodus && valgt ? <MittHjemIPad bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? (setFeil(""), setNyBolig(true)) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} /> : valgt ? <>
         <MittHjemDashboard key={`dashboard-${valgt.id}-${search.get("leggtil") || "vanlig"}`} bolig={valgt} boliger={boliger} dokumenter={dokumenter} oppgaver={oppgaver} onVelgBolig={setValgtId} onLeggTilBolig={() => innlogget ? (setFeil(""), setNyBolig(true)) : window.location.assign("/logg-inn")} onSlettBolig={() => slettPrivatBolig(valgt)} onOppdatert={() => lastInn(String(valgt.id))} demo={!innlogget} startVisning={search.get("leggtil") === "1" ? "valg" : null} />
         {innlogget && <BoligoverforingKort key={valgt.id} bolig={valgt} dokumenter={dokumenter} />}
       </> : !feil && <section className="rounded-3xl bg-white p-8 text-center shadow-sm"><h1 className="text-3xl font-bold"><UiText text="Mitt hjem"/></h1><p className="mt-2 text-slate-500"><UiText text="Opprett din første private bolig for å komme i gang."/></p><button type="button" onClick={() => setNyBolig(true)} className="mt-6 rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white"><UiText text="+ Legg til privat bolig"/></button></section>}
@@ -160,6 +160,7 @@ function MittHjemIPad({
   oppgaver,
   onVelgBolig,
   onLeggTilBolig,
+  onSlettBolig, onOppdatert, demo,
 }: {
   bolig: BoligData;
   boliger: BoligData[];
@@ -167,6 +168,9 @@ function MittHjemIPad({
   oppgaver: Vedlikeholdsdata[];
   onVelgBolig: (id: string) => void;
   onLeggTilBolig: () => void;
+  onSlettBolig: () => Promise<void>;
+  onOppdatert: () => Promise<void>;
+  demo: boolean;
 }) {
   useLanguage();
   const data = uiDemoData(lesAltOmBoligen(bolig), String(bolig.id));
@@ -177,6 +181,34 @@ function MittHjemIPad({
   );
   const valgtBakgrunn = boligbilder.find((dokument) => dokument.id === data.forsidebildeId) || boligbilder[0];
   const [bakgrunnsbilde, setBakgrunnsbilde] = useState("");
+  const kanRedigere = !demo && String(bolig.tilgang || "eier") !== "leser";
+  const erEier = !demo && String(bolig.tilgang || "eier") === "eier";
+  const [visBildevalg, setVisBildevalg] = useState(false);
+  const [bildelenker, setBildelenker] = useState<Record<string,string>>({});
+  const [bildeFeil, setBildeFeil] = useState("");
+  const [lagrerBilde, setLagrerBilde] = useState(false);
+  useEffect(() => {
+    setVisBildevalg(false); setBildelenker({}); setBildeFeil("");
+  }, [boligId]);
+  useEffect(() => {
+    let aktiv = true;
+    if (visBildevalg) dokumentLenker(boligbilder.map(d => d.filsti)).then(v => { if (aktiv) setBildelenker(v); }).catch(() => { if (aktiv) setBildeFeil("Kunne ikke hente bildene. Prøv igjen."); });
+    return () => { aktiv = false; };
+  }, [visBildevalg, boligId, dokumenter]);
+  async function velgToppbilde(id: string) {
+    if (!kanRedigere || lagrerBilde) return;
+    setLagrerBilde(true); setBildeFeil("");
+    try {
+      const fersk = (await hentBoliger({kunEgne:true})).find(b => String(b.id) === boligId);
+      if (!fersk || fersk.tilgang === "leser" || !boligbilder.some(d => d.id === id)) throw new Error();
+      await oppdaterBolig(boligId, {...fersk, altOmBoligen: {...lesAltOmBoligen(fersk), forsidebildeId:id, oppdatert:new Date().toISOString()}});
+      setBakgrunnsbilde(bildelenker[boligbilder.find(d => d.id === id)!.filsti] || "");
+      setVisBildevalg(false);
+      await onOppdatert();
+    } catch { setBildeFeil("Kunne ikke oppdatere boligen. Prøv igjen."); }
+    finally { setLagrerBilde(false); }
+  }
+
 
   useEffect(() => {
     let aktiv = true;
@@ -215,8 +247,13 @@ function MittHjemIPad({
       <details className="relative shrink-0">
         <summary aria-label={uiText("Boligvalg")} className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-xl border border-stone-300 bg-white text-xl font-bold text-slate-900">•••</summary>
         <div className="absolute right-0 top-12 z-30 w-64 max-w-[80vw] rounded-xl border border-stone-200 bg-white p-2 text-slate-900 shadow-xl">
+          {kanRedigere && <Link href={`/alt-om-boligen?bolig=${boligId}&rediger=1`} className="block min-h-11 rounded-lg px-3 py-2 text-sm font-bold"><UiText text="Rediger boliginformasjon"/></Link>}
+          {kanRedigere && boligbilder.length > 0 && <button type="button" onClick={() => { setBildeFeil(""); setVisBildevalg(true); }} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold"><UiText text="Endre toppbilde"/></button>}
+
           <button type="button" onClick={onLeggTilBolig} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold"><UiText text="+ Legg til en annen bolig"/></button>
           <Link href={`/alt-om-boligen?bolig=${boligId}`} className="block min-h-11 rounded-lg px-3 py-2 text-sm font-bold"><UiText text="Se alle boligdetaljer"/></Link>
+          {erEier && <button type="button" onClick={() => void onSlettBolig()} className="block min-h-11 w-full rounded-lg border-t px-3 py-2 text-left text-sm font-bold text-red-700"><UiText text="Slett bolig"/></button>}
+
         </div>
       </details>
       </div>
@@ -224,6 +261,8 @@ function MittHjemIPad({
       {boliger.length > 1 && <select aria-label={uiText("Bolig")} value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-3 min-h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-slate-900">{boliger.map(b => <option key={String(b.id)} value={String(b.id)}>{String(b.adresse || uiText("Privat bolig"))}</option>)}</select>}
       </div>
     </section>
+    {bildeFeil && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-700"><UiText text={bildeFeil}/></p>}
+    {visBildevalg && kanRedigere && <section className="rounded-2xl bg-white p-5 text-slate-900 shadow-sm"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold"><UiText text="Velg toppbilde"/></h2><button type="button" disabled={lagrerBilde} onClick={() => setVisBildevalg(false)} className="min-h-11 px-3 font-bold"><UiText text="Lukk"/></button></div><div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">{boligbilder.map(d => <button type="button" key={d.id} disabled={lagrerBilde || !bildelenker[d.filsti]} onClick={() => void velgToppbilde(d.id)} className="overflow-hidden rounded-xl border border-stone-200 text-left">{bildelenker[d.filsti] ? <img src={bildelenker[d.filsti]} alt={d.navn} className="aspect-[4/3] w-full object-cover"/> : <span className="block p-4"><UiText text="Laster…"/></span>}<span className="block truncate p-2 text-sm">{d.navn}</span></button>)}</div></section>}
     <HjemOppfolging boligId={boligId} oppgaver={oppgaver} />
 
     <section className="grid grid-cols-2 gap-3">
