@@ -171,7 +171,7 @@ export async function oppdaterVedlikeholdsoppgave(
 
   if (hentefeil) throw hentefeil;
 
-  const { error } = await supabase
+  const { data: lagretRad, error } = await supabase
     .from("vedlikeholdsoppgaver")
     .update({
       data: {
@@ -180,9 +180,10 @@ export async function oppdaterVedlikeholdsoppgave(
       },
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id).select("id").single();
 
   if (error) throw error;
+  if (!lagretRad?.id) throw new Error("Kunne ikke bekrefte lagringen. Kontroller tilgangen din og prøv igjen.");
 }
 
 export async function slettVedlikeholdsoppgave(id: string) {

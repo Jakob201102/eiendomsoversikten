@@ -1,4 +1,8 @@
 "use client";
+import Feiltekst from "./Feiltekst";
+import { meldLagring } from "./Lagringsstatus";
+import DokumentMiniatyr from "./DokumentMiniatyr";
+import { dokumentNettlenke } from "../lib/dokument-nettlenke";
 import HistorikkVedlegg from "./HistorikkVedlegg";
 import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
@@ -282,13 +286,17 @@ export default function MittHjemDashboard({
     if (!kanRedigere) return;
     setJobber(true);
     try {
+      meldLagring("lagrer");
       await oppdaterBolig(String(bolig.id), {
         ...bolig,
         altOmBoligen: { ...data, handleliste, oppdatert: new Date().toISOString() },
       });
       setNyttHandlepunkt("");
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke oppdatere handlelisten.");
     } finally {
       setJobber(false);
@@ -372,6 +380,7 @@ export default function MittHjemDashboard({
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const id = crypto.randomUUID();
       const dato =
         historikkSkjema.dato || new Date().toISOString().slice(0, 10);
@@ -448,7 +457,10 @@ export default function MittHjemDashboard({
       setBilder([]);
       setFiler([]);
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke lagre hendelsen eller vedleggene.");
     } finally {
       setJobber(false);
@@ -463,6 +475,7 @@ export default function MittHjemDashboard({
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const innhold = {
         boligId: String(bolig.id),
         boligAdresse: String(bolig.adresse || "Privat bolig"),
@@ -483,7 +496,10 @@ export default function MittHjemDashboard({
       setRedigererOppgaveId("");
       setVedlikeholdSkjema(tomVedlikehold);
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke lagre vedlikeholdsoppgaven.");
     } finally {
       setJobber(false);
@@ -499,6 +515,7 @@ export default function MittHjemDashboard({
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const dato = new Date().toISOString().slice(0, 10);
       for (const fil of valgte)
         await lastOppDokument(fil, {
@@ -517,7 +534,10 @@ export default function MittHjemDashboard({
       setDokumentnavn("");
       setDokumentGjelder("");
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke laste opp filene.");
     } finally {
       setJobber(false);
@@ -572,6 +592,7 @@ export default function MittHjemDashboard({
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const oppdatert = {
         ...data,
         generell: {
@@ -606,7 +627,10 @@ export default function MittHjemDashboard({
       });
       setVisning(null);
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke lagre boliginformasjonen.");
     } finally {
       setJobber(false);
@@ -614,7 +638,13 @@ export default function MittHjemDashboard({
   }
 
   async function aapneDokument(dokument: Dokument) {
-    if (!dokument.filsti) return;
+    if (dokument.filtype === "text/uri-list") {
+      const url = dokumentNettlenke(dokument);
+      if (!url) { setFeil("Lenken mangler eller er ugyldig."); return; }
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!dokument.filsti) { setFeil("Dette er et eksempeldokument uten fil."); return; }
     const vindu = window.open("", "_blank");
     try {
       const url = await dokumentLenke(dokument.filsti);
@@ -643,6 +673,7 @@ export default function MittHjemDashboard({
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const vedlegg = await lastOppVedlegg(
         dokumentasjonHendelse.id,
         dokumentasjonHendelse.dato || new Date().toISOString().slice(0, 10),
@@ -670,7 +701,10 @@ export default function MittHjemDashboard({
       setBilder([]);
       setFiler([]);
       await onOppdatert();
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke oppdatere dokumentasjonen.");
     } finally {
       setJobber(false);
@@ -792,7 +826,7 @@ export default function MittHjemDashboard({
 
       {feil && (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-          <UiText text={String(feil ?? "")}/>
+          <Feiltekst melding={feil}/>
         </p>
       )}
 
@@ -980,7 +1014,7 @@ export default function MittHjemDashboard({
         >
           {feil && (
             <p className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
-              <UiText text={String(feil ?? "")}/>
+              <Feiltekst melding={feil}/>
             </p>
           )}
           {visning === "valg" && (
@@ -1250,7 +1284,7 @@ export default function MittHjemDashboard({
                   />
                 </Felt>
                 <Felt
-                  label={uiText(`Nye dokumenter${filer.length ? ` (${filer.length})` : ""}`)}
+                  label={uiText("Nye dokumenter") + (filer.length ? ` (${filer.length})` : "")}
                 >
                   <input
                     type="file"
@@ -1426,7 +1460,7 @@ function Historikkskjema({
           className="felt mt-2"
         />
       </label>
-      <Felt label={uiText(`Bilder${bilder.length ? ` (${bilder.length})` : ""}`)}>
+      <Felt label={uiText("Bilder") + (bilder.length ? ` (${bilder.length})` : "")}>
         <input
           type="file"
           multiple
@@ -1437,7 +1471,7 @@ function Historikkskjema({
         />
       </Felt>
       <Felt
-        label={uiText(`Faktura/dokumentasjon${filer.length ? ` (${filer.length})` : ""}`)}
+        label={uiText("Faktura/dokumentasjon") + (filer.length ? ` (${filer.length})` : "")}
       >
         <input
           type="file"
@@ -1724,38 +1758,15 @@ function Historikkrad({
   );
 }
 
-function Filrader({
-  filer,
-  onAapne,
-  tomtekst,
-}: {
-  filer: Dokument[];
-  onAapne: (dokument: Dokument) => void;
-  tomtekst: string;
-}) {
+function Filrader({ filer, onAapne, tomtekst }: { filer: Dokument[]; onAapne: (dokument: Dokument) => void; tomtekst: string }) {
   useLanguage();
-  return filer.length ? (
-    <div className="space-y-2">
-      {filer.map((fil) => (
-        <button
-          key={fil.id}
-          type="button"
-          onClick={() => onAapne(fil)}
-          className="flex w-full items-center gap-3 rounded-xl border border-stone-200 p-3 text-left hover:bg-stone-50"
-        >
-          <span><UiIcon symbol={fil.filtype.startsWith("image/") ? "📸" : "📄"}/></span>
-          <span className="min-w-0">
-            <strong className="block truncate text-sm">{uiDemoText(fil.navn, fil.id)}</strong>
-            <span className="text-xs text-slate-500">
-              {fil.dokumentdato ? formatDato(fil.dokumentdato) : fil.ar}
-            </span>
-          </span>
-        </button>
-      ))}
-    </div>
-  ) : (
-    <p className="text-sm text-slate-500"><UiText text={String(tomtekst ?? "")}/></p>
-  );
+  return filer.length ? <div className="space-y-2">{filer.map(fil => <div key={fil.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-stone-200 p-3">
+    <DokumentMiniatyr dokument={fil} onAapne={() => onAapne(fil)} />
+    <button type="button" onClick={() => onAapne(fil)} className="min-h-14 min-w-0 flex-1 text-left">
+      <strong className="block break-words text-sm">{uiDemoText(fil.navn, fil.id)}</strong>
+      <span className="text-xs text-slate-500">{fil.dokumentdato ? formatDato(fil.dokumentdato) : fil.ar}</span>
+    </button>
+  </div>)}</div> : <p className="text-sm text-slate-500"><UiText text={tomtekst}/></p>;
 }
 function Dashboardkort({
   tema,

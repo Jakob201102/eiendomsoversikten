@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
 
 
@@ -66,7 +67,7 @@ export default function KontakterSide() {
       </header>
 
       <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6">
-        {feil && <p className="rounded-xl bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+        {feil && <p className="rounded-xl bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>}
         {laster ? (
           <p className="rounded-2xl bg-white p-10 text-center text-slate-500"><UiText text="Laster kontakter…"/></p>
         ) : !bolig ? (

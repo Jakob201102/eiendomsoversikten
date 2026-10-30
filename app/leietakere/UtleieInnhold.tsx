@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { formatMoney, parseNok } from "../lib/currency";
@@ -238,7 +239,7 @@ export default function Leietakere() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        {feil && !visSkjema && <Varsel farge="rod"><UiText text={String(feil ?? "")}/></Varsel>}
+        {feil && !visSkjema && <Varsel farge="rod"><Feiltekst melding={feil}/></Varsel>}
         {laster ? <div className="rounded-2xl bg-white px-6 py-14 text-center"><UiText text="Laster leietakerne…"/></div> : <>
           {(antallUtlopt > 0 || antallUtloper > 0) && <section className="mb-5 grid gap-3 sm:grid-cols-2">
             {antallUtlopt > 0 && <Varsel farge="rod">{antallUtlopt} {antallUtlopt === 1 ? uiText("kontrakt har") : uiText("kontrakter har")}<UiText text=" utløpt."/></Varsel>}
@@ -297,7 +298,7 @@ function Skjema({ boliger, data, redigerer, lagrer, feil, sett, lagre, avbryt }:
         <Felt label={uiText("Oppsigelsesfrist (måneder)")}><input type="number" min="0" value={data.oppsigelsesfrist} onChange={(e) => sett("oppsigelsesfrist", Number(e.target.value))} className={feltstil} /></Felt>
         <Felt label={uiText("Notat")}><textarea rows={3} value={data.notat} onChange={(e) => sett("notat", e.target.value)} className={feltstil} /></Felt>
       </div>
-      {feil && <div className="mt-4"><Varsel farge="rod"><UiText text={String(feil ?? "")}/></Varsel></div>}
+      {feil && <div className="mt-4"><Varsel farge="rod"><Feiltekst melding={feil}/></Varsel></div>}
       <div className="mt-5 flex flex-col gap-3 sm:flex-row"><button disabled={lagrer} className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white disabled:opacity-60">{lagrer ? uiText("Lagrer…") : redigerer ? uiText("Lagre endringer") : uiText("Lagre leietaker")}</button><button type="button" onClick={avbryt} className="rounded-xl border border-slate-300 px-6 py-3 font-semibold"><UiText text="Avbryt"/></button></div>
     </>}
   </form>;

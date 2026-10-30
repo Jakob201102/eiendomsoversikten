@@ -1,3 +1,4 @@
+import Lagringsstatus from "./components/Lagringsstatus";
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import Footer from "./components/Footer";
@@ -128,6 +129,7 @@ export default function RootLayout({
 
         {children}
 
+        <Lagringsstatus />
         <Footer />
         <Tilbakemelding />
         <Analytics />

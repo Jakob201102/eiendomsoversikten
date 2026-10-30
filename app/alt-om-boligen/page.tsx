@@ -1,4 +1,6 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
+import { meldLagring } from "../components/Lagringsstatus";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoData, uiDemoText  } from "../lib/language";
 
 
@@ -304,6 +306,7 @@ export default function AltOmBoligen() {
     setFeil("");
     setMelding("");
     try {
+      meldLagring("lagrer");
       const ferdig: AltOmBoligenData = {
         ...utkast,
         oppdatert: new Date().toISOString(),
@@ -322,7 +325,10 @@ export default function AltOmBoligen() {
       setUtkast(ferdig);
       setRedigerer(false);
       setMelding("Boligopplysningene er lagret.");
-    } catch (error) {
+    
+      meldLagring("lagret");
+} catch (error) {
+      meldLagring("feil");
       console.error(error);
       setFeil("Kunne ikke lagre boligopplysningene.");
     } finally {
@@ -339,6 +345,7 @@ export default function AltOmBoligen() {
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const erPlantegning = kategori === PLANTEGNINGKATEGORI;
       await lastOppDokument(fil, {
         boligId: String(valgtBolig.id),
@@ -350,7 +357,10 @@ export default function AltOmBoligen() {
       });
       setDokumenter(await hentDokumenter());
       setMelding(erPlantegning ? "Plantegningen er lastet opp." : "Bildet er lastet opp.");
-    } catch (error) {
+    
+      meldLagring("lagret");
+} catch (error) {
+      meldLagring("feil");
       const kode = error instanceof Error ? error.message : "";
       setFeil(
         kode === "FIL_FOR_STOR"
@@ -482,7 +492,7 @@ export default function AltOmBoligen() {
 
         {data && <Seksjonsmeny />}
 
-        {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+        {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>}
         {melding && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><UiText text={String(melding ?? "")}/></p>}
 
         {laster ? (

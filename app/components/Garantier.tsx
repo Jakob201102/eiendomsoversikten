@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "./Feiltekst";
 import UiIconText from "./UiIconText";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
 
@@ -121,7 +122,7 @@ export default function Garantier({ boliger, dokumenter, onEndret }: { boliger: 
         <div><p className="text-xs font-bold tracking-wider text-amber-800"><UiText text="MITT HJEM"/></p><h2 className="mt-1 text-2xl font-bold"><UiText text="Garantier"/></h2><p className="mt-2 text-sm text-slate-600"><UiText text="Lagre kvitteringen én gang. Status og utløpsdato oppdateres automatisk og vises i kalenderen."/></p></div>
         <button type="button" onClick={nyGaranti} className="rounded-xl bg-amber-500 px-5 py-3 font-bold text-white hover:bg-amber-600"><UiText text="+ Legg til garanti"/></button>
       </div>
-      {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><UiText text={String(feil ?? "")}/></p>}
+      {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"><Feiltekst melding={feil}/></p>}
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
         {garantier.length ? garantier.map(({ garanti, bolig }) => {
           const status = garantistatus(garanti.utlopsdato);

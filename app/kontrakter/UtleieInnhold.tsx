@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
 
@@ -117,7 +118,7 @@ export default function Kontrakter() {
           <button type="submit" disabled={jobber === "laster-opp"} className="rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white hover:bg-emerald-600 disabled:opacity-60">{jobber === "laster-opp" ? uiText("Laster opp…") : innlogget ? uiText("Last opp") : uiText("Logg inn for å laste opp")}</button>
         </form>
 
-        {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+        {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>}
         {melding && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><UiText text={String(melding ?? "")}/></p>}
 
         {laster ? <p className="mt-6 rounded-3xl bg-white p-10 text-center text-slate-500"><UiText text="Laster kontraktene…"/></p> : egne.length === 0 ? (

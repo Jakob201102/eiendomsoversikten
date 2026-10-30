@@ -166,7 +166,7 @@ export async function oppdaterKalenderhendelse(
   hendelse: KalenderhendelseSkjema,
 ) {
   const { supabase } = await hentBruker();
-  const { error } = await supabase
+  const { data: lagretRad, error } = await supabase
     .from("kalenderhendelser")
     .update({
       tittel: hendelse.tittel,
@@ -178,8 +178,9 @@ export async function oppdaterKalenderhendelse(
       notat: hendelse.notat || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id).select("id").single();
   if (error) throw error;
+  if (!lagretRad?.id) throw new Error("Kunne ikke bekrefte lagringen. Kontroller tilgangen din og prøv igjen.");
 }
 
 export async function slettKalenderhendelse(id: string) {

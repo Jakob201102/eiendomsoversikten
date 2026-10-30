@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { velgUtleieBolig } from "../lib/utleie-data/omfang";
@@ -437,7 +438,7 @@ export default function Skatterapport() {
           <p className="border-t border-slate-200 bg-slate-50 px-5 py-4 text-xs leading-5 text-slate-500"><UiText text="Dette er et regnskaps- og dokumentasjonsunderlag. Opplysningene må kontrolleres og føres i riktige felt i skattemeldingen eller næringsspesifikasjonen. Filen er ikke en direkte innsending til Skatteetaten."/></p>
         </section>
 
-        {feil && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 print:hidden"><UiText text={String(feil ?? "")}/></div>}
+        {feil && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 print:hidden"><Feiltekst melding={feil}/></div>}
 
         {visSkjema && (
           <form onSubmit={lagre} className="mt-5 rounded-2xl bg-white p-5 shadow-sm print:hidden">

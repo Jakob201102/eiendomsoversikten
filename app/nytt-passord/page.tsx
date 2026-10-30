@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import { UiText, uiText, uiFormat, useLanguage } from "../lib/language";
 
 
@@ -139,7 +140,7 @@ export default function NyttPassord() {
           ) : !gyldigLenke ? (
             <>
               <div className="mt-6 rounded-xl bg-red-50 p-4 text-red-700">
-                <UiText text={String(feil ?? "")}/>
+                <Feiltekst melding={feil}/>
               </div>
 
               <Link
@@ -163,7 +164,7 @@ export default function NyttPassord() {
 
               {feil && (
                 <div className="rounded-xl bg-red-50 p-4 text-red-700">
-                  <UiText text={String(feil ?? "")}/>
+                  <Feiltekst melding={feil}/>
                 </div>
               )}
 

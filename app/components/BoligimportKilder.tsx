@@ -1,4 +1,5 @@
 "use client";
+import { boligFeltnavn } from "../lib/bolig-feltnavn";
 import UiIcon from "./UiIcon";
 import UiIconText from "./UiIconText";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
@@ -417,7 +418,7 @@ function Kontrollfelt({ label, verdi, konflikt, onChange, onVelgKonflikt }: { la
 
 function RedigerListe({ tittel, tomTekst, verdier, onChange }: { tittel: string; tomTekst: string; verdier: string[]; onChange: (verdier: string[]) => void }) {
   useLanguage();
-  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(tittel ?? "")}/></p>{!verdier.length && <p className="mt-2 text-sm text-slate-500"><UiText text={String(tomTekst ?? "")}/></p>}<div className="mt-2 space-y-2">{verdier.map((verdi, indeks) => <div key={indexKey(verdi, indeks)} className="flex min-w-0 gap-2"><input value={verdi} onChange={(e) => onChange(verdier.map((v, i) => i === indeks ? e.target.value : v))} className="felt min-w-0 flex-1" /><button type="button" onClick={() => onChange(verdier.filter((_, i) => i !== indeks))} className="shrink-0 rounded-lg px-2 text-sm font-bold text-red-600" aria-label={uiText(`Fjern ${verdi}`)}><UiText text="Slett"/></button></div>)}</div><button type="button" onClick={() => onChange([...verdier, `${tittel === "Rom" ? "Nytt rom" : "Ny verdi"}`])} className="mt-2 text-sm font-bold text-emerald-700"><UiText text="+ Legg til"/></button></div>;
+  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(tittel ?? "")}/></p>{!verdier.length && <p className="mt-2 text-sm text-slate-500"><UiText text={String(tomTekst ?? "")}/></p>}<div className="mt-2 space-y-2">{verdier.map((verdi, indeks) => <div key={indexKey(verdi, indeks)} className="flex min-w-0 gap-2"><input value={verdi} onChange={(e) => onChange(verdier.map((v, i) => i === indeks ? e.target.value : v))} className="felt min-w-0 flex-1" /><button type="button" onClick={() => onChange(verdier.filter((_, i) => i !== indeks))} className="shrink-0 rounded-lg px-2 text-sm font-bold text-red-600" aria-label={uiFormat("Fjern {0}", [verdi])}><UiText text="Slett"/></button></div>)}</div><button type="button" onClick={() => onChange([...verdier, `${tittel === "Rom" ? "Nytt rom" : "Ny verdi"}`])} className="mt-2 text-sm font-bold text-emerald-700"><UiText text="+ Legg til"/></button></div>;
 }
 
 function Romredigering({ navn, detaljer, onChange }: { navn: string[]; detaljer: ImportertBolig["romDetaljer"]; onChange: (navn: string[], detaljer: ImportertBolig["romDetaljer"]) => void }) {
@@ -436,7 +437,7 @@ function Romredigering({ navn, detaljer, onChange }: { navn: string[]; detaljer:
 
 function Oppslag({ tittel, verdier, konflikter, prefiks, onChange, onVelgKonflikt }: { tittel: string; verdier: Record<string, string>; konflikter: Map<string, BoligimportKonflikt>; prefiks: string; onChange: (verdier: Record<string, string>) => void; onVelgKonflikt: (felt: string, verdi: string) => void }) {
   useLanguage();
-  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(tittel ?? "")}/></p><div className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(verdier).map(([felt, verdi]) => <Kontrollfelt key={felt} label={uiText(felt.replace(/([A-Z])/g, " $1"))} verdi={verdi} konflikt={konflikter.get(`${prefiks}.${felt}`)} onChange={(ny) => onChange({ ...verdier, [felt]: ny })} onVelgKonflikt={(ny) => onVelgKonflikt(`${prefiks}.${felt}`, ny)} />)}</div></div>;
+  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(tittel ?? "")}/></p><div className="mt-2 grid gap-3 sm:grid-cols-2">{Object.entries(verdier).map(([felt, verdi]) => <Kontrollfelt key={felt} label={uiText(boligFeltnavn(felt))} verdi={verdi} konflikt={konflikter.get(`${prefiks}.${felt}`)} onChange={(ny) => onChange({ ...verdier, [felt]: ny })} onVelgKonflikt={(ny) => onVelgKonflikt(`${prefiks}.${felt}`, ny)} />)}</div></div>;
 }
 
 function Historikkforslag({ verdier, onChange }: { verdier: ImportertHistorikk[]; onChange: (verdier: ImportertHistorikk[]) => void }) {

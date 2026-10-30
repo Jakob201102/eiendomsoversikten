@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { formatMoney, parseNok } from "../lib/currency";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
@@ -128,7 +129,7 @@ export default function Oversikt() {
           </div>
         </div>
 
-        {feil && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+        {feil && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>}
 
         {laster ? (
           <div className="mt-8 rounded-3xl bg-white p-16 text-center text-slate-500 shadow-sm"><UiText text="Laster oversikten…"/></div>

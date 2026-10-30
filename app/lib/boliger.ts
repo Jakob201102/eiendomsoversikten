@@ -177,15 +177,16 @@ export async function oppdaterBolig(
     throw new Error("IKKE_INNLOGGET");
   }
 
-  const { error } = await supabase
+  const { data: lagretRad, error } = await supabase
     .from("boliger")
     .update({
       data: utenLokalId(bolig),
       updated_at: new Date().toISOString(),
     })
-    .eq("id", id);
+    .eq("id", id).select("id").single();
 
   if (error) throw error;
+  if (!lagretRad?.id) throw new Error("Kunne ikke bekrefte lagringen. Kontroller tilgangen din og prøv igjen.");
 }
 
 export async function slettBoligFraDatabase(id: string) {

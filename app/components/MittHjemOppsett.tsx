@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "./Feiltekst";
 import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
 import UiIconText from "./UiIconText";
@@ -853,7 +854,7 @@ export default function MittHjemOppsett({
       <div className="p-5 sm:p-8">
         {feil && (
           <p className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            <UiText text={String(feil ?? "")}/>
+            <Feiltekst melding={feil}/>
           </p>
         )}
         {steg === 1 && (

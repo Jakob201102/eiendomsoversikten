@@ -1,4 +1,5 @@
 "use client";
+import { meldLagring } from "../components/Lagringsstatus";
 import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { formatMoney, parseNok } from "../lib/currency";
@@ -322,6 +323,7 @@ export default function Vedlikehold() {
     setLagrer(true);
 
     try {
+      meldLagring("lagrer");
       if (redigererId) {
         await oppdaterVedlikeholdsoppgave(redigererId, nyOppgave);
       } else {
@@ -333,7 +335,10 @@ export default function Vedlikehold() {
       );
       nullstillSkjema();
       setVisSkjema(false);
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeilmelding("Kunne ikke lagre oppgaven. Prøv igjen.");
     } finally {
       setLagrer(false);

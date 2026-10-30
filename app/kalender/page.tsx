@@ -1,4 +1,6 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
+import { meldLagring } from "../components/Lagringsstatus";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText, uiCalendarText } from "../lib/language";
 
 
@@ -158,11 +160,15 @@ export default function Kalender() {
     setLagrer(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       if (redigererId) await oppdaterKalenderhendelse(redigererId, skjema);
       else await opprettKalenderhendelse(skjema);
       setSkjemaAapent(false);
       await lastData();
-    } catch (error) {
+    
+      meldLagring("lagret");
+} catch (error) {
+      meldLagring("feil");
       console.error(error);
       setFeil("Kunne ikke lagre hendelsen. Kontroller kalenderoppsettet i Supabase.");
     } finally {
@@ -216,7 +222,7 @@ export default function Kalender() {
         </div>
 
         {feil && !skjemaAapent && (
-          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>
+          <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>
         )}
 
         <section className="mh-kort mh-kort-plan mt-6 rounded-3xl bg-white p-5 shadow-sm sm:p-6">
@@ -335,7 +341,7 @@ export default function Kalender() {
             <label className="mt-4 block text-sm font-semibold"><UiText text="Notat"/><textarea value={skjema.notat} onChange={(e) => setSkjema({ ...skjema, notat: e.target.value })} rows={3} className="mt-2 w-full rounded-xl border px-4 py-3 font-normal" />
             </label>
 
-            {feil && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"><UiText text={String(feil ?? "")}/></p>}
+            {feil && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-700"><Feiltekst melding={feil}/></p>}
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
               {redigererId ? <button type="button" onClick={slett} disabled={lagrer} className="rounded-xl border border-red-300 px-5 py-3 font-semibold text-red-700"><UiText text="Slett"/></button> : <span />}
               <button type="submit" disabled={lagrer} className="rounded-xl bg-emerald-500 px-6 py-3 font-bold text-white disabled:opacity-60">{lagrer ? uiText("Lagrer…") : uiText("Lagre hendelse")}</button>

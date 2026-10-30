@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
 
@@ -253,7 +254,7 @@ export default function Konto() {
 
         {feil && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            <UiText text={String(feil ?? "")}/>
+            <Feiltekst melding={feil}/>
           </div>
         )}
 

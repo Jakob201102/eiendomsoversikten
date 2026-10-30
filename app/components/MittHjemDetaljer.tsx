@@ -1,4 +1,5 @@
 "use client";
+import DokumentMiniatyr from "./DokumentMiniatyr";
 
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "../lib/language";
 import Link from "next/link";
@@ -22,7 +23,7 @@ export default function MittHjemDetaljer({ data, oppgaver, dokumenter }: { data:
       <dl className="divide-y divide-stone-100"><Detalj label="Hovedstoppekran" verdi={data.teknisk.hovedstoppekran}/><Detalj label="Sikringsskap" verdi={data.teknisk.sikringsskap}/><Detalj label="Brannslukker" verdi={data.teknisk.brannslukker}/><Detalj label="Oppvarming" verdi={data.teknisk.oppvarming}/></dl>
     </Seksjon>
     <div className="lg:col-span-2"><Seksjon tittel="Siste dokumenter" lenke="/dokumentarkiv" lenketekst="Åpne dokumentarkivet">
-      <div className="grid gap-3 md:grid-cols-3">{dokumenter.length ? dokumenter.slice(0, 3).map((dokument) => <article key={dokument.id} className="rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700"><UiText text={String(kategorinavn(dokument.kategori) ?? "")}/></p><h3 className="mt-2 font-bold">{uiDemoText(dokument.navn, dokument.id)}</h3><p className="mt-1 text-sm text-slate-500">{dokument.dokumentdato ? formatDato(dokument.dokumentdato) : dokument.ar}</p></article>) : <Tom tekst="Ingen dokumenter er registrert." />}</div>
+      <div className="grid gap-3 md:grid-cols-3">{dokumenter.length ? dokumenter.slice(0, 3).map((dokument) => <article key={dokument.id} className="rounded-xl border border-stone-200 bg-stone-50 p-4"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700"><UiText text={String(kategorinavn(dokument.kategori) ?? "")}/></p><div className="mt-2 flex min-w-0 items-center gap-3"><DokumentMiniatyr dokument={dokument} passiv onAapne={() => {}} /><h3 className="min-w-0 break-words font-bold">{uiDemoText(dokument.navn, dokument.id)}</h3></div><p className="mt-1 text-sm text-slate-500">{dokument.dokumentdato ? formatDato(dokument.dokumentdato) : dokument.ar}</p></article>) : <Tom tekst="Ingen dokumenter er registrert." />}</div>
     </Seksjon></div>
   </div>;
 }

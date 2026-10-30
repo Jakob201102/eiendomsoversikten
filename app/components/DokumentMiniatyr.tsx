@@ -16,11 +16,12 @@ export function erBildefil(fil: Fil): boolean {
   return /\.(?:jpe?g|png|webp|avif|gif|bmp|svg|heic|heif)$/i.test(fil.filnavn);
 }
 
-export default function DokumentMiniatyr({ dokument, onAapne }: {
+export default function DokumentMiniatyr({ dokument, onAapne, passiv = false }: {
   dokument: Fil;
+  passiv?: boolean;
   onAapne: () => void;
 }) {
-  const element = useRef<HTMLButtonElement>(null);
+  const element = useRef<HTMLButtonElement | HTMLSpanElement>(null);
   const [synlig, setSynlig] = useState(false);
   const [bilde, setBilde] = useState({ nokkel: "", url: "" });
   const [feilet, setFeilet] = useState("");
@@ -65,13 +66,15 @@ export default function DokumentMiniatyr({ dokument, onAapne }: {
 
   if (dokument.filtype === "text/uri-list") {
     const lenke = lenkeIllustrasjon(dokument);
+    if (passiv) return <span className={klasse}><img src={lenke.bilde} alt="" width={56} height={56} loading="lazy" className="h-full w-full object-cover" /></span>;
     return <button type="button" onClick={onAapne} aria-label={`${uiText("Åpne")} ${dokument.navn}`} title={`${uiText("Relatert illustrasjon")} · ${lenke.host || uiText("Lenke")}`} className={`${klasse} relative focus-visible:outline-2 focus-visible:outline-emerald-600`}>
       <img src={lenke.bilde} alt="" width={56} height={56} loading="lazy" className="h-full w-full object-cover" />
       <span aria-hidden="true" className="absolute bottom-0 right-0 rounded-tl-lg bg-emerald-800 p-1 text-xs text-white"><UiIcon symbol="🔗" /></span>
     </button>;
   }
   if (!erBilde || !dokument.filsti) return <div className={klasse}>{merke}</div>;
-  return <button ref={element} type="button" onClick={onAapne}
+  if (passiv) return <span ref={node => { element.current = node; }} className={klasse}>{url ? <img src={url} alt="" width={56} height={56} loading="lazy" decoding="async" className="h-full w-full object-cover" onError={() => setFeilet(nokkel)} /> : merke}</span>;
+  return <button ref={node => { element.current = node; }} type="button" onClick={onAapne}
     aria-label={`${uiText("Åpne")} ${dokument.navn}`}
     className={`${klasse} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600`}>
     {url ? <img src={url} alt="" width={56} height={56} loading="lazy" decoding="async"

@@ -1,4 +1,5 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
 import TallInput from "../components/TallInput";
 // Utleie-only view. Original private/shared pages are intentionally kept intact.
 import { velgUtleieBolig } from "../lib/utleie-data/omfang";
@@ -113,7 +114,7 @@ export default function Okonomi({ kunLeiebetalinger = false }: { kunLeiebetaling
         <label className="text-sm font-semibold"><UiText text="Bolig"/><select value={boligfilter} onChange={(e) => velgUtleieBolig(e.target.value)} className="mt-2 w-full rounded-xl border px-3 py-3 font-normal"><option value="alle"><UiText text="Alle boliger"/></option>{boliger.map((b) => <option key={b.id} value={b.id}>{String(b.adresse || uiText("Uten adresse"))}</option>)}</select></label>
         {!kunLeiebetalinger && (<button type="button" onClick={() => setVisSkjema(true)} className="self-end rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white"><UiText text="+ Ny utgift"/></button>)}
       </section>
-      {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><UiText text={String(feil ?? "")}/></p>}
+      {feil && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700"><Feiltekst melding={feil}/></p>}
       <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Tall label={uiText("Forventet husleie")} verdi={kr(forventet)} /><Tall label={uiText("Faktisk mottatt")} verdi={kr(mottatt)} gronn /><Tall label={uiText("Utestående")} verdi={kr(Math.max(0, forventet - mottatt))} gul={forventet > mottatt} />{!kunLeiebetalinger && <Tall label={uiText("Betalte utgifter")} verdi={kr(utgifter)} />}</section>
 
       <section className="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm">

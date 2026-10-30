@@ -1,5 +1,8 @@
 "use client";
+import Feiltekst from "../components/Feiltekst";
+import { meldLagring } from "../components/Lagringsstatus";
 import { privatDemoBolig } from "../lib/privat-demo";
+import { dokumentNettlenke } from "../lib/dokument-nettlenke";
 import HistorikkVedlegg from "../components/HistorikkVedlegg";
 import TallInput from "../components/TallInput";
 import UiIcon from "../components/UiIcon";
@@ -160,6 +163,12 @@ export default function Bolighistorikk() {
   );
 
   async function aapneDokument(dokument: Dokument) {
+    if (dokument.filtype === "text/uri-list") {
+      const url = dokumentNettlenke(dokument);
+      if (!url) { setFeil("Lenken mangler eller er ugyldig."); return; }
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (!dokument.filsti) return;
     const vindu = window.open("", "_blank");
     try {
@@ -229,6 +238,7 @@ export default function Bolighistorikk() {
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const oppdatert = {
         ...redigerer,
         tittel: redigerer.tittel.trim(),
@@ -253,7 +263,10 @@ export default function Bolighistorikk() {
       setRedigerer(null);
       setRedigeringsmodus(null);
       await lastInn(String(bolig.id));
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke lagre endringene.");
     } finally {
       setJobber(false);
@@ -294,6 +307,7 @@ export default function Bolighistorikk() {
     setJobber(true);
     setFeil("");
     try {
+      meldLagring("lagrer");
       const nyeBilder: string[] = [];
       const nyeDokumenter: string[] = [];
       const dato = redigerer.dato || new Date().toISOString().slice(0, 10);
@@ -339,7 +353,10 @@ export default function Bolighistorikk() {
       setBilder([]);
       setFiler([]);
       await lastInn(String(bolig.id));
-    } catch {
+    
+      meldLagring("lagret");
+} catch {
+      meldLagring("feil");
       setFeil("Kunne ikke oppdatere dokumentasjonen.");
     } finally {
       setJobber(false);
@@ -431,7 +448,7 @@ export default function Bolighistorikk() {
         </section>
         {feil && (
           <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            <UiText text={String(feil ?? "")}/>
+            <Feiltekst melding={feil}/>
           </p>
         )}
         <div className="historikk-filter mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-white p-2 shadow-sm sm:grid-cols-4">
@@ -507,9 +524,7 @@ export default function Bolighistorikk() {
               <div className="mt-2 space-y-2">
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
-                    <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/> {uiDemoText(dokument.navn, dokument.id)}
-                    </button>
+                    <HistorikkVedlegg dokument={dokument} onAapne={() => aapneDokument(dokument)} />
                     <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
                 ))}
@@ -583,9 +598,7 @@ export default function Bolighistorikk() {
               <div className="mt-2 space-y-2">
                 {dokumenter.filter((dokument) => [...redigerer.dokumentIder, ...redigerer.bildeIder].includes(dokument.id)).map((dokument) => (
                   <div key={dokument.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl bg-stone-50 p-3 text-sm">
-                    <button type="button" onClick={() => aapneDokument(dokument)} className="min-w-0 break-words text-left font-semibold text-emerald-700">
-                      <UiIcon symbol={dokument.filtype.startsWith("image/") ? "📸" : "📄"}/> {uiDemoText(dokument.navn, dokument.id)}
-                    </button>
+                    <HistorikkVedlegg dokument={dokument} onAapne={() => aapneDokument(dokument)} />
                     <button type="button" disabled={jobber} onClick={() => slettVedleggFraHendelse(dokument)} className="shrink-0 font-bold text-red-600 disabled:opacity-50"><UiText text="Slett"/></button>
                   </div>
                 ))}
