@@ -616,7 +616,7 @@ function Maalgruppe({
         ))}
       </ul>
       <Link
-        href={privat ? "/mitt-hjem" : "/oversikt"}
+        href={privat ? "/mitt-hjem?eksempel=1" : "/oversikt"}
         className="mt-7 inline-block font-bold text-emerald-700"
       ><UiText text="Se eksempel →"/></Link>
     </article>

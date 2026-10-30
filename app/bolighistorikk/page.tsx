@@ -1,4 +1,5 @@
 "use client";
+import { privatDemoBolig } from "../lib/privat-demo";
 import HistorikkVedlegg from "../components/HistorikkVedlegg";
 import TallInput from "../components/TallInput";
 import UiIcon from "../components/UiIcon";
@@ -8,7 +9,7 @@ import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText  } from "..
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Navigasjon from "../components/Navigasjon";
 import {
   lesAltOmBoligen,
@@ -39,9 +40,9 @@ type Redigeringsmodus = "hendelse" | "dokumentasjon" | null;
 
 export default function Bolighistorikk() {
   useLanguage();
-  const router = useRouter();
   const search = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
+  const [demo, setDemo] = useState(false);
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [valgtId, setValgtId] = useState("");
   const [dokumenter, setDokumenter] = useState<Dokument[]>([]);
@@ -63,9 +64,14 @@ export default function Bolighistorikk() {
       try {
         const { data: auth } = await supabase.auth.getUser();
         if (!auth.user) {
-          router.replace("/logg-inn");
+          setDemo(true);
+          const eksempel = privatDemoBolig();
+          setBoliger([eksempel]);
+          setValgtId(String(eksempel.id));
+          setDokumenter([]);
           return;
         }
+        setDemo(false);
         const [alle, arkiv] = await Promise.all([
           hentBoliger(),
           hentDokumenter(),
@@ -89,7 +95,7 @@ export default function Bolighistorikk() {
         setLaster(false);
       }
     },
-    [router, search, supabase],
+    [search, supabase],
   );
 
   useEffect(() => {
@@ -99,7 +105,7 @@ export default function Bolighistorikk() {
   const bolig = boliger.find((verdi) => String(verdi.id) === valgtId) || null;
   const data = bolig ? lesAltOmBoligen(bolig) : null;
   const kanRedigere = Boolean(
-    bolig && String(bolig.tilgang || "eier") !== "leser",
+    !demo && bolig && String(bolig.tilgang || "eier") !== "leser",
   );
   const hendelser = useMemo<Arkivhendelse[]>(() => {
     if (!data) return [];
@@ -215,7 +221,7 @@ export default function Bolighistorikk() {
   }
 
   async function lagreHendelse() {
-    if (!bolig || !data || !redigerer) return;
+    if (!bolig || !data || !redigerer || !kanRedigere) return;
     if (!redigerer.tittel.trim()) {
       setFeil("Skriv hva som ble gjort.");
       return;
@@ -284,7 +290,7 @@ export default function Bolighistorikk() {
   }
 
   async function lagreDokumentasjon() {
-    if (!bolig || !data || !redigerer) return;
+    if (!bolig || !data || !redigerer || !kanRedigere) return;
     setJobber(true);
     setFeil("");
     try {
@@ -381,6 +387,7 @@ export default function Bolighistorikk() {
     <main className="privat-omrade min-h-screen overflow-x-hidden bg-stone-50 text-slate-900">
       <Navigasjon />
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+        {demo && <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p><UiText text="Du ser eksempeldata."/></p><Link href="/logg-inn" className="mt-2 inline-block min-h-11 py-3 font-bold underline"><UiText text="Opprett konto"/></Link></div>}
         <Link
           href={bolig ? `/mitt-hjem?bolig=${bolig.id}` : "/mitt-hjem"}
           className="text-sm font-bold text-emerald-700"

@@ -1,5 +1,7 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Lenke": "Link",
+  "Nøkkeltall": "Key figures",
   "Budsjett": "Budget",
 
   "Oversikt over hva boligen koster.": "An overview of your home costs.",
