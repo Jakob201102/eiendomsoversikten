@@ -722,11 +722,12 @@ export default function MittHjemDashboard({
 
   return (
     <>
-      <section className="relative rounded-2xl border border-stone-200 bg-white/95 p-4 text-slate-900 shadow-sm sm:p-5" data-hjem-topp>
+      <section className={`relative rounded-2xl border border-stone-200 bg-white/95 p-4 shadow-sm sm:p-5 ${forsidebildeUrl ? "text-white" : "text-slate-900"}`} data-hjem-topp>
+        {forsidebildeUrl && <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl"><img src={forsidebildeUrl} alt="" decoding="async" className="h-full w-full object-cover" /><div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/75 to-slate-950/45" /></div>}
         <div className="relative z-10">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-700"><UiText text="Privat bolig"/></p>
+            <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-200" : "text-emerald-700"}`}><UiText text="Privat bolig"/></p>
             {boliger.length > 1 ? (
               <select
                 value={String(bolig.id)}
@@ -734,7 +735,7 @@ export default function MittHjemDashboard({
                 className="mt-1 max-w-full rounded-lg border-0 bg-transparent p-0 text-2xl font-bold sm:text-3xl"
               >
                 {boliger.map((verdi) => (
-                  <option key={verdi.id} value={verdi.id}>
+                  <option key={verdi.id} value={verdi.id} className="bg-white text-slate-900">
                     {String(verdi.adresse || uiText("Privat bolig"))}
                   </option>
                 ))}
@@ -744,7 +745,7 @@ export default function MittHjemDashboard({
                 {String(bolig.adresse || uiText("Mitt hjem"))}
               </h1>
             )}
-            <p className="mt-2 text-sm text-slate-500">
+            <p className={`mt-2 text-sm ${forsidebildeUrl ? "text-slate-200" : "text-slate-500"}`}>
               {[
                 String(
                   bolig.boligtype || data.generell.boligtype || "Privat bolig",
@@ -757,13 +758,12 @@ export default function MittHjemDashboard({
             </p>
           </div>
           <div className="flex shrink-0 items-start gap-2">
-            {forsidebildeUrl && <button type="button" disabled={!kanRedigere} onClick={() => setVisBildevalg(true)} aria-label={uiText("Endre toppbilde")} className="h-16 w-20 overflow-hidden rounded-xl border border-stone-200 sm:h-20 sm:w-28"><img src={forsidebildeUrl} alt="" decoding="async" className="h-full w-full object-cover" /></button>}
           <div className="relative">
             <button
               type="button"
               onClick={() => setMenyApen(!menyApen)}
               aria-label={uiText("Boligvalg")}
-              className="flex h-11 w-11 items-center justify-center rounded-xl border border-stone-200 text-xl font-bold"
+              className={`flex h-11 w-11 items-center justify-center rounded-xl border text-xl font-bold ${forsidebildeUrl ? "border-white/40 bg-slate-950/30 text-white" : "border-stone-200"}`}
             >
               •••
             </button>
