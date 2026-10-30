@@ -12,10 +12,12 @@ const mark=name=>()=>React.createElement('div',{'data-view':name});
 const base={Navigasjon:mark('nav'),MittHjemDashboard:mark('dashboard'),MittHjemIPad:mark('ipad'),MittHjemOppsett:mark('setup'),BoligoverforingKort:mark('handover'),UiText:({text})=>text,uiText:x=>x,search:new URLSearchParams(),boliger:[{id:'home'}],valgt:{id:'home'},valgtId:'home',forespurtBoligId:'',dokumenter:[],oppgaver:[],innlogget:true,nyBolig:false,aktivOnboarding:false,ipadmodus:true,feil:'',setFeil(){},setValgtId(){},setNyBolig(){},slettPrivatBolig(){},lastInn(){},oppsettOppdatert(){}};
 function view(extra) { return renderToStaticMarkup(execute('exports.render=()=>('+ret+');',{...base,...extra}).render()); }
 assert.match(view({}),/data-view="ipad"/);
-assert.match(view({nyBolig:true}),/data-view="setup"/);
+assert.match(view({nyBolig:true}),/role="status"/);
+assert.match(view({nyBolig:true,ipadmodus:false}),/data-view="setup"/);
 assert.doesNotMatch(view({nyBolig:true}),/data-view="ipad"/);
 assert.match(view({aktivOnboarding:true}),/data-view="setup"/);
-assert.match(view({boliger:[],valgt:null}),/data-view="setup"/);
+assert.match(view({boliger:[],valgt:null}),/role="status"/);
+assert.match(view({boliger:[],valgt:null,ipadmodus:false}),/data-view="setup"/);
 assert.match(view({ipadmodus:false}),/data-view="dashboard"/);
 const failed=view({boliger:[],valgt:null,feil:'Kunne ikke hente hjemmet ditt.'});
 assert.match(failed,/role="alert"/); assert.match(failed,/Prøv igjen/); assert.doesNotMatch(failed,/data-view="setup"|Opprett din første/);
