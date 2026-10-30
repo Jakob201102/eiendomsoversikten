@@ -728,6 +728,7 @@ export default function MittHjemDashboard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className={`text-xs font-bold uppercase tracking-wider ${forsidebildeUrl ? "text-emerald-200" : "text-emerald-700"}`}><UiText text="Privat bolig"/></p>
+            {!demo && <button type="button" onClick={onLeggTilBolig} className={`mt-2 min-h-11 rounded-xl border px-3 py-2 text-sm font-bold ${forsidebildeUrl ? "border-white/40 bg-slate-950/30 text-white" : "border-stone-300 text-emerald-800"}`}><UiText text="+ Legg til en annen bolig"/></button>}
             {boliger.length > 1 ? (
               <select
                 value={String(bolig.id)}

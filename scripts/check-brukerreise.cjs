@@ -9,7 +9,7 @@ const page=source('app/mitt-hjem/page.tsx');
 const fn=find(page,n=>ts.isFunctionDeclaration(n)&&n.name?.text==='MittHjem');
 const ret=fn.body.statements.filter(ts.isReturnStatement).at(-1).expression.getText(page);
 const mark=name=>()=>React.createElement('div',{'data-view':name});
-const base={Navigasjon:mark('nav'),MittHjemDashboard:mark('dashboard'),MittHjemIPad:mark('ipad'),MittHjemOppsett:mark('setup'),BoligoverforingKort:mark('handover'),UiText:({text})=>text,uiText:x=>x,search:new URLSearchParams(),boliger:[{id:'home'}],valgt:{id:'home'},valgtId:'home',forespurtBoligId:'',dokumenter:[],oppgaver:[],innlogget:true,nyBolig:false,aktivOnboarding:false,ipadmodus:true,feil:'',setValgtId(){},setNyBolig(){},slettPrivatBolig(){},lastInn(){},oppsettOppdatert(){}};
+const base={Navigasjon:mark('nav'),MittHjemDashboard:mark('dashboard'),MittHjemIPad:mark('ipad'),MittHjemOppsett:mark('setup'),BoligoverforingKort:mark('handover'),UiText:({text})=>text,uiText:x=>x,search:new URLSearchParams(),boliger:[{id:'home'}],valgt:{id:'home'},valgtId:'home',forespurtBoligId:'',dokumenter:[],oppgaver:[],innlogget:true,nyBolig:false,aktivOnboarding:false,ipadmodus:true,feil:'',setFeil(){},setValgtId(){},setNyBolig(){},slettPrivatBolig(){},lastInn(){},oppsettOppdatert(){}};
 function view(extra) { return renderToStaticMarkup(execute('exports.render=()=>('+ret+');',{...base,...extra}).render()); }
 assert.match(view({}),/data-view="ipad"/);
 assert.match(view({nyBolig:true}),/data-view="setup"/);
@@ -32,3 +32,13 @@ async function checkHistory(user) {
  else {assert.equal(state.demo,false);assert.deepEqual(state.homes,[own]);assert.equal(state.selected,'own');assert.deepEqual(calls.sort(),['docs','homes']);}
 }
 (async()=>{await checkHistory(null);await checkHistory({id:'owner'}); console.log('PASS: guest history read-only demo without database queries; authenticated history contains only private homes');})().catch(e=>{console.error(e);process.exit(1);});
+
+// Execute the real add-home callback with an earlier load error.
+const add=find(page,n=>ts.isJsxAttribute(n)&&n.name.getText(page)==='onLeggTilBolig').initializer.expression.getText(page);
+for(const ipad of [true,false]) {
+ let cleared=false,opened=false;
+ execute('exports.add='+add,{innlogget:true,setFeil:v=>{cleared=v==='';},setNyBolig:v=>{opened=v;}}).add();
+ assert.equal(cleared,true);assert.equal(opened,true);
+ assert.match(view({ipadmodus:ipad,nyBolig:true,feil:''}),/data-view="setup"/);
+}
+console.log('PASS: add-home clears stale load error and opens setup on tablet and desktop');
