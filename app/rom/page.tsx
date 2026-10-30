@@ -1,4 +1,6 @@
 "use client";
+import { useRouter, useSearchParams } from "next/navigation";
+import { bilderTilRom, romAdresse } from "../lib/rom-detaljer";
 import Feiltekst from "../components/Feiltekst";
 import { meldLagring } from "../components/Lagringsstatus";
 import UiIcon from "../components/UiIcon";
@@ -20,18 +22,21 @@ const tomtRom: Rominfo = { id: "", navn: "", areal: "", veggfarge: "", fargekode
 
 export default function RomSide() {
   useLanguage();
+  const router = useRouter();
+  const search = useSearchParams();
+  const forespurtBolig = search.get("bolig") || "";
   const [boliger, setBoliger] = useState<BoligData[]>([]); const [boligId, setBoligId] = useState(""); const [innlogget, setInnlogget] = useState(false); const [laster, setLaster] = useState(true); const [feil, setFeil] = useState("");
   const [valgt, setValgt] = useState<Rominfo | null>(null); const [redigerer, setRedigerer] = useState(false); const [utkast, setUtkast] = useState<Rominfo>(tomtRom); const [jobber, setJobber] = useState(false); const [sok, setSok] = useState("");
   const [dokumenter, setDokumenter] = useState<Dokument[]>([]); const [bildelenker, setBildelenker] = useState<Record<string, string>>({}); const [nyeBilder, setNyeBilder] = useState<File[]>([]);
   const automatiskFordelt = useRef(new Set<string>());
-  async function lastData() { setLaster(true); setFeil(""); try { const { data } = await createClient().auth.getUser(); const erInnlogget = Boolean(data.user); setInnlogget(erInnlogget); const [alle, filer] = await Promise.all([erInnlogget ? hentBoliger() : Promise.resolve([demoBolig]), erInnlogget ? hentDokumenter() : Promise.resolve([])]); const privateBoliger = alle.filter((bolig) => String(bolig.brukstype || "") === "privat"); setBoliger(privateBoliger); setDokumenter(filer); setBoligId((gammel) => privateBoliger.some((bolig) => bolig.id === gammel) ? gammel : String(privateBoliger[0]?.id || "")); } catch { setFeil("Kunne ikke hente rommene."); } finally { setLaster(false); } }
-  useEffect(() => { lastData(); }, []);
+  async function lastData() { setLaster(true); setFeil(""); try { const { data } = await createClient().auth.getUser(); const erInnlogget = Boolean(data.user); setInnlogget(erInnlogget); const [alle, filer] = await Promise.all([erInnlogget ? hentBoliger() : Promise.resolve([demoBolig]), erInnlogget ? hentDokumenter() : Promise.resolve([])]); const privateBoliger = alle.filter((bolig) => String(bolig.brukstype || "") === "privat"); setBoliger(privateBoliger); setDokumenter(filer); setBoligId((gammel) => [forespurtBolig, gammel, String(privateBoliger[0]?.id || "")].find(id => privateBoliger.some(b => String(b.id) === id)) || ""); } catch { setFeil("Kunne ikke hente rommene."); } finally { setLaster(false); } }
+  useEffect(() => { lastData(); }, [forespurtBolig]);
   const bolig = boliger.find((verdi) => String(verdi.id) === boligId) || boliger[0]; const data = bolig ? uiDemoData(lesAltOmBoligen(bolig), String(bolig.id)) : null;
   const kanRedigere = String(bolig?.tilgang || "eier") !== "leser";
   const boligbilder = useMemo(() => dokumenter.filter((dokument) => dokument.boligId === String(bolig?.id || "") && (dokument.filtype.startsWith("image/") || dokument.kategori === "boligbilde")).sort((a, b) => finnBildenummer(a) - finnBildenummer(b)), [dokumenter, bolig?.id]);
   const rom = useMemo(() => (data?.rom || []).filter((verdi) => `${verdi.navn} ${verdi.veggfarge} ${verdi.fargekode} ${verdi.gulv}`.toLowerCase().includes(sok.toLowerCase())), [data, sok]);
   const historikkFor = (rommet: Rominfo): Historikkinfo[] => (data?.historikk || []).filter((hendelse) => hendelse.romId === rommet.id || (!hendelse.romId && hendelse.omrade.trim().toLowerCase() === rommet.navn.trim().toLowerCase())).sort((a, b) => b.dato.localeCompare(a.dato));
-  const bilderFor = (rommet: Rominfo) => dokumenter.filter((dokument) => (rommet.bildeIder || []).includes(dokument.id) && dokument.filtype.startsWith("image/"));
+  const bilderFor = (rommet: Rominfo) => bilderTilRom(rommet, dokumenter, String(bolig?.id || ""));
   useEffect(() => {
     let aktiv = true;
     const aktuelle = boligbilder.filter((dokument) => dokument.filsti && !bildelenker[dokument.id]);
@@ -45,9 +50,9 @@ export default function RomSide() {
   }, [boligId, boligbilder]);
   function krevInnlogging() { if (!innlogget) { window.location.assign("/logg-inn"); return true; } if (!kanRedigere) { setFeil("Du har lesetilgang og kan derfor ikke endre rom."); return true; } return false; }
   function nyttRom() { if (krevInnlogging()) return; setUtkast({ ...tomtRom, id: crypto.randomUUID(), bildeIder: [] }); setNyeBilder([]); setValgt(null); setRedigerer(true); setFeil(""); }
-  function aapne(rommet: Rominfo) { setValgt(rommet); setUtkast({ ...rommet, bildeIder: rommet.bildeIder || [] }); setNyeBilder([]); setRedigerer(false); setFeil(""); }
+  function aapne(rommet: Rominfo) { if (bolig) router.push(romAdresse(String(bolig.id), rommet.id)); }
   async function lagre() { if (!bolig || !data || !utkast.navn.trim()) { setFeil("Gi rommet et navn."); return; } setJobber(true); setFeil(""); try {
-      meldLagring("lagrer"); const bildeIder = [...(utkast.bildeIder || [])]; for (const fil of nyeBilder) { bildeIder.push(await lastOppDokument(fil, { boligId: String(bolig.id), navn: `${utkast.navn.trim()} – bilde`, kategori: "boligbilde", ar: new Date().getFullYear(), dokumentdato: new Date().toISOString().slice(0, 10), notat: `Tilhører rom: ${utkast.id}` })); } const finnes = data.rom.some((rommet) => rommet.id === utkast.id); const ryddet = { ...utkast, navn: utkast.navn.trim(), bildeIder }; const nyListe = finnes ? data.rom.map((rommet) => rommet.id === ryddet.id ? ryddet : rommet) : [...data.rom, ryddet]; await oppdaterBolig(String(bolig.id), { ...bolig, altOmBoligen: { ...data, rom: nyListe, oppdatert: new Date().toISOString() } }); await lastData(); setValgt(ryddet); setNyeBilder([]); setRedigerer(false); 
+      meldLagring("lagrer"); const bildeIder = [...(utkast.bildeIder || [])]; for (const fil of nyeBilder) { bildeIder.push(await lastOppDokument(fil, { boligId: String(bolig.id), navn: `${utkast.navn.trim()} – bilde`, kategori: "boligbilde", ar: new Date().getFullYear(), dokumentdato: new Date().toISOString().slice(0, 10), notat: `Tilhører rom: ${utkast.id}` })); } const finnes = data.rom.some((rommet) => rommet.id === utkast.id); const ryddet = { ...utkast, navn: utkast.navn.trim(), bildeIder }; const nyListe = finnes ? data.rom.map((rommet) => rommet.id === ryddet.id ? ryddet : rommet) : [...data.rom, ryddet]; await oppdaterBolig(String(bolig.id), { ...bolig, altOmBoligen: { ...data, rom: nyListe, oppdatert: new Date().toISOString() } }); await lastData(); setValgt(null); setNyeBilder([]); setRedigerer(false); router.push(romAdresse(String(bolig.id), ryddet.id)); 
       meldLagring("lagret");
 } catch {
       meldLagring("feil"); setFeil("Kunne ikke lagre rommet eller bildene."); } finally { setJobber(false); } }
@@ -55,7 +60,7 @@ export default function RomSide() {
     if (!bolig || !data || krevInnlogging()) return;
     const brukte = new Set(data.rom.flatMap((rommet) => rommet.bildeIder || []));
     const finnBilder = boligbilder.filter((bilde) => /finn/i.test(`${bilde.navn} ${bilde.filnavn} ${bilde.notat}`) && !brukte.has(bilde.id));
-    const mangler = data.rom.filter((rommet) => !(rommet.bildeIder || []).length).sort((a, b) => romPrioritet(a.navn) - romPrioritet(b.navn));
+    const mangler = data.rom.filter((rommet) => !rommet.bilderValgtManuelt && !(rommet.bildeIder || []).length).sort((a, b) => romPrioritet(a.navn) - romPrioritet(b.navn));
     if (!finnBilder.length || !mangler.length) { setFeil("Fant ingen ledige FINN-bilder eller rom uten bilder."); return; }
     const innendorsbilder = finnBilder.filter((bilde) => !bildeErUtvendig(bilde));
     const kandidater = innendorsbilder.length >= mangler.length ? innendorsbilder : finnBilder;
@@ -66,7 +71,8 @@ export default function RomSide() {
     const koblinger = new Map<string, string>();
     for (const rommet of mangler) {
       const treff = ledige.findIndex((bilde) => bildePasserRom(bilde, rommet.navn));
-      const indeks = treff >= 0 ? treff : 0;
+      if (treff < 0) continue;
+      const indeks = treff;
       const bilde = ledige.splice(indeks, 1)[0];
       if (bilde) koblinger.set(rommet.id, bilde.id);
     }
@@ -82,7 +88,7 @@ export default function RomSide() {
   useEffect(() => {
     const id = String(bolig?.id || "");
     if (!id || !innlogget || !kanRedigere || laster || !data || automatiskFordelt.current.has(id)) return;
-    const harRomUtenBilde = data.rom.some((rommet) => !(rommet.bildeIder || []).length);
+    const harRomUtenBilde = data.rom.some((rommet) => !rommet.bilderValgtManuelt && !(rommet.bildeIder || []).length);
     const harFinnBilder = boligbilder.some((bilde) => /finn/i.test(`${bilde.navn} ${bilde.filnavn} ${bilde.notat}`));
     if (!harRomUtenBilde || !harFinnBilder) return;
     automatiskFordelt.current.add(id);

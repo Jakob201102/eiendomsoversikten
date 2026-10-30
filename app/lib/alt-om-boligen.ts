@@ -14,6 +14,7 @@ export type Rominfo = {
   sistPusset: string;
   notat: string;
   bildeIder?: string[];
+  bilderValgtManuelt?: boolean;
 };
 
 export type Handlelisteinfo = {
