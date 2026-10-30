@@ -33,12 +33,11 @@ async function checkHistory(user) {
 }
 (async()=>{await checkHistory(null);await checkHistory({id:'owner'}); console.log('PASS: guest history read-only demo without database queries; authenticated history contains only private homes');})().catch(e=>{console.error(e);process.exit(1);});
 
-// Execute the real add-home callback with an earlier load error.
-const add=find(page,n=>ts.isJsxAttribute(n)&&n.name.getText(page)==='onLeggTilBolig').initializer.expression.getText(page);
-for(const ipad of [true,false]) {
- let cleared=false,opened=false;
- execute('exports.add='+add,{innlogget:true,setFeil:v=>{cleared=v==='';},setNyBolig:v=>{opened=v;}}).add();
- assert.equal(cleared,true);assert.equal(opened,true);
- assert.match(view({ipadmodus:ipad,nyBolig:true,feil:''}),/data-view="setup"/);
+// The iPad add-home action must unload the dashboard before loading setup.
+const add=find(page,n=>ts.isJsxAttribute(n)&&n.name.getText(page)==='onLeggTilBolig'&&n.initializer.getText(page).includes('/mitt-hjem/ny')).initializer.expression.getText(page);
+for(const loggedIn of [true,false]) {
+ let target='';
+ execute('exports.add='+add,{innlogget:loggedIn,window:{location:{assign:v=>{target=v;}}}}).add();
+ assert.equal(target,loggedIn?'/mitt-hjem/ny':'/logg-inn');
 }
-console.log('PASS: add-home clears stale load error and opens setup on tablet and desktop');
+console.log('PASS: iPad registration opens a fresh document; guests go to login');

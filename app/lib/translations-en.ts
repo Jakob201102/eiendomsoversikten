@@ -1,5 +1,6 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Tilbake til Mitt hjem": "Back to My home",
   "Farger og materialer": "Colours and materials",
   "← Tilbake til alle rom": "← Back to all rooms",
   "Bytt rom": "Switch room",
