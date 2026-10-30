@@ -1,0 +1,56 @@
+.kort {
+  position: relative;
+  isolation: isolate;
+  background-color: #fcf8f0;
+  background-image: linear-gradient(160deg, #fffdf7, #faf5eb);
+  box-shadow: inset 0 0 0 1px #ded3c0, 0 3px 9px rgb(70 53 30 / 8%);
+}
+.kort::before, .kort::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.kort::before {
+  top: 0;
+  right: 0;
+  width: 44%;
+  height: 76px;
+  border-top-right-radius: inherit;
+  background: var(--hjem-foto) right center / cover no-repeat;
+  opacity: .28;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 80%);
+  mask-image: linear-gradient(to right, transparent, black 80%);
+}
+.kort::after {
+  bottom: 8px;
+  right: 8px;
+  width: 140px;
+  height: 100px;
+  background-color: #b99d6f;
+  opacity: .15;
+  -webkit-mask: var(--hjem-tegning) right bottom / contain no-repeat;
+  mask: var(--hjem-tegning) right bottom / contain no-repeat;
+}
+.oppfolging { --hjem-foto: url("/card-details/vedlikehold-v88.webp"); --hjem-tegning: url("/card-details/vedlikehold-v88.svg"); }
+.kalender { --hjem-foto: url("/card-details/historikk-v88.webp"); --hjem-tegning: url("/card-details/kalender-v93.svg"); }
+.rom { --hjem-foto: url("/card-details/bilder-v88.webp"); --hjem-tegning: url("/card-details/bolig-v89.svg"); }
+.dokumenter { --hjem-foto: url("/card-details/dokumenter-v88.webp"); --hjem-tegning: url("/card-details/dokumenter-v88.svg"); }
+.okonomi { --hjem-foto: url("/card-details/dokumenter-v88.webp"); --hjem-tegning: url("/card-details/budsjett-v91.svg"); }
+.snarvei::before { height: 100%; width: 50%; opacity: .22; }
+.snarvei::after { width: 75px; height: 58px; opacity: .16; }
+@media (max-width: 1023px) {
+  .kort::before { opacity: .2; width: 38%; }
+  .kort::after { width: 110px; height: 78px; opacity: .12; }
+  .snarvei::after { width: 62px; height: 48px; }
+}
+@media (max-width: 639px) {
+  .kort::before { height: 62px; opacity: .16; }
+  .kort::after { width: 88px; height: 64px; opacity: .1; }
+  .snarvei::before { width: 60%; height: 60px; opacity: .18; }
+  .snarvei::after { width: 48px; height: 42px; }
+}
+@media print {
+  .kort { background: white; box-shadow: none; }
+  .kort::before, .kort::after { display: none; }
+}

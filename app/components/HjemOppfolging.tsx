@@ -1,4 +1,5 @@
 "use client";
+import stiler from "./hjem-oppfolging.module.css";
 import Link from "next/link";
 import UiIcon from "./UiIcon";
 import { UiText, uiDemoText, uiFormat, uiLocale, uiText, useLanguage } from "../lib/language";
@@ -26,13 +27,13 @@ export default function HjemOppfolging({ boligId, oppgaver }: { boligId: string;
   const kalenderUrl = `/kalender?modus=privat&bolig=${encodeURIComponent(boligId)}`;
   const vedlikeholdUrl = `/vedlikehold?modus=privat&bolig=${encodeURIComponent(boligId)}`;
   const snarveier = [
-    { navn: "Rom", tekst: "Farger, materialer og rombilder", url: "/rom", bilde: "/card-details/bolig-v89.webp", ikon: "🛏️" },
-    { navn: "Dokumenter", tekst: "Dokumenter og bilder til boligen", url: "/dokumentarkiv", bilde: "/card-details/dokumenter-v88.webp", ikon: "📁" },
-    { navn: "Økonomi", tekst: "Se boligens faste kostnader", url: "/privat-okonomi", bilde: "/card-details/budsjett-v91.svg", ikon: "💰" },
+    { tema: "rom", navn: "Rom", tekst: "Farger, materialer og rombilder", url: "/rom", bilde: "/card-details/bolig-v89.webp", ikon: "🛏️" },
+    { tema: "dokumenter", navn: "Dokumenter", tekst: "Dokumenter og bilder til boligen", url: "/dokumentarkiv", bilde: "/card-details/dokumenter-v88.webp", ikon: "📁" },
+    { tema: "okonomi", navn: "Økonomi", tekst: "Se boligens faste kostnader", url: "/privat-okonomi", bilde: "/card-details/budsjett-v91.svg", ikon: "💰" },
   ];
   return <div className="mt-5 space-y-4" data-hjem-oppfolging>
     <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_260px]">
-      <section className="min-w-0 rounded-2xl border border-stone-200 bg-white/95 p-4 shadow-sm sm:p-5">
+      <section className={`${stiler.kort} ${stiler.oppfolging} min-w-0 rounded-2xl border border-stone-200 p-4 sm:p-5`}>
         <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-bold"><UiText text="Dette bør du følge opp"/></h2><Link href={vedlikeholdUrl} className="min-h-11 py-3 text-xs font-bold text-emerald-800"><UiText text="Se hele planen"/> →</Link></div>
         {aktive.length ? <div className="divide-y divide-stone-100">{aktive.slice(0, 3).map(o => {
           const forfalt = erVedlikeholdForfalt({ frist: o.frist, status: o.status }, naa);
@@ -46,7 +47,7 @@ export default function HjemOppfolging({ boligId, oppgaver }: { boligId: string;
           </Link>;
         })}</div> : <p className="py-5 text-sm text-slate-500"><UiText text="Du har ingen kommende oppgaver."/></p>}
       </section>
-      <section className="min-w-0 rounded-2xl border border-stone-200 bg-white/95 p-4 shadow-sm">
+      <section className={`${stiler.kort} ${stiler.kalender} min-w-0 rounded-2xl border border-stone-200 p-4`}>
         <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-bold capitalize">{maanedsnavn}</h2><Link href={kalenderUrl} className="min-h-11 py-3 text-xs font-bold text-emerald-800"><UiText text="Kalender"/> →</Link></div>
         <div className="hidden grid-cols-7 text-center text-xs sm:grid" aria-label={uiText("Vedlikeholdsfrister denne måneden")}>
           {Array.from({ length: 7 }, (_, i) => new Intl.DateTimeFormat(uiLocale(), { weekday: "narrow" }).format(new Date(2026, 0, 5 + i, 12))).map((navn, i) => <span key={`ukedag-${i}`} className="py-2 text-slate-400">{navn}</span>)}
@@ -56,8 +57,8 @@ export default function HjemOppfolging({ boligId, oppgaver }: { boligId: string;
         <p className="mt-3 hidden text-[11px] leading-relaxed text-slate-500 sm:block"><UiText text="Prikker viser vedlikeholdsfrister. Se alle hendelser i kalenderen."/></p>
       </section>
     </div>
-    <nav aria-label={uiText("Snarveier til boligen")} className="grid min-w-0 grid-cols-3 gap-2 sm:gap-3">{snarveier.map(s => <Link key={s.url} href={`${s.url}?bolig=${encodeURIComponent(boligId)}`} className="flex min-h-24 min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-stone-200 bg-white/95 p-3 shadow-sm hover:border-emerald-300 sm:flex-row sm:items-center sm:gap-3">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800" aria-hidden="true"><UiIcon symbol={s.ikon}/></span><span className="min-w-0 flex-1"><strong className="block break-words text-xs sm:text-sm"><UiText text={s.navn}/></strong><span className="mt-1 hidden text-xs text-slate-500 sm:block"><UiText text={s.tekst}/></span></span><img src={s.bilde} alt="" loading="lazy" className="hidden h-14 w-12 shrink-0 rounded-lg object-cover lg:block" />
+    <nav aria-label={uiText("Snarveier til boligen")} className="grid min-w-0 grid-cols-3 gap-2 sm:gap-3">{snarveier.map(s => <Link key={s.url} href={`${s.url}?bolig=${encodeURIComponent(boligId)}`} className={`${stiler.kort} ${stiler.snarvei} ${stiler[s.tema]} flex min-h-24 min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border border-stone-200 p-3 hover:border-emerald-300 sm:flex-row sm:items-center sm:gap-3`}>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800" aria-hidden="true"><UiIcon symbol={s.ikon}/></span><span className="min-w-0 flex-1"><strong className="block break-words text-xs sm:text-sm"><UiText text={s.navn}/></strong><span className="mt-1 hidden text-xs text-slate-500 sm:block"><UiText text={s.tekst}/></span></span>
     </Link>)}</nav>
   </div>;
 }
