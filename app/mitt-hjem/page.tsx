@@ -211,7 +211,16 @@ function MittHjemIPad({
         <p className={`text-xs font-bold uppercase tracking-wider ${bakgrunnsbilde ? "text-emerald-200" : "text-emerald-700"}`}><UiText text="Mitt hjem"/></p>
         <h1 className="mt-1 break-words text-2xl font-bold sm:text-3xl">{String(bolig.adresse || uiText("Privat bolig"))}</h1>
         <p className={`mt-2 text-sm ${bakgrunnsbilde ? "text-slate-200" : "text-slate-500"}`}>{[uiText(String(bolig.boligtype || data.generell.boligtype || "Privat bolig")), data.generell.totalareal && `${data.generell.totalareal} m²`, data.generell.byggeaar && uiFormat("Byggeår {0}", [data.generell.byggeaar])].filter(Boolean).join(" · ")}</p>
-      </div></div>
+      </div>
+      <details className="relative shrink-0">
+        <summary aria-label={uiText("Boligvalg")} className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-xl border border-stone-300 bg-white text-xl font-bold text-slate-900">•••</summary>
+        <div className="absolute right-0 top-12 z-30 w-64 max-w-[80vw] rounded-xl border border-stone-200 bg-white p-2 text-slate-900 shadow-xl">
+          <button type="button" onClick={onLeggTilBolig} className="block min-h-11 w-full rounded-lg px-3 py-2 text-left text-sm font-bold"><UiText text="+ Legg til en annen bolig"/></button>
+          <Link href={`/alt-om-boligen?bolig=${boligId}`} className="block min-h-11 rounded-lg px-3 py-2 text-sm font-bold"><UiText text="Se alle boligdetaljer"/></Link>
+        </div>
+      </details>
+      </div>
+      <button type="button" onClick={onLeggTilBolig} className="mt-3 min-h-11 rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800"><UiText text="+ Legg til en annen bolig"/></button>
       {boliger.length > 1 && <select aria-label={uiText("Bolig")} value={boligId} onChange={(event) => onVelgBolig(event.target.value)} className="mt-3 min-h-11 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-slate-900">{boliger.map(b => <option key={String(b.id)} value={String(b.id)}>{String(b.adresse || uiText("Privat bolig"))}</option>)}</select>}
       </div>
     </section>
