@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyserBoligtekst } from "../../lib/boligimport";
-import { extractText, getDocumentProxy } from "unpdf";
+import { lesPdfSider } from "../../lib/pdf-import";
+import { getDocumentProxy } from "unpdf";
 import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 export const runtime = "nodejs";
@@ -16,8 +17,8 @@ export async function POST(request: NextRequest) {
     if (fil.size > MAKS_FIL) return NextResponse.json({ feil: "PDF-en kan maksimalt være 75 MB." }, { status: 413 });
     const buffer = new Uint8Array(await fil.arrayBuffer());
     const pdf = await getDocumentProxy(buffer);
-    const lest = await extractText(pdf, { mergePages: true });
-    const tekst = String(lest.text || "").trim();
+    const lest = await lesPdfSider(pdf, {}).finally(() => pdf.cleanup());
+    const tekst = lest.tekst.trim();
     if (tekst.length < 100) {
       return NextResponse.json({
         feil: "PDF-en ser ut til å bestå av skannede bilder uten et lesbart tekstlag. Last ned den originale salgsoppgaven fra megler/FINN, eller bruk «Lim inn tekst».",
@@ -27,8 +28,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       data: analyserBoligtekst(tekst),
       kildeUrl: "",
-      melding: `Salgsoppgaven er lest (${lest.totalPages} sider). Kontroller forslagene før de brukes.`,
-      antallSider: lest.totalPages,
+      melding: lest.ufullstendigeSider.length ? `PDF-en inneholder sider uten lesbart tekstlag (${lest.ufullstendigeSider.join(", ")}). Bruk PDF-importen i nettleseren for tekstlesing av disse sidene.` : `Salgsoppgaven er lest (${lest.sider} sider). Kontroller forslagene før de brukes.`,
+      antallSider: lest.sider,
+      ufullstendigeSider: lest.ufullstendigeSider,
     });
   } catch (error) {
     console.error("Kunne ikke lese salgsoppgave:", error);

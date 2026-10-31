@@ -54,28 +54,19 @@ export function slaSammenBoligimport(kilder: BoligimportKilde[]) {
     if (unike.length > 1) konflikter.push({ felt: String(felt), verdier: unike });
   }
 
-  resultat.romForslag = unikeTekster(kilder.flatMap(({ data }) => data.romForslag || []));
-  resultat.romDetaljer = slaSammenRom(kilder.flatMap(({ data }) => data.romDetaljer || []));
-  resultat.romForslag = ryddRomforslag([
-    ...resultat.romDetaljer.map((rom) => rom.navn),
-    ...resultat.romForslag,
-  ]);
-  resultat.bildeForslag = unikeTekster(kilder.flatMap(({ data }) => data.bildeForslag || []));
+  const sorterte = [...kilder].sort((a,b) => kildePrioritet(b.kilde) - kildePrioritet(a.kilde));
+  resultat.romDetaljer = slaSammenRom(sorterte.flatMap(({ data }) => [
+    ...(data.romDetaljer || []),
+    ...(data.romForslag || []).map(navn => ({ navn, areal: "", sistPusset: "" })),
+  ]));
+  resultat.romForslag = resultat.romDetaljer.map(rom => rom.navn);
+  resultat.bildeForslag = [...new Map(kilder.flatMap(({ data }) => data.bildeForslag || []).map(url => [finnBildenokkel(url), url])).values()];
   resultat.romlisteFraPlantegning = kilder.some(({data})=>data.romlisteFraPlantegning);
   resultat.plantegningForslag = unikeTekster(kilder.flatMap(({data})=>data.plantegningForslag || []));
   resultat.bildeTekster = Object.assign({},...kilder.map(({data})=>data.bildeTekster || {}));
   resultat.viktigeDeler = slaSammenOppslag(kilder, "viktigeDeler", konflikter);
   resultat.tilleggsarealer = slaSammenOppslag(kilder, "tilleggsarealer", konflikter);
-  resultat.historikkForslag = kilder
-    .flatMap(({ data }) => data.historikkForslag || [])
-    .filter(
-      (hendelse, indeks, alle) =>
-        alle.findIndex(
-          (annen) =>
-            normaliserSammenligning(annen.tittel) === normaliserSammenligning(hendelse.tittel) &&
-            annen.dato.slice(0, 4) === hendelse.dato.slice(0, 4),
-        ) === indeks,
-    );
+  resultat.historikkForslag = slaSammenHistorikk(sorterte.flatMap(({data}) => data.historikkForslag || []));
   return { resultat, konflikter };
 }
 
@@ -88,20 +79,55 @@ function kildePrioritet(kilde: string) {
   return 30;
 }
 
+/** Keep only actual user edits on re-analysis, never a union with stale automatic data. */
+export function beholdImportredigeringer(base: ImportertBolig | null, redigert: ImportertBolig, nytt: ImportertBolig): ImportertBolig {
+  if (!base) return nytt;
+  const result = { ...nytt };
+  for (const key of Object.keys(redigert) as (keyof ImportertBolig)[]) {
+    if (JSON.stringify(base[key]) !== JSON.stringify(redigert[key])) Object.assign(result, { [key]: redigert[key] });
+  }
+  return result;
+}
+function romNokkel(navn: string) {
+  return normaliserRomnavn(navn).split("/").map(normaliserSammenligning).sort().join("/");
+}
 function slaSammenRom(rom: ImportertRom[]) {
   const resultat: ImportertRom[] = [];
   for (const forslag of rom) {
     const navn = forslag.navn.trim();
     if (!navn) continue;
-    const eksisterende = resultat.find(
-      (verdi) => normaliserSammenligning(verdi.navn) === normaliserSammenligning(navn),
-    );
+    const eksisterende = resultat.find(verdi => romNokkel(verdi.navn) === romNokkel(navn));
     if (eksisterende) {
       eksisterende.areal ||= forslag.areal;
       eksisterende.sistPusset ||= forslag.sistPusset;
     } else resultat.push({ navn, areal: forslag.areal || "", sistPusset: forslag.sistPusset || "" });
   }
-  return resultat;
+  // An unnumbered bedroom is an extra description only when exactly one numbered
+  // bedroom exists. Never collapse bedroom 1/2 or combine ambiguous room areas.
+  return resultat.filter(rom => {
+    const key = romNokkel(rom.navn);
+    if (/\d/.test(key)) return true;
+    const numbered = resultat.filter(r => new RegExp(`^${escapeRegExp(key)}[0-9]+$`).test(romNokkel(r.navn)));
+    if (numbered.length > 1 && !rom.areal && !rom.sistPusset) return false;
+    const compounds = resultat.filter(r => r.navn.includes("/") && romNokkel(r.navn).split("/").includes(key));
+    const target = numbered.length === 1 ? numbered[0] : !rom.areal && compounds.length === 1 ? compounds[0] : undefined;
+    if (!target) return true;
+    if (rom.areal && target.areal && normaliserTall(rom.areal) !== normaliserTall(target.areal)) return true;
+    target.areal ||= rom.areal; target.sistPusset ||= rom.sistPusset;
+    return false;
+  });
+}
+function slaSammenHistorikk(hendelser: ImportertHistorikk[]) {
+  const result: ImportertHistorikk[] = [];
+  const action = (t: string) => normaliserSammenligning(t).replace(/utskiftet|skiftet|byttet/g, "byttet").replace(/totalrenovert|renovert|oppusset|pussetopp/g,"renovert");
+  for (const h of hendelser) {
+    const match = result.find(a => a.dato.slice(0,4) === h.dato.slice(0,4) &&
+      normaliserSammenligning(a.omrade) === normaliserSammenligning(h.omrade) &&
+      (action(a.tittel) === action(h.tittel) || normaliserSammenligning(a.beskrivelse) === normaliserSammenligning(h.beskrivelse)));
+    if (!match) result.push({ ...h });
+    else if (h.beskrivelse.length > match.beskrivelse.length) match.beskrivelse = h.beskrivelse;
+  }
+  return result;
 }
 
 function slaSammenOppslag(
@@ -624,7 +650,11 @@ function finnOppussingsinfo(tekst: string, historikk: ImportertHistorikk[]) {
     });
     const funn=daterte[0];
     resultat[felt]=funn?.ar || lagOppussingstittel(navn,kandidater[0]).replace(`${navn} `, "");
-    if(funn&&!historikk.some(h=>h.omrade===navn&&h.dato.startsWith(funn.ar)))historikk.push({tittel:handling.test(funn.beskrivelse)?lagOppussingstittel(navn,funn.beskrivelse):`${navn} fra ${funn.ar}`,dato:`${funn.ar}-01-01`,omrade:navn,beskrivelse:forkort(funn.beskrivelse,320)});
+    for (const arbeid of daterte) {
+      const tittel = handling.test(arbeid.beskrivelse) ? lagOppussingstittel(navn,arbeid.beskrivelse) : `${navn} fra ${arbeid.ar}`;
+      if (!historikk.some(h => h.omrade === navn && h.dato.startsWith(arbeid.ar) && h.tittel === tittel))
+        historikk.push({ tittel, dato: `${arbeid.ar}-01-01`, omrade: navn, beskrivelse: forkort(arbeid.beskrivelse,320) });
+    }
   }
   return resultat;
 }
