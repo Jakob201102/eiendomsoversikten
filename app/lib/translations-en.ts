@@ -1,5 +1,8 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Kildene er endret. Kjør analysen på nytt.": "The sources have changed. Run the analysis again.",
+  "Annonsens romtall og listen over alle rom og områder er forskjellige. Kjøkken, bad og gang kan vises i romlisten uten å telle med i annonsens romtall.": "The listing’s room count differs from the list of all rooms and areas. Kitchens, bathrooms and hallways may appear in the room list without being included in the listing’s room count.",
+  "Forhåndsvisning er utilgjengelig": "Preview unavailable",
   "Forkaste endringene?": "Discard the changes?",
   "Tilbake til Mitt hjem": "Back to My home",
   "Farger og materialer": "Colours and materials",

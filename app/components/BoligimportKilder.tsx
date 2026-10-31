@@ -1,4 +1,5 @@
 "use client";
+import ImportBilde from "./ImportBilde";
 import { boligFeltnavn } from "../lib/bolig-feltnavn";
 import UiIcon from "./UiIcon";
 import UiIconText from "./UiIconText";
@@ -102,6 +103,9 @@ export default function BoligimportKilder({
   const tekstbildeCache = useRef(new WeakMap<File, { tekst: string; erPlantegning: boolean }>());
   const [analyserer, setAnalyserer] = useState(false);
   const analysePaagaar = useRef(false);
+  const sisteAnnonsekilder = useRef("");
+  const aktiveAnnonsekilder = useRef("");
+  aktiveAnnonsekilder.current = JSON.stringify([finnLenke.trim(),hjemLenke.trim()]);
   const [tidsbrukMs, setTidsbrukMs] = useState<number | null>(null);
   const [fremdrift, setFremdrift] = useState("");
   const [meldinger, setMeldinger] = useState<string[]>([]);
@@ -144,11 +148,16 @@ export default function BoligimportKilder({
       setMeldinger(["Legg til minst én kilde først."]);
       return;
     }
+    const kildeNokkel = aktiveAnnonsekilder.current;
+    const kontrollerteVerdier = sisteAnnonsekilder.current === kildeNokkel ? resultat : null;
+    sisteAnnonsekilder.current = kildeNokkel;
+    setResultat(null); setKonflikter([]);
     setAnalyserer(true);
     analysePaagaar.current = true;
     const startet = performance.now();
     setTidsbrukMs(null);
     setMeldinger([]);
+    setFinnBilder([]); setValgteFinnBilder([]);
     setFinnBildefiler([]);
     setFinnPlantegningBilder([]);
     setKildeanalyse([]);
@@ -198,10 +207,12 @@ export default function BoligimportKilder({
           if (!innhold) throw new Error("Kunne ikke lese annonsen");
           kilder.push({ kilde: "FINN", data: innhold.data });
           hentedeFinnBilder = Array.isArray(innhold.data.bildeForslag) ? innhold.data.bildeForslag : [];
-          if (hentedeFinnBilder.length) {
+          const kjentePlaner = innhold.data.plantegningForslag || [];
+          oppdagedeFinnPlantegninger = kjentePlaner.filter(url => hentedeFinnBilder.includes(url));
+          if (hentedeFinnBilder.length && !innhold.data.romlisteFraPlantegning) {
             try {
               const plantegninger = await analyseAnnonsebilder(
-                hentedeFinnBilder,
+                kjentePlaner.length ? kjentePlaner.slice(0,4) : hentedeFinnBilder,
                 (melding) => setFremdrift(melding),
               );
               oppdagedeFinnPlantegninger = plantegninger.adresser;
@@ -304,8 +315,12 @@ export default function BoligimportKilder({
         setMeldinger([...problemer, "Vi fant ingen sikre opplysninger. Velg adresse eller fortsett med guidet utfylling."]);
         return;
       }
+      if (aktiveAnnonsekilder.current !== kildeNokkel) {
+        setMeldinger(["Kildene er endret. Kjør analysen på nytt."]);
+        return;
+      }
       const sammenslatt = slaSammenBoligimport(kilder);
-      const neste = resultat ? beholdKontrollerteVerdier(resultat, sammenslatt.resultat) : sammenslatt.resultat;
+      const neste = kontrollerteVerdier ? beholdKontrollerteVerdier(kontrollerteVerdier, sammenslatt.resultat) : sammenslatt.resultat;
       setResultat(neste);
       setKonflikter(sammenslatt.konflikter);
       setFinnPlantegningBilder(oppdagedeFinnPlantegninger);
@@ -384,6 +399,7 @@ export default function BoligimportKilder({
         <p className="mt-1 text-sm text-slate-600"><UiText text="Dobbelsjekk og rediger før du bruker opplysningene."/></p>
         {["Grunninformasjon", "Matrikkel", "Tilleggsarealer"].map((gruppe) => <div key={gruppe} className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(gruppe ?? "")}/></p><div className="mt-2 grid gap-3 sm:grid-cols-2">{felter.filter((felt) => felt.gruppe === gruppe).map((felt) => <Kontrollfelt key={String(felt.key)} label={uiText(felt.navn)} verdi={String(resultat[felt.key] || "")} konflikt={konflikterPerFelt.get(String(felt.key))} onChange={(verdi) => endreFelt(felt.key, verdi)} onVelgKonflikt={(verdi) => endreKonflikt(String(felt.key), verdi)} />)}</div></div>)}
 
+        <p className="mt-4 text-xs text-slate-500"><UiText text="Annonsens romtall og listen over alle rom og områder er forskjellige. Kjøkken, bad og gang kan vises i romlisten uten å telle med i annonsens romtall."/></p>
         <Romredigering
           navn={resultat.romForslag}
           detaljer={resultat.romDetaljer}
@@ -393,7 +409,7 @@ export default function BoligimportKilder({
         <Oppslag tittel={uiText("Andre tilleggsarealer")} verdier={resultat.tilleggsarealer} konflikter={konflikterPerFelt} prefiks="tilleggsarealer" onChange={(tilleggsarealer) => setResultat({ ...resultat, tilleggsarealer })} onVelgKonflikt={endreKonflikt} />
         <Historikkforslag verdier={resultat.historikkForslag} onChange={(historikkForslag) => setResultat({ ...resultat, historikkForslag })} />
 
-        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Bilder fra annonsen"/></p><p className="mt-1 text-xs text-slate-500"><UiText text="Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst."/></p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length}<UiText text=" valgt"/></span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><img src={url} alt={`Boligbilde ${indeks + 1}`} className="h-full w-full object-cover" /><input type="checkbox" checked={valgt} onChange={() => setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige)} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
+        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Bilder fra annonsen"/></p><p className="mt-1 text-xs text-slate-500"><UiText text="Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst."/></p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length}<UiText text=" valgt"/></span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><ImportBilde url={url} navn={resultat.bildeTekster?.[url] || `Boligbilde ${indeks + 1}`} /><input type="checkbox" checked={valgt} onChange={() => setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige)} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
 
         {!guide && <div className="mt-5 rounded-xl bg-stone-50 p-4"><p className="font-bold"><UiText text="Mangler det informasjon?"/></p><p className="mt-1 text-sm text-slate-600"><UiText text="Du kan legge til flere kilder over uten at forslagene dine nullstilles, eller fylle ut noen vanlige mangler trinnvis."/></p><button type="button" onClick={() => { setGuide(true); setGuideIndeks(0); }} className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800"><UiText text="Ja, hjelp meg"/></button></div>}
         {guide && <GuideSporsmal key={guideIndeks} sporsmal={guideFelter[guideIndeks][1]} onSvar={svarGuide} />}
@@ -464,6 +480,7 @@ function beholdKontrollerteVerdier(gammelt: ImportertBolig, nytt: ImportertBolig
     return alle;
   }, []);
   resultat.bildeForslag = unike([...gammelt.bildeForslag, ...nytt.bildeForslag]);
+  resultat.bildeTekster = {...nytt.bildeTekster,...gammelt.bildeTekster};
   resultat.viktigeDeler = { ...nytt.viktigeDeler, ...gammelt.viktigeDeler };
   resultat.tilleggsarealer = { ...nytt.tilleggsarealer, ...gammelt.tilleggsarealer };
   resultat.historikkForslag = [...gammelt.historikkForslag, ...nytt.historikkForslag].filter((v, i, a) => a.findIndex((n) => n.tittel.toLowerCase() === v.tittel.toLowerCase() && n.dato.slice(0, 4) === v.dato.slice(0, 4)) === i);

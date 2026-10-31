@@ -1,3 +1,4 @@
+import { finnKodeFraUrl, lesFinnAnnonse, finnImportgrunnlag, tilhorerFinnBilde } from "./finn-import";
 export type ImportertHistorikk = { tittel: string; dato: string; omrade: string; beskrivelse: string };
 export type ImportertRom = { navn: string; areal: string; sistPusset: string };
 export type ImportertBolig = {
@@ -6,6 +7,7 @@ export type ImportertBolig = {
   etasjer?: string; antallRom?: string; soverom?: string; leilighetsnummer?: string; gnrBnr?: string; bod?: string;
   romForslag: string[]; romDetaljer: ImportertRom[]; viktigeDeler: Record<string, string>; tilleggsarealer: Record<string, string>;
   historikkForslag: ImportertHistorikk[]; bildeForslag: string[];
+  plantegningForslag?: string[]; romlisteFraPlantegning?: boolean; bildeTekster?: Record<string,string>; finnKode?: string;
 };
 
 export type BoligimportKilde = {
@@ -59,6 +61,9 @@ export function slaSammenBoligimport(kilder: BoligimportKilde[]) {
     ...resultat.romForslag,
   ]);
   resultat.bildeForslag = unikeTekster(kilder.flatMap(({ data }) => data.bildeForslag || []));
+  resultat.romlisteFraPlantegning = kilder.some(({data})=>data.romlisteFraPlantegning);
+  resultat.plantegningForslag = unikeTekster(kilder.flatMap(({data})=>data.plantegningForslag || []));
+  resultat.bildeTekster = Object.assign({},...kilder.map(({data})=>data.bildeTekster || {}));
   resultat.viktigeDeler = slaSammenOppslag(kilder, "viktigeDeler", konflikter);
   resultat.tilleggsarealer = slaSammenOppslag(kilder, "tilleggsarealer", konflikter);
   resultat.historikkForslag = kilder
@@ -221,10 +226,28 @@ export function analyserBoligtekst(innhold: string): ImportertBolig {
   return data;
 }
 
-export function analyserBoligHtml(html: string): ImportertBolig {
+export function analyserBoligHtml(html: string, kildeUrl = ""): ImportertBolig {
+  const canonical = html.match(/<link\b[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)/i)?.[1] || "";
+  const forventetKode = finnKodeFraUrl(kildeUrl), canonicalKode = finnKodeFraUrl(decodeHtml(canonical));
+  if (forventetKode && canonicalKode && forventetKode !== canonicalKode) throw new Error("Annonsen tilhører en annen FINN-kode");
+  const finnKode = forventetKode || canonicalKode;
+  const annonse = finnKode ? lesFinnAnnonse(html,finnKode) : null;
+  if (annonse) {
+    const grunnlag = finnImportgrunnlag(annonse);
+    const data = analyserBoligtekst(grunnlag.tekst);
+    Object.assign(data,grunnlag.felt);
+    if (grunnlag.rom.length) {
+      data.romForslag = grunnlag.rom;
+      data.romDetaljer = grunnlag.rom.map(navn=>({navn,areal:data.romDetaljer.find(r=>r.navn.toLowerCase()===navn.toLowerCase())?.areal || "",sistPusset:data.romDetaljer.find(r=>r.navn.toLowerCase()===navn.toLowerCase())?.sistPusset || ""}));
+      data.romlisteFraPlantegning = true;
+    }
+    data.bildeForslag=grunnlag.bilder; data.bildeTekster=grunnlag.bildeTekster; data.plantegningForslag=grunnlag.plantegninger; data.finnKode=finnKode;
+    return data;
+  }
   const utenKode = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ");
   const synlig = decodeHtml(utenKode.replace(/<\/(?:p|div|li|h1|h2|h3|h4|dt|dd|section|article|tr)>/gi, "\n").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " "));
-  const data = analyserBoligtekst(`${synlig}\n${hentLesbarJsonTekst(html)}`); const json = dekodJson(html);
+  const data = analyserBoligtekst(`${synlig}\n${finnKode ? "" : hentLesbarJsonTekst(html)}`); const json = dekodJson(html);
+  if (!finnKode) {
   data.adresse = hentAdresseFraJson(json) || data.adresse;
   data.byggeaar ||= finnJsonVerdi(json, ["yearBuilt", "constructionYear", "buildYear"]);
   data.soverom ||= finnJsonVerdi(json, ["numberOfBedrooms", "bedrooms", "bedroomCount"]);
@@ -237,7 +260,16 @@ export function analyserBoligHtml(html: string): ImportertBolig {
   data.energimerking ||= finnJsonVerdi(json, ["energyLabel", "energyRating", "energyClass"]);
   data.etasjer ||= finnJsonVerdi(json, ["floor", "floorNumber", "numberOfFloors", "storey"]);
   data.leilighetsnummer ||= finnJsonVerdi(json, ["apartmentNumber", "unitCode", "dwellingNumber"]);
-  data.bildeForslag = finnBilder(html); return data;
+  }
+  data.bildeForslag = finnBilder(html).filter(url=>!finnKode || tilhorerFinnBilde(url,finnKode));
+  if(finnKode) {
+    data.finnKode=finnKode;
+    const label=decodeHtml(html.match(/aria-label=["'](Energimerke\s+[A-G])["']/i)?.[1] || "");
+    if(label)data.energimerking=label.slice(-1).toUpperCase();
+    const etasje=html.match(/data-testid=["']info-floor["'][\s\S]{0,400}?<dd\b[^>]*>\s*(\d+)\s*<\/dd>/i)?.[1];
+    if(etasje)data.etasjer=etasje;
+  }
+  return data;
 }
 
 type HjemVerdi = { value?: unknown; unit?: unknown };
@@ -395,7 +427,7 @@ function finnEtasje(tekst: string) {
 
 function finnEnergimerking(tekst: string) {
   const t = tekst.replace(/\n+/g, " ");
-  const hel = treff(t, /(?:energimerking|energikarakter|energiklasse|energy rating|energy label|energy class)\s*[:–-]?\s*([A-G](?:\s*[-–/]?\s*(?:mørkegrønn|dark green|light green|green|grønn|lysegrønn|yellow|gul|orange|oransje|red|rød))?)/i);
+  const hel = treff(t, /(?:energimerking|energikarakter|energiklasse|energy rating|energy label|energy class)\s*[:–-]?\s*([A-G]\b(?:\s*[-–/]?\s*(?:mørkegrønn|dark green|light green|green|grønn|lysegrønn|yellow|gul|orange|oransje|red|rød))?)/i);
   if (hel) return hel.toUpperCase()
     .replace("DARK GREEN", "MØRKEGRØNN")
     .replace("LIGHT GREEN", "LYSEGRØNN")
@@ -423,7 +455,7 @@ function leggTilArealtyper(tekst: string, resultat: Record<string, string>) {
 function finnLeilighetsnummer(tekst: string) { const t = tekst.replace(/\n+/g, " "); return (treff(t, /(?:leilighetsnummer|bolignummer|bruksenhetsnummer|bruksenhet)\s*:?[\s-]*([HUKL]\s*\d{4})/i) || treff(t, /\b([HUKL]\d{4})\b/i))?.replace(/\s/g, "").toUpperCase(); }
 function finnMatrikkel(tekst: string) {
   const t = tekst.replace(/\n+/g, " "); const m = t.match(/(?:gnr\.?\s*\/\s*bnr\.?|gårds-?\s*og\s*bruksnummer)\s*:?\s*(\d+)\s*\/\s*(\d+)(?:\s*[,/]?\s*(?:snr\.?|seksjonsnr\.?)\s*:?\s*(\d+))?/i);
-  if (m) return `${m[1]}/${m[2]}${m[3] ? `, snr. ${m[3]}` : ""}`; const g = treff(t, /(?:gårdsnummer|gårdsnr\.?|gnr\.?)\s*:?\s*(\d+)/i); const b = treff(t, /(?:bruksnummer|bruksnr\.?|bnr\.?)\s*:?\s*(\d+)/i); const s = treff(t, /(?:seksjonsnummer|seksjonsnr\.?|snr\.?)\s*:?\s*(\d+)/i); return g && b ? `${g}/${b}${s ? `, snr. ${s}` : ""}` : undefined;
+  if (m) return `${m[1]}/${m[2]}${m[3] ? `, snr. ${m[3]}` : ""}`; const g = treff(t, /(?:gårdsnummer|gårdsnr\.?|gnr\.?)\s*:?\s*(\d+)/i); const b = treff(t, /(?:bruksnummer|bruksnr\.?|bnr\.?)\s*:?\s*(\d+)/i); const s = treff(t, /\b(?:seksjonsnummer|seksjonsnr\.?|snr\.?)\s*:?\s*(\d+)/i); return g && b ? `${g}/${b}${s ? `, snr. ${s}` : ""}` : undefined;
 }
 
 function finnRomforslag(tekst: string, soverom: number) {
@@ -578,29 +610,21 @@ function finnOppussingsinfo(tekst: string, historikk: ImportertHistorikk[]) {
         typeof v === "string" && v.length >= 12 && v.length <= 600,
     );
   for(const [felt,navn,omrade] of omrader){
-    const kandidater = setninger.filter((s)=>omrade.test(s)&&handling.test(s));
-    for (const match of tekst.matchAll(new RegExp(`.{0,180}${omrade.source}.{0,220}`, "gi"))) {
-      const utdrag = ryddBeskrivelse(match[0]);
-      if (utdrag && handling.test(utdrag)) kandidater.push(utdrag);
-    }
+    const kandidater = setninger.filter(s => {
+      if(!omrade.test(s))return false;
+      if(/\b(?:behov\s+for|må|bør|anbefal|planlagt|planlegges|ønskes|mulighet\s+for|ikke\s+(?:oppusset|renovert|skiftet))\b/i.test(s))return false;
+      return handling.test(s) || (felt!=="boligen" && new RegExp(`(?:${omrade.source})[^.!?]{0,35}\\bfra\\s+(?:19|20)\\d{2}\\b`,"i").test(s));
+    });
     if(!kandidater.length)continue;
-    const presiseKandidater = [...kandidater].sort((a, b) => a.length - b.length);
-    const kandidatMedAr = presiseKandidater.find((utdrag) => /\b(?:19|20)\d{2}\b/.test(utdrag));
-    const aarKandidater = (kandidatMedAr ? [kandidatMedAr] : presiseKandidater).flatMap((utdrag) => {
-      const omradeTreff = omrade.exec(utdrag);
-      const omradePosisjon = omradeTreff?.index ?? 0;
-      omrade.lastIndex = 0;
-      return [...utdrag.matchAll(/\b((?:19|20)\d{2})\b/g)].map((treff) => ({
-        ar: treff[1],
-        avstand: Math.abs((treff.index || 0) - omradePosisjon),
-      }));
-    }).sort((a, b) => a.avstand - b.avstand);
-    const ar=aarKandidater[0]?.ar;
-    resultat[felt]=ar||"Oppusset/oppgradert";
-    if(ar){
-      const beskrivelse=presiseKandidater.find((s)=>s.includes(ar))||presiseKandidater[0];
-      if(!historikk.some((h)=>h.omrade===navn&&h.dato.startsWith(ar)))historikk.push({tittel:lagOppussingstittel(navn,beskrivelse),dato:`${ar}-01-01`,omrade:navn,beskrivelse:forkort(beskrivelse,320)});
-    }
+    const daterte = kandidater.flatMap(beskrivelse => {
+      const pos=omrade.exec(beskrivelse)?.index || 0;
+      return [...beskrivelse.matchAll(/\b((?:19|20)\d{2})\b/g)]
+        .filter(m=>Math.abs((m.index||0)-pos)<=100 && Number(m[1])<=new Date().getFullYear() && !/(?:byggeår|oppført|bygget|bygd)\s*(?:i|fra)?\s*$/i.test(beskrivelse.slice(0,m.index)))
+        .map(m=>({ar:m[1],beskrivelse}));
+    });
+    const funn=daterte[0];
+    resultat[felt]=funn?.ar || lagOppussingstittel(navn,kandidater[0]).replace(`${navn} `, "");
+    if(funn&&!historikk.some(h=>h.omrade===navn&&h.dato.startsWith(funn.ar)))historikk.push({tittel:handling.test(funn.beskrivelse)?lagOppussingstittel(navn,funn.beskrivelse):`${navn} fra ${funn.ar}`,dato:`${funn.ar}-01-01`,omrade:navn,beskrivelse:forkort(funn.beskrivelse,320)});
   }
   return resultat;
 }

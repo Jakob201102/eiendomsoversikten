@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyserBoligHtml, analyserBoligtekst, analyserHjemData } from "../../lib/boligimport";
+import { finnKodeFraUrl } from "../../lib/finn-import";
 import { krevInnloggetApi } from "../../lib/api-sikkerhet";
 
 const MAKS_HTML = 5_000_000;
@@ -22,8 +23,13 @@ export async function POST(request: NextRequest) {
       const data = await hentHjemBoligdata(url);
       return resultat(analyserHjemData(data), url.toString());
     }
+    const kode=finnKodeFraUrl(url.toString());
+    if (!kode) return feil("Lenken må være en boligannonse på finn.no eller hjem.no.",400);
+    if (/^\/\d+\/?$/.test(url.pathname)) {
+      url=new URL(`https://www.finn.no/realestate/homes/ad.html?finnkode=${kode}`);
+    }
     const { html, endeligUrl } = await hentBoligside(url);
-    const nettsidedata = analyserBoligHtml(html);
+    const nettsidedata = analyserBoligHtml(html, endeligUrl);
     return resultat(nettsidedata, endeligUrl);
   } catch (error) {
     console.error("Kunne ikke importere boligopplysninger:", error);
@@ -43,9 +49,11 @@ function erHjemUrl(url: URL) { const vert = url.hostname.toLowerCase().replace(/
 
 async function hentBoligside(startUrl: URL) {
   let url = startUrl;
+  const tidsfrist = Date.now()+12_000;
   for (let forsok = 0; forsok < 4; forsok += 1) {
+    if (Date.now() >= tidsfrist) throw new Error("Tidsavbrudd");
     if (!erTillattBoligUrl(url)) throw new Error("Ugyldig videresending");
-    const svar = await fetch(url, { redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(10_000), headers: { Accept: "text/html,application/xhtml+xml", "Accept-Language": "nb-NO,nb;q=0.9,no;q=0.8", "User-Agent": "Eiendomsoversikten/1.0 boligimport" } });
+    const svar = await fetch(url, { redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(Math.max(1,Math.min(10_000,tidsfrist-Date.now()))), headers: { Accept: "text/html,application/xhtml+xml", "Accept-Language": "nb-NO,nb;q=0.9,no;q=0.8", "User-Agent": "Eiendomsoversikten/1.0 boligimport" } });
     if (svar.status >= 300 && svar.status < 400) { const plassering = svar.headers.get("location"); if (!plassering) throw new Error("Videresending uten adresse"); url = new URL(plassering, url); continue; }
     if (!svar.ok) throw new Error(`Boligportalen svarte med ${svar.status}`);
     if (Number(svar.headers.get("content-length") || 0) > MAKS_HTML) throw new Error("Annonsen er for stor");

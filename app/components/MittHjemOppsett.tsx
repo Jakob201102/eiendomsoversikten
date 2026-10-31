@@ -65,6 +65,7 @@ type ImportForslag = Partial<Grunninfo> & {
     beskrivelse: string;
   }[];
   bildeForslag?: string[];
+  bildeTekster?: Record<string,string>;
 };
 type ImportMetode = "finn" | "pdf" | "tekst";
 
@@ -401,12 +402,12 @@ export default function MittHjemOppsett({
     const usikreFiler = gjenbrukImportanalyse ? [] : filer.map(({ fil }) => fil).filter((fil) => !kjentePlantegninger.has(fil));
     const kontrollertePlantegninger = usikreFiler.length ? await finnPlantegninger(usikreFiler) : new Set<File>();
     const plantegninger = new Set([...kjentePlantegninger, ...kontrollertePlantegninger]);
-    await kjorBegrenset(filer, 3, async ({ fil, indeks }) => {
+    await kjorBegrenset(filer, 3, async ({ fil, indeks, url }) => {
       try {
         const erPlantegning = plantegninger.has(fil);
         await lastOppDokument(fil, {
           boligId,
-          navn: erPlantegning ? `Plantegning fra boligannonse ${indeks + 1}` : `Boligbilde fra boligannonse ${indeks + 1}`,
+          navn: importEkstra?.bildeTekster?.[url]?.slice(0,150) || (erPlantegning ? `Plantegning fra boligannonse ${indeks + 1}` : `Boligbilde fra boligannonse ${indeks + 1}`),
           kategori: erPlantegning ? "plantegning" : "boligbilde",
           ar: new Date().getFullYear(),
           dokumentdato: new Date().toISOString().slice(0, 10),
