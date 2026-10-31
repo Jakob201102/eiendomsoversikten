@@ -1,7 +1,7 @@
 import { filtrerBoligkildetekst } from "./boligkilde-tekst";
 import { finnKodeFraUrl, lesFinnAnnonse, finnImportgrunnlag, tilhorerFinnBilde } from "./finn-import";
 export type ImportertHistorikk = { tittel: string; dato: string; omrade: string; beskrivelse: string };
-export type ImportertRom = { navn: string; areal: string; sistPusset: string };
+export type ImportertRom = { navn: string; areal: string; sistPusset: string; bildeKilde?: string; bildeValgtManuelt?: boolean };
 export type ImportertBolig = {
   adresse?: string; boligtype?: string; byggeaar?: string; areal?: string; braI?: string; braE?: string;
   tomteareal?: string; bruttoareal?: string; energimerking?: string;

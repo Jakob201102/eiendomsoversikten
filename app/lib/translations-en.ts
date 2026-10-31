@@ -1,5 +1,17 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Kontroller rommene": "Review the rooms",
+  "Se over navn, areal og bilde før du bruker forslagene. Du kan endre alt her.": "Check each room’s name, area and photo before using the suggestions. You can edit everything here.",
+  "Velg bilde til {0}": "Choose a photo for {0}",
+  "Ingen rombilder valgt": "No room photo selected",
+  "Bytt rombilde": "Change room photo",
+  "Velg rombilde": "Choose room photo",
+  "Velg et bilde fra importen. Bildet lagres sammen med rommet.": "Choose a photo from the import. The photo will be linked to the room.",
+  "Bruk uten rombilde": "Continue without a room photo",
+  "Legg til bilder i importen for å velge rombilder.": "Add images to the import to select room photos.",
+  "Du har valgt 40 annonsebilder. Fjern ett bilde for å velge et nytt.": "You have selected 40 listing images. Remove one to select another.",
+  "Boligbilde {0}": "Property photo {0}",
+
   "Plantegningen ble funnet, men rometikettene kunne ikke leses sikkert. Kontroller romlisten mot tegningen.": "The floor plan was found, but its room labels could not be read reliably. Check the room list against the plan.",
   "Romlisten er hentet fra oppgitte romarealer. Alternative bruksforslag opprettes ikke som ekstra rom.": "The room list is based on the stated room areas. Suggested alternative uses are not created as extra rooms.",
   "Bildene er lagret, men kunne ikke knyttes automatisk til rommene. Velg bilder på romsiden.": "The photos have been saved but could not be linked automatically to rooms. Select photos on the Rooms page.",

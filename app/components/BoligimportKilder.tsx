@@ -1,6 +1,8 @@
 "use client";
 import { lesPdfSider } from "../lib/pdf-import";
 import { velgImportbilder } from "../lib/rom-bildekobling";
+import RomimportOversikt from "./RomimportOversikt";
+import { importfilNokkel, romimportMedBilder, type ImportRomBilde } from "../lib/romimport-oversikt";
 import ImportBilde from "./ImportBilde";
 import { boligFeltnavn } from "../lib/bolig-feltnavn";
 import UiIcon from "./UiIcon";
@@ -122,6 +124,22 @@ export default function BoligimportKilder({
   const [guide, setGuide] = useState(false);
   const [guideIndeks, setGuideIndeks] = useState(0);
 
+  const rombilder: ImportRomBilde[] = [
+    ...finnBilder.filter(url=>!finnPlantegningBilder.includes(url)).map((url,i)=>({id:url,url,navn:resultat?.bildeTekster?.[url] || uiFormat("Boligbilde {0}",[i+1])})),
+    ...bildeFiler.filter(f=>!kildeanalyse.some(k=>k.fil===f&&k.erPlantegning)).map(fil=>({id:importfilNokkel(fil),fil,navn:fil.name})),
+  ];
+  const aktiveRombilder = rombilder.filter(b=>b.fil || valgteFinnBilder.includes(b.id));
+  const romkontroll = resultat ? romimportMedBilder(resultat,aktiveRombilder) : null;
+  function velgRombilde(indeks:number,id:string) {
+    if (!romkontroll) return;
+    const bilde=rombilder.find(b=>b.id===id);
+    if (bilde?.url && !valgteFinnBilder.includes(id)) {
+      if(valgteFinnBilder.length>=40)return;
+      setValgteFinnBilder(alle=>[...alle,id]);
+    }
+    const romDetaljer=romkontroll.romDetaljer.map((rom,i)=>i===indeks?{...rom,bildeKilde:id,bildeValgtManuelt:true}:rom);
+    setResultat({...resultat!,romDetaljer});
+  }
   const antallKilder = (finnLenke.trim() ? 1 : 0) + (hjemLenke.trim() ? 1 : 0) + pdfFiler.length + tekstKilder.length + (tekst.trim().length >= 20 ? 1 : 0) + bildeFiler.length + (adresseValgt ? 1 : 0) + (ingenDokumenter ? 1 : 0);
   const guideFelter = [
     ["bad", "Vet du når badet sist ble pusset opp?"],
@@ -418,23 +436,26 @@ export default function BoligimportKilder({
 
         <p className="mt-4 text-xs text-slate-500"><UiText text="Annonsens romtall og listen over alle rom og områder er forskjellige. Kjøkken, bad og gang kan vises i romlisten uten å telle med i annonsens romtall."/></p>
         {resultat.romlisteFraAreal && <p className="mt-4 text-sm text-slate-600"><UiText text="Romlisten er hentet fra oppgitte romarealer. Alternative bruksforslag opprettes ikke som ekstra rom."/></p>}
-        <Romredigering
+        <RomimportOversikt
           navn={resultat.romForslag}
-          detaljer={resultat.romDetaljer}
+          detaljer={romkontroll!.romDetaljer}
+          bilder={rombilder}
+          kanVelge={id=>!rombilder.find(b=>b.id===id)?.url || valgteFinnBilder.includes(id) || valgteFinnBilder.length<40}
+          onVelg={velgRombilde}
           onChange={(romForslag, romDetaljer) => setResultat({ ...resultat, romForslag, romDetaljer })}
         />
         <Oppslag tittel={uiText("Teknisk informasjon og viktige deler")} verdier={resultat.viktigeDeler} konflikter={konflikterPerFelt} prefiks="viktigeDeler" onChange={(viktigeDeler) => setResultat({ ...resultat, viktigeDeler })} onVelgKonflikt={endreKonflikt} />
         <Oppslag tittel={uiText("Andre tilleggsarealer")} verdier={resultat.tilleggsarealer} konflikter={konflikterPerFelt} prefiks="tilleggsarealer" onChange={(tilleggsarealer) => setResultat({ ...resultat, tilleggsarealer })} onVelgKonflikt={endreKonflikt} />
         <Historikkforslag verdier={resultat.historikkForslag} onChange={(historikkForslag) => setResultat({ ...resultat, historikkForslag })} />
 
-        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Bilder fra annonsen"/></p><p className="mt-1 text-xs text-slate-500"><UiText text="Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst."/></p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length}<UiText text=" valgt"/></span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><ImportBilde url={url} navn={resultat.bildeTekster?.[url] || `Boligbilde ${indeks + 1}`} /><input type="checkbox" checked={valgt} onChange={() => setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige)} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
+        {finnBilder.length > 0 && <div className="mt-5"><div className="flex min-w-0 items-end justify-between gap-2"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Bilder fra annonsen"/></p><p className="mt-1 text-xs text-slate-500"><UiText text="Du kan velge opptil 40 unike bilder. De lagres som bilder, aldri som tekst."/></p></div><span className="shrink-0 text-xs font-bold text-emerald-700">{valgteFinnBilder.length}<UiText text=" valgt"/></span></div><div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{finnBilder.slice(0, 60).map((url, indeks) => { const valgt = valgteFinnBilder.includes(url); return <label key={url} className={`relative aspect-[4/3] min-w-0 cursor-pointer overflow-hidden rounded-lg border-2 ${valgt ? "border-emerald-500" : "border-transparent opacity-60"}`}><ImportBilde url={url} navn={resultat.bildeTekster?.[url] || `Boligbilde ${indeks + 1}`} /><input type="checkbox" checked={valgt} onChange={() => { setValgteFinnBilder((forrige) => valgt ? forrige.filter((v) => v !== url) : forrige.length < 40 ? [...forrige, url] : forrige); if(valgt) setResultat(forrige=>forrige?{...forrige,romDetaljer:forrige.romDetaljer.map(r=>r.bildeKilde===url?{...r,bildeKilde:""}:r)}:forrige); }} className="absolute right-2 top-2 h-5 w-5 accent-emerald-600" /></label>; })}</div></div>}
 
         {!guide && <div className="mt-5 rounded-xl bg-stone-50 p-4"><p className="font-bold"><UiText text="Mangler det informasjon?"/></p><p className="mt-1 text-sm text-slate-600"><UiText text="Du kan legge til flere kilder over uten at forslagene dine nullstilles, eller fylle ut noen vanlige mangler trinnvis."/></p><button type="button" onClick={() => { setGuide(true); setGuideIndeks(0); }} className="mt-3 rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-bold text-emerald-800"><UiText text="Ja, hjelp meg"/></button></div>}
         {guide && <GuideSporsmal key={guideIndeks} sporsmal={guideFelter[guideIndeks][1]} onSvar={svarGuide} />}
 
         {uttruknePlantegninger.length > 0 && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{uiFormat(uttruknePlantegninger.length === 1 ? "Vi fant {0} mulig plantegning i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning." : "Vi fant {0} mulige plantegninger i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning.", [uttruknePlantegninger.length])}</p>}
         {analysertKildenokkel !== aktiveAnnonsekilder.current && <p role="status" className="mt-3 text-sm text-amber-800"><UiText text="Kildene er endret. Kjør analysen på nytt."/></p>}
-        <button type="button" disabled={analyserer || analysertKildenokkel !== aktiveAnnonsekilder.current} onClick={() => onGodkjenn(resultat, finnLenke.trim() || hjemLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler, kildeanalyse)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"><UiText text="Godkjenn og bruk forslagene"/></button>
+        <button type="button" disabled={analyserer || analysertKildenokkel !== aktiveAnnonsekilder.current} onClick={() => onGodkjenn(romkontroll!, finnLenke.trim() || hjemLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler, kildeanalyse)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"><UiText text="Godkjenn og bruk forslagene"/></button>
         <p className="mt-2 text-center text-xs text-slate-500"><UiText text="Boligen opprettes først når du bruker hovedknappen nederst i skjemaet."/></p>
       </div>}
     </div>
@@ -456,19 +477,6 @@ function RedigerListe({ tittel, tomTekst, verdier, onChange }: { tittel: string;
   return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(tittel ?? "")}/></p>{!verdier.length && <p className="mt-2 text-sm text-slate-500"><UiText text={String(tomTekst ?? "")}/></p>}<div className="mt-2 space-y-2">{verdier.map((verdi, indeks) => <div key={indexKey(verdi, indeks)} className="flex min-w-0 gap-2"><input value={verdi} onChange={(e) => onChange(verdier.map((v, i) => i === indeks ? e.target.value : v))} className="felt min-w-0 flex-1" /><button type="button" onClick={() => onChange(verdier.filter((_, i) => i !== indeks))} className="shrink-0 rounded-lg px-2 text-sm font-bold text-red-600" aria-label={uiFormat("Fjern {0}", [verdi])}><UiText text="Slett"/></button></div>)}</div><button type="button" onClick={() => onChange([...verdier, `${tittel === "Rom" ? "Nytt rom" : "Ny verdi"}`])} className="mt-2 text-sm font-bold text-emerald-700"><UiText text="+ Legg til"/></button></div>;
 }
 
-function Romredigering({ navn, detaljer, onChange }: { navn: string[]; detaljer: ImportertBolig["romDetaljer"]; onChange: (navn: string[], detaljer: ImportertBolig["romDetaljer"]) => void }) {
-  useLanguage();
-  const rader = navn.map((romnavn) => detaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === romnavn.toLocaleLowerCase("nb-NO")) || { navn: romnavn, areal: "", sistPusset: "" });
-  const oppdater = (indeks: number, felt: "navn" | "areal" | "sistPusset", verdi: string) => {
-    const neste = rader.map((rad, radindeks) => radindeks === indeks ? { ...rad, [felt]: verdi } : rad);
-    onChange(neste.map((rad) => rad.navn), neste);
-  };
-  const fjern = (indeks: number) => {
-    const neste = rader.filter((_, radindeks) => radindeks !== indeks);
-    onChange(neste.map((rad) => rad.navn), neste);
-  };
-  return <div className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text="Rom"/></p><div className="mt-2 space-y-2">{rader.map((rom, indeks) => <div key={indeks} className="grid min-w-0 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_110px_120px_auto]"><input value={rom.navn} onChange={(e) => oppdater(indeks, "navn", e.target.value)} className="felt min-w-0" aria-label={uiText("Romnavn")}/><input value={rom.areal} onChange={(e) => oppdater(indeks, "areal", e.target.value)} className="felt min-w-0" placeholder={uiText("Areal m²")} aria-label={uiText("Areal")}/><input value={rom.sistPusset} onChange={(e) => oppdater(indeks, "sistPusset", e.target.value)} className="felt min-w-0" placeholder={uiText("Oppusset år")} aria-label={uiText("Oppussingsår")}/><button type="button" onClick={() => fjern(indeks)} className="rounded-lg px-2 text-sm font-bold text-red-600"><UiText text="Slett"/></button></div>)}</div><button type="button" onClick={() => onChange([...navn, "Nytt rom"], [...rader, { navn: "Nytt rom", areal: "", sistPusset: "" }])} className="mt-2 text-sm font-bold text-emerald-700"><UiText text="+ Legg til rom"/></button></div>;
-}
 
 function Oppslag({ tittel, verdier, konflikter, prefiks, onChange, onVelgKonflikt }: { tittel: string; verdier: Record<string, string>; konflikter: Map<string, BoligimportKonflikt>; prefiks: string; onChange: (verdier: Record<string, string>) => void; onVelgKonflikt: (felt: string, verdi: string) => void }) {
   useLanguage();

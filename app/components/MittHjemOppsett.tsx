@@ -1,5 +1,6 @@
 "use client";
 import { kobleRomBilder } from "../lib/rom-bildekobling";
+import { brukKontrollerteRombilder, importfilNokkel } from "../lib/romimport-oversikt";
 import Feiltekst from "./Feiltekst";
 import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
@@ -375,7 +376,7 @@ export default function MittHjemOppsett({
     setImportMelding("Forslagene er overført. Kontroller feltene og opprett boligen når du er klar.");
   }
 
-  async function lastOppImportbilder(boligId: string, koblingsbilder: {id: string; navn: string; kategori: string; filtype: string}[]) {
+  async function lastOppImportbilder(boligId: string, koblingsbilder: {id: string; navn: string; kategori: string; filtype: string; kilde:string}[]) {
     let feilAntall = 0;
     const filer: { fil: File; indeks: number; url: string }[] = [];
     const bilder = valgteImportbilder.slice(0, 40);
@@ -414,7 +415,7 @@ export default function MittHjemOppsett({
           dokumentdato: new Date().toISOString().slice(0, 10),
           notat: "Importert fra FINN/Hjem.no boligannonse",
         });
-        if (!erPlantegning) koblingsbilder.push({id: bildeId, navn: importEkstra?.bildeTekster?.[url] || "", kategori: "boligbilde", filtype: fil.type});
+        if (!erPlantegning) koblingsbilder.push({id: bildeId, navn: importEkstra?.bildeTekster?.[url] || "", kategori: "boligbilde", filtype: fil.type, kilde:url});
       } catch {
         feilAntall += 1;
       }
@@ -422,7 +423,7 @@ export default function MittHjemOppsett({
     return feilAntall;
   }
 
-  async function lastOppKildebilder(boligId: string) {
+  async function lastOppKildebilder(boligId: string, koblingsbilder: {id:string;navn:string;kategori:string;filtype:string;kilde:string}[]) {
     let feilAntall = 0;
     const kjent = new Map(importKildeanalyse.map(({ fil, erPlantegning }) => [fil, erPlantegning]));
     const ukjente = importKildebilder.filter((fil) => !kjent.has(fil));
@@ -431,7 +432,7 @@ export default function MittHjemOppsett({
     await kjorBegrenset(importKildebilder, 3, async (fil, indeks) => {
       try {
         const erPlantegning = plantegninger.has(fil);
-        await lastOppDokument(fil, {
+        const bildeId = await lastOppDokument(fil, {
           boligId,
           navn: fil.name.replace(/\.[^.]+$/, "") || `Importert bilde ${indeks + 1}`,
           kategori: erPlantegning ? "plantegning" : "boligbilde",
@@ -439,6 +440,7 @@ export default function MittHjemOppsett({
           dokumentdato: new Date().toISOString().slice(0, 10),
           notat: "Lagt til som kilde under boligopprettelsen",
         });
+        if(!erPlantegning) koblingsbilder.push({id:bildeId,navn:fil.name,kategori:"boligbilde",filtype:fil.type,kilde:importfilNokkel(fil)});
       } catch {
         feilAntall += 1;
       }
@@ -516,8 +518,8 @@ export default function MittHjemOppsett({
       };
       grunnlag.teknisk.oppvarming = importEkstra?.viktigeDeler?.oppvarming || "";
       const romDetaljer = importEkstra?.romDetaljer || [];
-      grunnlag.rom = (importEkstra?.romForslag || []).map((navn) => {
-        const detaljer = romDetaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === navn.toLocaleLowerCase("nb-NO"));
+      grunnlag.rom = (importEkstra?.romForslag || []).map((navn,indeks) => {
+        const detaljer = romDetaljer[indeks]?.navn===navn ? romDetaljer[indeks] : romDetaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === navn.toLocaleLowerCase("nb-NO"));
         return ({
         id: crypto.randomUUID(),
         navn,
@@ -569,19 +571,21 @@ export default function MittHjemOppsett({
         manedsleie: 0,
         altOmBoligen: grunnlag,
       });
-      const koblingsbilder: {id: string; navn: string; kategori: string; filtype: string}[] = [];
+      const koblingsbilder: {id: string; navn: string; kategori: string; filtype: string; kilde:string}[] = [];
       const [bildeFeil, kildebildeFeil, kildeFeil] = await Promise.all([
         valgteImportbilder.length ? lastOppImportbilder(nyBoligId, koblingsbilder) : Promise.resolve(0),
-        importKildebilder.length ? lastOppKildebilder(nyBoligId) : Promise.resolve(0),
+        importKildebilder.length ? lastOppKildebilder(nyBoligId, koblingsbilder) : Promise.resolve(0),
         lagreImportkilder(nyBoligId),
       ]);
       let alle = await hentBoliger();
       const opprettet = alle.find(b=>String(b.id)===nyBoligId);
-      if (opprettet && koblingsbilder.length) {
+      if (opprettet) {
         const ferskeData = lesAltOmBoligen(opprettet);
         const koblinger = kobleRomBilder(ferskeData.rom, koblingsbilder);
-        if (koblinger.size) {
-          const altOmBoligen = {...ferskeData, rom: ferskeData.rom.map(rom=>koblinger.has(rom.id) ? {...rom,bildeIder:koblinger.get(rom.id)!} : rom)};
+        const automatiskeRom = ferskeData.rom.map(rom=>koblinger.has(rom.id)?{...rom,bildeIder:koblinger.get(rom.id)!}:rom);
+        const kontrollerteRom = brukKontrollerteRombilder(automatiskeRom, importEkstra?.romDetaljer || [], new Map(koblingsbilder.map(b=>[b.kilde,b.id])));
+        if (JSON.stringify(kontrollerteRom)!==JSON.stringify(ferskeData.rom)) {
+          const altOmBoligen = {...ferskeData, rom:kontrollerteRom};
           try {
             await oppdaterBolig(nyBoligId, {...opprettet, altOmBoligen});
             alle = alle.map(b=>String(b.id)===nyBoligId ? {...b,altOmBoligen} : b);
