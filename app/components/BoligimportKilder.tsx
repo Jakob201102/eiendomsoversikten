@@ -1,5 +1,6 @@
 "use client";
 import { lesPdfSider } from "../lib/pdf-import";
+import { velgImportbilder } from "../lib/rom-bildekobling";
 import ImportBilde from "./ImportBilde";
 import { boligFeltnavn } from "../lib/bolig-feltnavn";
 import UiIcon from "./UiIcon";
@@ -12,6 +13,8 @@ import { analyseImportImages, createImportImageCache } from "../lib/import-image
 import { createImportOcrSession } from "../lib/import-ocr-session";
 import {
   analyserBoligtekst,
+  analyserPlantegningstekst,
+  erPdfPlantegningstekst,
   erPlantegningstekst,
   ryddRomforslag,
   serUtSomPlantegningVisuelt,
@@ -181,7 +184,7 @@ export default function BoligimportKilder({
       return { read: async (input) => String((await worker.recognize(input)).data.text || ""), terminate: () => worker.terminate() };
     });
     async function analyseAnnonsebilder(adresser: string[], fremdrift: (melding: string) => void) {
-      const key = JSON.stringify(adresser.slice(0, 40));
+      const key = JSON.stringify(adresser.slice(0, 60));
       const cached = bildeCache.current.get(key);
       if (cached) return cached;
       const analysed = await lesFinnPlantegninger(adresser, fremdrift, ocr.read);
@@ -224,10 +227,11 @@ export default function BoligimportKilder({
                 kjentePlaner.length ? kjentePlaner.slice(0,4) : hentedeFinnBilder,
                 (melding) => setFremdrift(melding),
               );
+              if (plantegninger.adresser.length && !plantegninger.tekster.length) problemer.push(uiText("Plantegningen ble funnet, men rometikettene kunne ikke leses sikkert. Kontroller romlisten mot tegningen."));
               oppdagedeFinnPlantegninger = plantegninger.adresser;
               setFinnBildefiler(plantegninger.filer);
               plantegninger.tekster.forEach((verdi, indeks) =>
-                kilder.push({ kilde: `FINN-plantegning ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
+                kilder.push({ kilde: `FINN-plantegning ${indeks + 1}`, data: analyserPlantegningstekst(verdi) }),
               );
             } catch {
               problemer.push("FINN-annonsen ble lest, men plantegningene kunne ikke tekstleses denne gangen.");
@@ -255,7 +259,7 @@ export default function BoligimportKilder({
               oppdagedeFinnPlantegninger = unike([...oppdagedeFinnPlantegninger, ...plantegninger.adresser]);
               setFinnBildefiler((forrige) => [...forrige, ...plantegninger.filer]);
               plantegninger.tekster.forEach((verdi, indeks) =>
-                kilder.push({ kilde: `Hjem.no-plantegning ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
+                kilder.push({ kilde: `Hjem.no-plantegning ${indeks + 1}`, data: analyserPlantegningstekst(verdi) }),
               );
             } catch {
               problemer.push("Hjem.no-annonsen ble lest, men plantegningene kunne ikke tekstleses denne gangen.");
@@ -295,7 +299,7 @@ export default function BoligimportKilder({
       }
 
       unike([...tekstKilder, ...(tekst.trim().length >= 20 ? [tekst.trim()] : [])]).forEach((verdi, indeks) =>
-        kilder.push({ kilde: `Innlimt tekst ${indeks + 1}`, data: analyserBoligtekst(verdi) }),
+        kilder.push({ kilde: `Innlimt tekst ${indeks + 1}`, data: analyserPlantegningstekst(verdi) }),
       );
 
       if (bildeFiler.length) {
@@ -313,7 +317,7 @@ export default function BoligimportKilder({
             const bildeTekst = analyse.tekst;
             analyserteKildebilder.push({ fil, erPlantegning: analyse.erPlantegning });
             if (bildeTekst.length >= 20)
-              kilder.push({ kilde: `Bilde: ${fil.name}`, data: analyserBoligtekst(bildeTekst) });
+              kilder.push({ kilde: `Bilde: ${fil.name}`, data: analyse.erPlantegning ? analyserPlantegningstekst(bildeTekst) : analyserBoligtekst(bildeTekst) });
           }
         } catch {
           problemer.push("Noen bilder kunne ikke tekstleses. De kan likevel lagres som dokumentasjon.");
@@ -340,8 +344,8 @@ export default function BoligimportKilder({
       setKildeanalyse(analyserteKildebilder);
       setFinnBilder(hentedeFinnBilder);
       setValgteFinnBilder((forrige) => {
-        const grunnlag = forrige.length ? forrige : hentedeFinnBilder.slice(0, 24);
-        return unike([...grunnlag, ...oppdagedeFinnPlantegninger]).slice(0, 40);
+        const grunnlag = forrige.length ? forrige : velgImportbilder(hentedeFinnBilder, neste.bildeTekster || {}, oppdagedeFinnPlantegninger);
+        return unike([...oppdagedeFinnPlantegninger, ...grunnlag]).slice(0, 40);
       });
       setMeldinger(problemer.length ? problemer : ["Alle kildene er analysert. Dobbelsjekk forslagene før de brukes."]);
     } finally {
@@ -413,6 +417,7 @@ export default function BoligimportKilder({
         {["Grunninformasjon", "Matrikkel", "Tilleggsarealer"].map((gruppe) => <div key={gruppe} className="mt-5"><p className="text-xs font-bold uppercase tracking-wide text-slate-500"><UiText text={String(gruppe ?? "")}/></p><div className="mt-2 grid gap-3 sm:grid-cols-2">{felter.filter((felt) => felt.gruppe === gruppe).map((felt) => <Kontrollfelt key={String(felt.key)} label={uiText(felt.navn)} verdi={String(resultat[felt.key] || "")} konflikt={konflikterPerFelt.get(String(felt.key))} onChange={(verdi) => endreFelt(felt.key, verdi)} onVelgKonflikt={(verdi) => endreKonflikt(String(felt.key), verdi)} />)}</div></div>)}
 
         <p className="mt-4 text-xs text-slate-500"><UiText text="Annonsens romtall og listen over alle rom og områder er forskjellige. Kjøkken, bad og gang kan vises i romlisten uten å telle med i annonsens romtall."/></p>
+        {resultat.romlisteFraAreal && <p className="mt-4 text-sm text-slate-600"><UiText text="Romlisten er hentet fra oppgitte romarealer. Alternative bruksforslag opprettes ikke som ekstra rom."/></p>}
         <Romredigering
           navn={resultat.romForslag}
           detaljer={resultat.romDetaljer}
@@ -492,22 +497,36 @@ async function lesFinnPlantegninger(
   onFremdrift: (melding: string) => void,
   lesTekst: LesImporttekst,
 ): Promise<AnnonsebildeAnalyse> {
+  const originaladresser = new Map<File, {url: string; indeks: number}>();
+  const originalfiler: {url: string; fil: File}[] = [];
+  async function hentBilde(url: string, indeks: number) {
+    const svar = await autentisertFetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
+    if (!svar.ok) throw new Error("Kunne ikke hente bildet");
+    const blob = await svar.blob();
+    const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
+    return new File([blob], `finn-${indeks + 1}.${type.includes("png") ? "png" : "jpg"}`, {type});
+  }
   const analysed = await analyseImportImages(adresser, {
     download: async (url, indeks) => {
-      const svar = await autentisertFetch(`/api/importer-bilde?url=${encodeURIComponent(url)}`);
-      if (!svar.ok) throw new Error("Kunne ikke hente bildet");
-      const blob = await svar.blob();
-      const type = blob.type.startsWith("image/") ? blob.type : "image/jpeg";
-      return new File([blob], `finn-${indeks + 1}.${type.includes("png") ? "png" : "jpg"}`, { type });
+      // Search the whole supported gallery cheaply; read only candidate plans at full quality.
+      const skannUrl = adresser.length > 4 ? url.replace(/\/dynamic\/default\//, "/dynamic/480x0/") : url;
+      const fil = await hentBilde(skannUrl, indeks);
+      originaladresser.set(fil, {url, indeks});
+      return fil;
     },
     isPlan: serUtSomPlantegningVisuelt,
-    read: lesTekst,
-    acceptsText: erPlantegningstekst,
+    read: async (skann) => {
+      const info = originaladresser.get(skann)!;
+      const fil = adresser.length > 4 ? await hentBilde(info.url, info.indeks) : skann;
+      originalfiler.push({url: info.url, fil});
+      return lesTekst(fil);
+    },
+    acceptsText: (tekst) => analyserPlantegningstekst(tekst).romForslag.length >= 3,
     progress: (stage, indeks, totalt) => onFremdrift(stage === "download"
       ? uiFormat("Ser etter plantegninger i FINN-bildene · {0} av {1}", [indeks, totalt])
       : uiFormat("Tekstleser mulig plantegning {0}", [indeks])),
   });
-  return { tekster: analysed.texts, adresser: analysed.plans, filer: analysed.files.map(({ url, file: fil }) => ({ url, fil })), feil: analysed.failedDownloads + analysed.failedReads > 0 };
+  return { tekster: analysed.texts, adresser: analysed.plans, filer: originalfiler, feil: analysed.failedDownloads + analysed.failedReads > 0 || (analysed.plans.length > 0 && analysed.texts.length === 0) };
 }
 
 async function lesPdfFil(
@@ -533,7 +552,7 @@ async function lesPdfFil(
         } finally { canvas.width = 0; canvas.height = 0; }
       },
       page: async (side, nummer, tekst) => {
-        if (erPlantegningstekst(tekst)) plantegninger.push(await renderPdfSideSomBilde(side, `${fil.name}-side-${nummer}-plantegning.png`));
+        if (erPdfPlantegningstekst(tekst)) plantegninger.push(await renderPdfSideSomBilde(side, `${fil.name}-side-${nummer}-plantegning.png`));
       },
     });
     return { ...resultat, plantegninger };

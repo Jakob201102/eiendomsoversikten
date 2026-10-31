@@ -1,4 +1,5 @@
 "use client";
+import { kobleRomBilder } from "../lib/rom-bildekobling";
 import { useRouter, useSearchParams } from "next/navigation";
 import { bilderTilRom, romAdresse } from "../lib/rom-detaljer";
 import Feiltekst from "../components/Feiltekst";
@@ -62,24 +63,11 @@ export default function RomSide() {
     const finnBilder = boligbilder.filter((bilde) => /finn/i.test(`${bilde.navn} ${bilde.filnavn} ${bilde.notat}`) && !brukte.has(bilde.id));
     const mangler = data.rom.filter((rommet) => !rommet.bilderValgtManuelt && !(rommet.bildeIder || []).length).sort((a, b) => romPrioritet(a.navn) - romPrioritet(b.navn));
     if (!finnBilder.length || !mangler.length) { setFeil("Fant ingen ledige FINN-bilder eller rom uten bilder."); return; }
-    const innendorsbilder = finnBilder.filter((bilde) => !bildeErUtvendig(bilde));
-    const kandidater = innendorsbilder.length >= mangler.length ? innendorsbilder : finnBilder;
-    const erLeilighet = /leilighet|hybel|studio/i.test(String(bolig.boligtype || ""));
-    const antattUtvendigeForst = erLeilighet ? 0 : 2;
-    const start = Math.min(antattUtvendigeForst, Math.max(0, kandidater.length - mangler.length));
-    const ledige = [...kandidater.slice(start), ...kandidater.slice(0, start)];
-    const koblinger = new Map<string, string>();
-    for (const rommet of mangler) {
-      const treff = ledige.findIndex((bilde) => bildePasserRom(bilde, rommet.navn));
-      if (treff < 0) continue;
-      const indeks = treff;
-      const bilde = ledige.splice(indeks, 1)[0];
-      if (bilde) koblinger.set(rommet.id, bilde.id);
-    }
+    const koblinger = kobleRomBilder(data.rom, finnBilder);
     if (!koblinger.size) return;
     setJobber(true); setFeil("");
     try {
-      const nyeRom = data.rom.map((rommet) => koblinger.has(rommet.id) ? { ...rommet, bildeIder: [koblinger.get(rommet.id)!] } : rommet);
+      const nyeRom = data.rom.map((rommet) => koblinger.has(rommet.id) ? { ...rommet, bildeIder: koblinger.get(rommet.id)! } : rommet);
       await oppdaterBolig(String(bolig.id), { ...bolig, altOmBoligen: { ...data, rom: nyeRom, oppdatert: new Date().toISOString() } });
       await lastData();
     } catch { setFeil("Kunne ikke fordele FINN-bildene."); }

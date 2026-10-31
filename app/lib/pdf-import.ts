@@ -46,5 +46,5 @@ export async function lesPdfSider<T extends { getTextContent: () => Promise<{ it
     } catch { if (!failed.includes(number)) failed.push(number); pages.push(""); }
     finally { page?.cleanup?.(); }
   }
-  return { tekst: pages.join("\n\n"), sider: pdf.numPages, ufullstendigeSider: failed, skannedeSider: scanned };
+  return { tekst: pages.join("\f"), sider: pdf.numPages, ufullstendigeSider: failed, skannedeSider: scanned };
 }

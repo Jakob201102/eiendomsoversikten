@@ -1,4 +1,5 @@
 "use client";
+import { kobleRomBilder } from "../lib/rom-bildekobling";
 import Feiltekst from "./Feiltekst";
 import TallInput from "./TallInput";
 import UiIcon from "./UiIcon";
@@ -374,7 +375,7 @@ export default function MittHjemOppsett({
     setImportMelding("Forslagene er overført. Kontroller feltene og opprett boligen når du er klar.");
   }
 
-  async function lastOppImportbilder(boligId: string) {
+  async function lastOppImportbilder(boligId: string, koblingsbilder: {id: string; navn: string; kategori: string; filtype: string}[]) {
     let feilAntall = 0;
     const filer: { fil: File; indeks: number; url: string }[] = [];
     const bilder = valgteImportbilder.slice(0, 40);
@@ -405,14 +406,15 @@ export default function MittHjemOppsett({
     await kjorBegrenset(filer, 3, async ({ fil, indeks, url }) => {
       try {
         const erPlantegning = plantegninger.has(fil);
-        await lastOppDokument(fil, {
+        const bildeId = await lastOppDokument(fil, {
           boligId,
           navn: importEkstra?.bildeTekster?.[url]?.slice(0,150) || (erPlantegning ? `Plantegning fra boligannonse ${indeks + 1}` : `Boligbilde fra boligannonse ${indeks + 1}`),
           kategori: erPlantegning ? "plantegning" : "boligbilde",
           ar: new Date().getFullYear(),
           dokumentdato: new Date().toISOString().slice(0, 10),
-          notat: "Importert fra godkjent boligannonse",
+          notat: "Importert fra FINN/Hjem.no boligannonse",
         });
+        if (!erPlantegning) koblingsbilder.push({id: bildeId, navn: importEkstra?.bildeTekster?.[url] || "", kategori: "boligbilde", filtype: fil.type});
       } catch {
         feilAntall += 1;
       }
@@ -567,12 +569,25 @@ export default function MittHjemOppsett({
         manedsleie: 0,
         altOmBoligen: grunnlag,
       });
+      const koblingsbilder: {id: string; navn: string; kategori: string; filtype: string}[] = [];
       const [bildeFeil, kildebildeFeil, kildeFeil] = await Promise.all([
-        valgteImportbilder.length ? lastOppImportbilder(nyBoligId) : Promise.resolve(0),
+        valgteImportbilder.length ? lastOppImportbilder(nyBoligId, koblingsbilder) : Promise.resolve(0),
         importKildebilder.length ? lastOppKildebilder(nyBoligId) : Promise.resolve(0),
         lagreImportkilder(nyBoligId),
       ]);
-      const alle = await hentBoliger();
+      let alle = await hentBoliger();
+      const opprettet = alle.find(b=>String(b.id)===nyBoligId);
+      if (opprettet && koblingsbilder.length) {
+        const ferskeData = lesAltOmBoligen(opprettet);
+        const koblinger = kobleRomBilder(ferskeData.rom, koblingsbilder);
+        if (koblinger.size) {
+          const altOmBoligen = {...ferskeData, rom: ferskeData.rom.map(rom=>koblinger.has(rom.id) ? {...rom,bildeIder:koblinger.get(rom.id)!} : rom)};
+          try {
+            await oppdaterBolig(nyBoligId, {...opprettet, altOmBoligen});
+            alle = alle.map(b=>String(b.id)===nyBoligId ? {...b,altOmBoligen} : b);
+          } catch { setImportMelding(uiText("Bildene er lagret, men kunne ikke knyttes automatisk til rommene. Velg bilder på romsiden.")); }
+        }
+      }
       if (bildeFeil + kildebildeFeil + kildeFeil) setImportMelding(uiFormat("{0} vedlegg kunne ikke lagres. Resten av boligen ble lagret.", [bildeFeil + kildebildeFeil + kildeFeil]));
       onOppdatert(
         alle.filter((verdi) => String(verdi.brukstype || "") === "privat"),

@@ -14,7 +14,7 @@ export async function analyseImportImages<T>(urls: string[], options: {
   acceptsText: (text: string) => boolean;
   progress?: (stage: "download" | "read", index: number, total: number) => void;
 }): Promise<ImportImageResult<T>> {
-  const selected = urls.slice(0, 40);
+  const selected = urls.slice(0, 60);
   const slots: { done: boolean; file?: T; plan: boolean }[] = selected.map(() => ({ done: false, plan: false }));
   const result: ImportImageResult<T> = { files: [], plans: [], texts: [], failedDownloads: 0, failedReads: 0 };
   let next = 0;

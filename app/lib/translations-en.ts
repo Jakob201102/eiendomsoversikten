@@ -1,5 +1,8 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Plantegningen ble funnet, men rometikettene kunne ikke leses sikkert. Kontroller romlisten mot tegningen.": "The floor plan was found, but its room labels could not be read reliably. Check the room list against the plan.",
+  "Romlisten er hentet fra oppgitte romarealer. Alternative bruksforslag opprettes ikke som ekstra rom.": "The room list is based on the stated room areas. Suggested alternative uses are not created as extra rooms.",
+  "Bildene er lagret, men kunne ikke knyttes automatisk til rommene. Velg bilder på romsiden.": "The photos have been saved but could not be linked automatically to rooms. Select photos on the Rooms page.",
   "Noen PDF-sider kunne ikke leses. Kontroller salgsoppgaven.": "Some PDF pages could not be read. Check the sales prospectus.",
   "Kildene er endret. Kjør analysen på nytt.": "The sources have changed. Run the analysis again.",
   "Annonsens romtall og listen over alle rom og områder er forskjellige. Kjøkken, bad og gang kan vises i romlisten uten å telle med i annonsens romtall.": "The listing’s room count differs from the list of all rooms and areas. Kitchens, bathrooms and hallways may appear in the room list without being included in the listing’s room count.",
