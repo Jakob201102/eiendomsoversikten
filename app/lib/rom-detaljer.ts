@@ -11,7 +11,7 @@ export function bilderTilRom(rom: Rominfo, dokumenter: Dokument[], boligId: stri
   return [...new Set(rom.bildeIder || [])].flatMap(id => tillatte.has(id) ? [tillatte.get(id)!] : []);
 }
 export function historikkTilRom(rom: Rominfo, historikk: Historikkinfo[]) {
-  return historikk.filter(h => h.romId ? h.romId === rom.id : h.omrade.trim().toLocaleLowerCase("nb-NO") === rom.navn.trim().toLocaleLowerCase("nb-NO"))
+  return historikk.filter(h => h.romIder?.length ? h.romIder.includes(rom.id) : h.romId ? h.romId === rom.id : h.omrade.trim().toLocaleLowerCase("nb-NO") === rom.navn.trim().toLocaleLowerCase("nb-NO"))
     .sort((a, b) => b.dato.localeCompare(a.dato));
 }
 const romfelt = ["navn", "areal", "veggfarge", "fargekode", "maling", "glans", "gulv", "tak", "lister", "sistPusset", "notat"] as const;

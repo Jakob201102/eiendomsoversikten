@@ -1,4 +1,5 @@
 "use client";
+import { medProsjekthistorikk } from "../lib/vedlikeholdsprosjekt";
 import HjemOppfolging from "./HjemOppfolging";
 import Feiltekst from "./Feiltekst";
 import { meldLagring } from "./Lagringsstatus";
@@ -255,7 +256,7 @@ export default function MittHjemDashboard({
     (dokument) => !bilderIAarkiv.includes(dokument),
   );
   const historikk = useMemo(() => {
-    const eksisterende = [...data.historikk];
+    const eksisterende = medProsjekthistorikk(data.historikk, oppgaver, String(bolig.id));
     for (const gammel of data.oppussing) {
       if (
         !eksisterende.some(
@@ -281,7 +282,7 @@ export default function MittHjemDashboard({
     return eksisterende.sort((a, b) =>
       (b.dato || "").localeCompare(a.dato || ""),
     );
-  }, [data.historikk, data.oppussing]);
+  }, [data.historikk, data.oppussing, oppgaver, bolig.id]);
 
   async function lagreHandleliste(handleliste: typeof data.handleliste) {
     if (!kanRedigere) return;
@@ -443,7 +444,7 @@ export default function MittHjemDashboard({
         altOmBoligen: {
           ...data,
           kontakter,
-          historikk: nyHistorikk,
+          historikk: nyHistorikk.filter(h => !h.prosjektAvledet),
           oppdatert: new Date().toISOString(),
         },
       });
@@ -573,6 +574,7 @@ export default function MittHjemDashboard({
   }
 
   function startFullforing(oppgave: Vedlikeholdsdata) {
+    if (Array.isArray(oppgave.prosjektDeler)) { window.location.assign(`/vedlikehold/prosjekt?id=${encodeURIComponent(String(oppgave.id))}`); return; }
     const omrade = String(oppgave.omrade || "");
     const tilknyttetRom = data.rom.find(
       (rom) => rom.navn.trim().toLowerCase() === omrade.trim().toLowerCase(),

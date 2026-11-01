@@ -52,6 +52,8 @@ export type Oppussinginfo = {
 };
 
 export type Historikkinfo = {
+  romIder?: string[];
+  prosjektAvledet?: boolean;
   id: string;
   dato: string;
   tittel: string;

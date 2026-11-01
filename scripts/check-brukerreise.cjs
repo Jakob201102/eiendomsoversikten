@@ -27,11 +27,11 @@ const loader=find(history,n=>ts.isVariableDeclaration(n)&&n.name.getText(history
 async function checkHistory(user) {
  const state={}, calls=[]; const setter=k=>v=>{state[k]=typeof v==='function'?v(state[k]):v;};
  const example={id:'demo-privat-hjem',tilgang:'leser'}, own={id:'own',brukstype:'privat'}, rental={id:'rental',brukstype:'utleie'};
- const env={supabase:{auth:{getUser:async()=>({data:{user}})}},search:new URLSearchParams('bolig=demo-privat-hjem'),privatDemoBolig:()=>example,hentBoliger:async()=>{calls.push('homes');return[own,rental];},hentDokumenter:async()=>{calls.push('docs');return[];},setFeil:setter('error'),setDemo:setter('demo'),setBoliger:setter('homes'),setValgtId:setter('selected'),setDokumenter:setter('docs'),setLaster:setter('loading')};
+ const env={supabase:{auth:{getUser:async()=>({data:{user}})}},search:new URLSearchParams('bolig=demo-privat-hjem'),privatDemoBolig:()=>example,hentBoliger:async()=>{calls.push('homes');return[own,rental];},hentDokumenter:async()=>{calls.push('docs');return[];},hentVedlikeholdsoppgaver:async()=>{calls.push('tasks');return[{id:'task',boligId:'own'}];},setProsjekter:setter('projects'),setFeil:setter('error'),setDemo:setter('demo'),setBoliger:setter('homes'),setValgtId:setter('selected'),setDokumenter:setter('docs'),setLaster:setter('loading')};
  await execute('exports.load='+loader,env).load();
  assert.equal(state.loading,false); assert.equal(state.error,'');
  if(!user){assert.equal(state.demo,true);assert.deepEqual(state.homes,[example]);assert.equal(state.selected,example.id);assert.deepEqual(calls,[]);assert.equal(example.tilgang,'leser');}
- else {assert.equal(state.demo,false);assert.deepEqual(state.homes,[own]);assert.equal(state.selected,'own');assert.deepEqual(calls.sort(),['docs','homes']);}
+ else {assert.equal(state.demo,false);assert.deepEqual(state.homes,[own]);assert.equal(state.selected,'own');assert.deepEqual(calls.sort(),['docs','homes','tasks']);assert.equal(state.projects[0].id,'task');}
 }
 (async()=>{await checkHistory(null);await checkHistory({id:'owner'}); console.log('PASS: guest history read-only demo without database queries; authenticated history contains only private homes');})().catch(e=>{console.error(e);process.exit(1);});
 

@@ -1,4 +1,6 @@
 "use client";
+import { medProsjekthistorikk } from "../lib/vedlikeholdsprosjekt";
+import { hentVedlikeholdsoppgaver, type Vedlikeholdsdata } from "../lib/vedlikehold";
 import Feiltekst from "../components/Feiltekst";
 import { meldLagring } from "../components/Lagringsstatus";
 import { privatDemoBolig } from "../lib/privat-demo";
@@ -45,6 +47,7 @@ export default function Bolighistorikk() {
   useLanguage();
   const search = useSearchParams();
   const supabase = useMemo(() => createClient(), []);
+  const [prosjekter, setProsjekter] = useState<Vedlikeholdsdata[]>([]);
   const [demo, setDemo] = useState(false);
   const [boliger, setBoliger] = useState<BoligData[]>([]);
   const [valgtId, setValgtId] = useState("");
@@ -75,14 +78,16 @@ export default function Bolighistorikk() {
           return;
         }
         setDemo(false);
-        const [alle, arkiv] = await Promise.all([
+        const [alle, arkiv, arbeid] = await Promise.all([
           hentBoliger(),
           hentDokumenter(),
+          hentVedlikeholdsoppgaver(),
         ]);
         const privateBoliger = alle.filter(
           (bolig) => String(bolig.brukstype || "") === "privat",
         );
         const onsket = beholdId || search.get("bolig") || "";
+        setProsjekter(arbeid);
         setBoliger(privateBoliger);
         setDokumenter(arkiv);
         setValgtId(
@@ -112,14 +117,14 @@ export default function Bolighistorikk() {
   );
   const hendelser = useMemo<Arkivhendelse[]>(() => {
     if (!data) return [];
-    const resultat: Arkivhendelse[] = data.historikk.map((hendelse) => ({
+    const resultat: Arkivhendelse[] = medProsjekthistorikk(data.historikk, prosjekter, valgtId).map((hendelse) => ({
       ...hendelse,
       arkivtype: hendelse.kildeVedlikeholdId
         ? "vedlikehold"
         : hendelse.kildeSkadeId
           ? "skader"
           : "arbeid",
-      kanRedigeres: true,
+      kanRedigeres: !hendelse.prosjektAvledet,
     }));
     for (const gammel of data.oppussing) {
       if (
@@ -146,14 +151,14 @@ export default function Bolighistorikk() {
       }
     }
     return resultat.sort((a, b) => (b.dato || "").localeCompare(a.dato || ""));
-  }, [data]);
+  }, [data, prosjekter, valgtId]);
   const viste = hendelser.filter((hendelse) => {
     if (fane !== "alle" && hendelse.arkivtype !== fane) return false;
     if (aarFilter !== "alle" && hendelse.dato?.slice(0, 4) !== aarFilter) return false;
     if (romFilter.startsWith("rom:")) {
       const romId = romFilter.slice(4);
       const rom = data?.rom.find((verdi) => verdi.id === romId);
-      if (hendelse.romId !== romId && hendelse.omrade.toLocaleLowerCase("nb-NO") !== String(rom?.navn || "").toLocaleLowerCase("nb-NO")) return false;
+      if (!hendelse.romIder?.includes(romId) && hendelse.romId !== romId && hendelse.omrade.toLocaleLowerCase("nb-NO") !== String(rom?.navn || "").toLocaleLowerCase("nb-NO")) return false;
     }
     if (romFilter.startsWith("omrade:") && hendelse.omrade !== romFilter.slice(7)) return false;
     return true;
@@ -653,7 +658,7 @@ function Historikkrad({
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">
             {maanedAar(hendelse.dato)}
           </p>
-          <h2 className="mt-1 text-xl font-bold">{uiDemoText(hendelse.tittel, hendelse.id)}</h2>
+          <h2 className="mt-1 text-xl font-bold">{uiDemoText(hendelse.tittel, hendelse.id)}</h2>{hendelse.prosjektAvledet && <Link href={`/vedlikehold/prosjekt?id=${encodeURIComponent(hendelse.kildeVedlikeholdId)}`} className="mt-2 inline-block font-semibold text-emerald-900"><UiText text="Åpne prosjekt og arbeidslogg"/> →</Link>}
           <p className="mt-1 text-sm text-slate-500">
             {[
               uiDemoText(hendelse.omrade, hendelse.id),
@@ -662,7 +667,7 @@ function Historikkrad({
                 (hendelse.utfortAv === "selv"
                   ? uiText("Gjort selv")
                   : hendelse.utfortAv === "tidligere-eier" ||
-                      !hendelse.utfortAv
+                      (!hendelse.utfortAv && !hendelse.prosjektAvledet)
                     ? uiText("Tidligere eier")
                     : ""),
             ]
@@ -675,7 +680,7 @@ function Historikkrad({
         </span>
       </div>
       {hendelse.beskrivelse && (
-        <p className="mt-3 max-w-full break-words text-sm text-slate-600">{uiDemoText(rensSynligTekst(hendelse.beskrivelse), hendelse.id)}</p>
+        <p className="mt-3 max-w-full whitespace-pre-wrap break-words text-sm text-slate-600">{uiDemoText(rensSynligTekst(hendelse.beskrivelse), hendelse.id)}</p>
       )}
       {krav.length > 0 && (
         <div

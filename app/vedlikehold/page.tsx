@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { meldLagring } from "../components/Lagringsstatus";
 import TallInput from "../components/TallInput";
 import { formatMoney, parseNok } from "../lib/currency";
@@ -399,7 +400,7 @@ export default function Vedlikehold() {
 
             <h1 className="mt-1 text-3xl font-bold"><UiText text="Oppgaver og tiltak"/></h1>
 
-            <p className="mt-2 text-slate-400"><UiText text="Se hva som skal startes, hva som haster og hva vedlikeholdet kan koste."/></p>
+            <p className="mt-2 text-slate-400"><UiText text="Planlegg arbeidet og ta vare på bilder, notater og dokumentasjon underveis."/></p>
           </div>
 
           {privatFane !== "skader" && harBoligSomKanRedigeres && <button
@@ -431,37 +432,7 @@ export default function Vedlikehold() {
           <div className="rounded-2xl bg-white px-6 py-14 text-center"><UiText text="Laster vedlikeholdsoppgavene…"/></div>
         ) : (
           <>
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Nokkeltall
-            label={uiText("Kritiske oppgaver")}
-            value={String(kritiskeOppgaver)}
-            farge={
-              kritiskeOppgaver > 0
-                ? "text-red-600"
-                : "text-slate-900"
-            }
-          />
-
-          <Nokkeltall
-            label={uiText("Utløpt frist")}
-            value={String(utlopteOppgaver)}
-            farge={
-              utlopteOppgaver > 0
-                ? "text-amber-600"
-                : "text-slate-900"
-            }
-          />
-
-          <Nokkeltall
-            label={uiText("Estimert kostnad")}
-            value={kroner(estimerteKostnader)}
-          />
-
-          <Nokkeltall
-            label={uiText("Ferdige oppgaver")}
-            value={String(ferdigeOppgaver)}
-          />
-        </section>
+        <section className="mh-kort mh-kort-vedlikehold rounded-2xl bg-white p-5"><h2 className="text-xl font-bold"><UiText text="Planlegg, dokumenter og bevar"/></h2><p className="mt-2 max-w-3xl text-sm text-slate-600"><UiText text="Åpne en oppgave som prosjekt. Del opp arbeidet, knytt det til rom og legg til bilder underveis. Fullførte prosjekter vises i boligens historikk."/></p><Link className="mt-3 inline-block font-semibold text-emerald-900" href={`/bolighistorikk${onsketBoligId?'?bolig='+encodeURIComponent(onsketBoligId):''}`}><UiText text="Åpne historikkarkivet"/> →</Link></section>
 
         {boliger.some((bolig) => bolig.brukstype === "privat") && (
           <nav
@@ -783,6 +754,7 @@ function Oppgavekort({
           </p>
         )}
 
+        {!oppgave.id.startsWith('demo') && <Link href={`/vedlikehold/prosjekt?id=${encodeURIComponent(oppgave.id)}`} className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-emerald-900 px-4 py-2 font-semibold text-white"><UiText text="Åpne prosjekt og arbeidslogg"/> →</Link>}
         {kanRedigere && <div className="mt-5 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
