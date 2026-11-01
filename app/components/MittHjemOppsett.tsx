@@ -518,7 +518,7 @@ export default function MittHjemOppsett({
       };
       grunnlag.teknisk.oppvarming = importEkstra?.viktigeDeler?.oppvarming || "";
       const romDetaljer = importEkstra?.romDetaljer || [];
-      grunnlag.rom = (importEkstra?.romForslag || []).map((navn,indeks) => {
+      grunnlag.rom = (importEkstra?.romForslag || []).filter(navn=>navn.trim()).map((navn,indeks) => {
         const detaljer = romDetaljer[indeks]?.navn===navn ? romDetaljer[indeks] : romDetaljer.find((rom) => rom.navn.toLocaleLowerCase("nb-NO") === navn.toLocaleLowerCase("nb-NO"));
         return ({
         id: crypto.randomUUID(),
@@ -535,6 +535,7 @@ export default function MittHjemOppsett({
         notat: "Importert som forslag – fyll inn det du vet senere.",
       });
       });
+      if (importEkstra?.romForslag) grunnlag.generell.antallRom = String(grunnlag.rom.filter(rom=>rom.navn.trim()).length);
       grunnlag.uteomrader = lagUteomraderFraImport(importEkstra?.tilleggsarealer || {});
       grunnlag.historikk = (importEkstra?.historikkForslag || []).map(
         (hendelse) => ({
@@ -562,7 +563,7 @@ export default function MittHjemOppsett({
         bruttoareal: Number(grunninfo.bruttoareal) || 0,
         energimerking: grunninfo.energimerking,
         soverom: Number(grunninfo.soverom) || 0,
-        antallRom: Number(grunninfo.antallRom) || 0,
+        antallRom: Number(grunnlag.generell.antallRom) || 0,
         etasje: grunninfo.etasjer,
         bolignummer: grunninfo.leilighetsnummer,
         finnAnnonseUrl: finnKilde,
@@ -1183,7 +1184,8 @@ export default function MittHjemOppsett({
               <Felt label={uiText("Antall rom (valgfritt)")}>
                 <input
                   inputMode="numeric"
-                  value={grunninfo.antallRom}
+                  value={importEkstra?.romForslag ? String(importEkstra.romForslag.filter(navn=>navn.trim()).length) : grunninfo.antallRom}
+                  readOnly={Boolean(importEkstra?.romForslag)}
                   onChange={(event) =>
                     setGrunninfo({
                       ...grunninfo,

@@ -10,7 +10,7 @@ export function romimportMedBilder(data: ImportertBolig, bilder: ImportRomBilde[
   const rader=romimportRader(data.romForslag,data.romDetaljer);
   const koblinger=kobleRomBilder(rader.map((r,i)=>({id:String(i),navn:r.navn})),bilder);
   const tillatt=new Set(bilder.map(b=>b.id));
-  return {...data,romDetaljer:rader.map((r,i)=>({...r,bildeKilde:r.bildeValgtManuelt ? (tillatt.has(r.bildeKilde || "") ? r.bildeKilde : "") : koblinger.get(String(i))?.[0] || ""}))};
+  return {...data,antallRom:String(rader.filter(r=>r.navn.trim()).length),romDetaljer:rader.map((r,i)=>({...r,bildeKilde:r.bildeValgtManuelt ? (tillatt.has(r.bildeKilde || "") ? r.bildeKilde : "") : koblinger.get(String(i))?.[0] || ""}))};
 }
 /** Apply previewed choices using uploaded IDs, never URLs in persisted room image arrays. */
 export function brukKontrollerteRombilder<T extends {navn:string;bildeIder?:string[];bilderValgtManuelt?:boolean}>(rom:T[], forslag:ImportertRom[], opplastet:Map<string,string>):T[] {

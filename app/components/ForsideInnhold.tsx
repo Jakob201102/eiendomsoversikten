@@ -1,4 +1,5 @@
 "use client";
+import ForsideTilbud from "./ForsideTilbud";
 import UiIcon from "./UiIcon";
 import { UiText, uiText, uiFormat, uiLocale, useLanguage, uiDemoText } from "../lib/language";
 
@@ -54,11 +55,7 @@ export default function ForsideInnhold() {
     };
   }, []);
   if (laster) return <div className="min-h-[70vh] bg-slate-950" />;
-  if (!innlogget) return <OffentligForside />;
-  if (!modus) return <VelgForside />;
-  if (modus === "privat") return <PrivatForside />;
-  if (modus === "begge") return <BeggeForside />;
-  return <UtleieForside />;
+  return <ForsideTilbud innlogget={innlogget} modus={modus}/>;
 }
 
 function PrivatForside() {
