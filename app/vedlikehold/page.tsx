@@ -290,7 +290,7 @@ export default function Vedlikehold() {
       return;
     }
 
-    if (datotype === "periode" && startdato && frist && startdato > frist) {
+    if (redigererId && datotype === "periode" && startdato && frist && startdato > frist) {
       setFeilmelding(
         "Startdatoen kan ikke være etter fristen.",
       );
@@ -303,14 +303,14 @@ export default function Vedlikehold() {
       boligAdresse: bolig.adresse,
       tittel: tittel.trim(),
       prioritet,
-      startdato: datotype === "enkelt" ? frist : startdato,
-      frist,
+      startdato: redigererId ? (datotype === "enkelt" ? frist : startdato) : "",
+      frist: redigererId ? frist : "",
       kostnad,
       status: eksisterendeOppgave?.status || "planlagt",
       notat: notat.trim(),
-      gjentakelse: valgtErPrivat ? gjentakelse : "aldri",
-      egendefinertDager: valgtErPrivat && gjentakelse === "egendefinert" ? egendefinertDager : 0,
-      paaminnelseDager: valgtErPrivat
+      gjentakelse: redigererId && valgtErPrivat ? gjentakelse : "aldri",
+      egendefinertDager: redigererId && valgtErPrivat && gjentakelse === "egendefinert" ? egendefinertDager : 0,
+      paaminnelseDager: redigererId && valgtErPrivat
         ? paaminnelseDager === -1
           ? Math.max(0, egenPaaminnelseDager)
           : paaminnelseDager
@@ -432,7 +432,6 @@ export default function Vedlikehold() {
           <div className="rounded-2xl bg-white px-6 py-14 text-center"><UiText text="Laster vedlikeholdsoppgavene…"/></div>
         ) : (
           <>
-        <section className="mh-kort mh-kort-vedlikehold rounded-2xl bg-white p-5"><h2 className="text-xl font-bold"><UiText text="Planlegg, dokumenter og bevar"/></h2><p className="mt-2 max-w-3xl text-sm text-slate-600"><UiText text="Åpne en oppgave som prosjekt. Del opp arbeidet, knytt det til rom og legg til bilder underveis. Fullførte prosjekter vises i boligens historikk."/></p><Link className="mt-3 inline-block font-semibold text-emerald-900" href={`/bolighistorikk${onsketBoligId?'?bolig='+encodeURIComponent(onsketBoligId):''}`}><UiText text="Åpne historikkarkivet"/> →</Link></section>
 
         {boliger.some((bolig) => bolig.brukstype === "privat") && (
           <nav
@@ -551,6 +550,7 @@ export default function Vedlikehold() {
                         )}/>
                   </label>
 
+                  {redigererId && <>
                   <div className="md:col-span-2">
                     <Felttekst><UiText text="Når skal arbeidet gjøres?"/></Felttekst>
                     <div className="mt-2 flex gap-2">
@@ -582,6 +582,8 @@ export default function Vedlikehold() {
                     {gjentakelse === "egendefinert" && <label><Felttekst><UiText text="Antall dager mellom hver gang"/></Felttekst><input type="number" min="1" value={egendefinertDager} onChange={(event) => setEgendefinertDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
                     <label><Felttekst><UiText text="Påminnelse"/></Felttekst><select value={paaminnelseDager} onChange={(event) => setPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3"><option value="0"><UiText text="Samme dag"/></option><option value="1"><UiText text="1 dag før"/></option><option value="7"><UiText text="1 uke før"/></option><option value="30"><UiText text="1 måned før"/></option><option value="-1"><UiText text="Egendefinert"/></option></select></label>
                     {paaminnelseDager === -1 && <label><Felttekst><UiText text="Antall dager før"/></Felttekst><input type="number" min="0" value={egenPaaminnelseDager} onChange={(event) => setEgenPaaminnelseDager(Number(event.target.value))} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>}
+                  </>}
+
                   </>}
 
                   <label className="md:col-span-2">
