@@ -5,7 +5,7 @@ export const budsjettPoster = [
 ] as const;
 export type Periode = "maaned" | "kvartal" | "aar";
 export type Belopsfelt = { belop: string; periode: Periode };
-export type Budsjett = { versjon: 1; poster: Record<string, Belopsfelt>; inkludert: string[]; forsikringKilde: "manuell" | "register"; forsikringIder: string[]; laanmodus: "samlet" | "delt"; andre: { id: string; navn: string; belop: string; periode: Periode }[] };
+export type Budsjett = { kjopesum?: string; laanebelop?: string; versjon: 1; poster: Record<string, Belopsfelt>; inkludert: string[]; forsikringKilde: "manuell" | "register"; forsikringIder: string[]; laanmodus: "samlet" | "delt"; andre: { id: string; navn: string; belop: string; periode: Periode }[] };
 export type Forsikringspris = { id: string; type: string; selskap: string; arspris: string };
 export type Budsjettrad = { id: string; navn: string; aar: number; inkludert: boolean; feil: boolean; egendefinert?: boolean };
 export function tomtBudsjett(): Budsjett { return { versjon: 1, poster: Object.fromEntries([...budsjettPoster.map(([id]) => id), "laan", "renter", "avdrag"].map((id) => [id, { belop: "", periode: "maaned" }])), inkludert: [], forsikringKilde: "manuell", forsikringIder: [], laanmodus: "samlet", andre: [] }; }
@@ -15,6 +15,8 @@ export function lesBudsjett(input: unknown): Budsjett {
   const data = input as Partial<Budsjett>;
   function felt(v: unknown): Belopsfelt { const b = v as Partial<Belopsfelt> | undefined; return { belop: typeof b?.belop === "string" ? b.belop : "", periode: b?.periode === "aar" || b?.periode === "kvartal" ? b.periode : "maaned" }; }
   for (const id of Object.keys(tom.poster)) tom.poster[id] = felt(data.poster?.[id]);
+  if (typeof data.kjopesum === "string") tom.kjopesum = data.kjopesum;
+  if (typeof data.laanebelop === "string") tom.laanebelop = data.laanebelop;
   tom.inkludert = Array.isArray(data.inkludert) ? data.inkludert.filter((id) => ["kommunale", "eiendomsskatt", "internett", "forsikring"].includes(id)) : [];
   tom.forsikringKilde = data.forsikringKilde === "register" ? "register" : "manuell";
   tom.forsikringIder = Array.isArray(data.forsikringIder) ? [...new Set(data.forsikringIder.filter((id) => typeof id === "string"))] : [];
@@ -42,5 +44,5 @@ export function beregnBoligbudsjett(budsjett: Budsjett, forsikringer: Forsikring
   for (const [id, navn] of budsjett.laanmodus === "delt" ? [["renter", "Renter på boliglån"], ["avdrag", "Avdrag på boliglån"]] : [["laan", "Samlet lånebetaling"]]) { const aar = aarsbelop(budsjett.poster[id]); rader.unshift({ id, navn, aar: aar || 0, feil: aar === null, inkludert: false }); }
   for (const post of budsjett.andre) { const aar = aarsbelop(post); rader.push({ id: post.id, navn: post.navn, aar: aar || 0, feil: aar === null || !post.navn.trim(), inkludert: false, egendefinert: true }); }
   const aar = Math.round(rader.reduce((sum,r) => sum + r.aar, 0)*100)/100;
-  return { rader, aar, maaned: aar/12, harFeil: rader.some((r) => r.feil) };
+  return { rader, aar, maaned: aar/12, harFeil: rader.some((r) => r.feil) || [budsjett.kjopesum, budsjett.laanebelop].some(v => v !== undefined && lesBudsjettbelop(v) === null) };
 }

@@ -1,4 +1,6 @@
 "use client";
+import TallInput from "./TallInput";
+import { lesBudsjettbelop } from "../lib/privat-okonomi";
 import { lesPdfSider } from "../lib/pdf-import";
 import { velgImportbilder } from "../lib/rom-bildekobling";
 import RomimportOversikt from "./RomimportOversikt";
@@ -129,6 +131,7 @@ export default function BoligimportKilder({
     ...bildeFiler.filter(f=>!kildeanalyse.some(k=>k.fil===f&&k.erPlantegning)).map(fil=>({id:importfilNokkel(fil),fil,navn:fil.name})),
   ];
   const aktiveRombilder = rombilder.filter(b=>b.fil || valgteFinnBilder.includes(b.id));
+  const okonomiGyldig = !resultat || [resultat.felleskostAar,resultat.kommunaleAar,resultat.eiendomsskattAar].every(v=>v===undefined||lesBudsjettbelop(v)!==null);
   const romkontroll = resultat ? romimportMedBilder(resultat,aktiveRombilder) : null;
   function velgRombilde(indeks:number,id:string) {
     if (!romkontroll) return;
@@ -436,6 +439,7 @@ export default function BoligimportKilder({
 
         <p className="mt-4 text-xs text-slate-500"><UiText text="Antall rom følger romlisten. Bad, kjøkken og gang teller med. Antall soverom vises separat."/></p>
         {resultat.romlisteFraAreal && <p className="mt-4 text-sm text-slate-600"><UiText text="Romlisten er hentet fra oppgitte romarealer. Alternative bruksforslag opprettes ikke som ekstra rom."/></p>}
+        <section className="mt-5 rounded-2xl border border-stone-200 bg-stone-50 p-4"><h3 className="font-bold"><UiText text="Økonomi fra kildene"/></h3><p className="mt-2 text-sm text-slate-600"><UiText text="Kontroller årsbeløpene i NOK. Månedlige og kvartalsvise beløp er regnet om til år. Tomme felt betyr at vi ikke fant et tydelig beløp og en periode."/></p><div className="mt-3 grid gap-3 sm:grid-cols-3">{([['felleskostAar','Felleskostnader per år'],['kommunaleAar','Kommunale avgifter per år'],['eiendomsskattAar','Eiendomsskatt per år']] as const).map(([key,label])=><Kontrollfelt key={key} penger label={uiText(label)} verdi={String(resultat[key]||'')} konflikt={konflikterPerFelt.get(key)} onChange={v=>endreFelt(key,v)} onVelgKonflikt={v=>endreFelt(key,v)}/>)}</div><div className="mt-3 space-y-2">{([['kommunaleInkludert','Kommunale avgifter er inkludert i felleskostnadene'],['eiendomsskattInkludert','Eiendomsskatt er inkludert i felleskostnadene']] as const).map(([key,label])=><div key={key}><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={resultat[key]==='ja'} onChange={e=>endreFelt(key,e.target.checked?'ja':'nei')}/>{uiText(label)}</label>{konflikterPerFelt.get(key) && <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs">{konflikterPerFelt.get(key)!.verdier.map(v=><button key={v.kilde+v.verdi} type="button" className="block min-h-11 text-left underline" onClick={()=>endreFelt(key,v.verdi)}>{v.kilde}: {uiText(v.verdi==='ja'?'Inkludert i felleskostnadene':'Ikke inkludert i felleskostnadene')}</button>)}</div>}</div>)}</div><p className="mt-3 text-xs text-slate-600"><UiText text="Kostnadene legges i Økonomi under boligen. Kjøpspris og eget lån fyller du inn selv."/></p></section>
         <RomimportOversikt
           navn={resultat.romForslag}
           detaljer={romkontroll!.romDetaljer}
@@ -455,7 +459,8 @@ export default function BoligimportKilder({
 
         {uttruknePlantegninger.length > 0 && <p className="mt-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">{uiFormat(uttruknePlantegninger.length === 1 ? "Vi fant {0} mulig plantegning i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning." : "Vi fant {0} mulige plantegninger i PDF-filene. De lagres under Bilder og plantegninger etter godkjenning.", [uttruknePlantegninger.length])}</p>}
         {analysertKildenokkel !== aktiveAnnonsekilder.current && <p role="status" className="mt-3 text-sm text-amber-800"><UiText text="Kildene er endret. Kjør analysen på nytt."/></p>}
-        <button type="button" disabled={analyserer || analysertKildenokkel !== aktiveAnnonsekilder.current} onClick={() => onGodkjenn(romkontroll!, finnLenke.trim() || hjemLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler, kildeanalyse)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"><UiText text="Godkjenn og bruk forslagene"/></button>
+        {!okonomiGyldig && <p role="alert" className="mt-3 text-sm text-red-700"><UiText text="Kontroller økonomibeløpene før du godkjenner forslagene."/></p>}
+        <button type="button" disabled={analyserer || !okonomiGyldig || analysertKildenokkel !== aktiveAnnonsekilder.current} onClick={() => onGodkjenn(romkontroll!, finnLenke.trim() || hjemLenke.trim(), valgteFinnBilder, [...bildeFiler, ...uttruknePlantegninger], pdfFiler, finnPlantegningBilder, finnBildefiler, kildeanalyse)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-white disabled:opacity-50"><UiText text="Godkjenn og bruk forslagene"/></button>
         <p className="mt-2 text-center text-xs text-slate-500"><UiText text="Boligen opprettes først når du bruker hovedknappen nederst i skjemaet."/></p>
       </div>}
     </div>
@@ -467,9 +472,9 @@ function Kilderad({ navn, detalj, onSlett }: { navn: string; detalj: string; onS
   return <div className="flex min-w-0 items-start gap-2"><span className="text-emerald-600">✓</span><div className="min-w-0 flex-1"><p className="break-words font-semibold">{navn}</p><p className="break-all text-xs text-slate-500">{detalj}</p></div><button type="button" onClick={onSlett} className="shrink-0 text-xs font-bold text-slate-500"><UiText text="Fjern"/></button></div>;
 }
 
-function Kontrollfelt({ label, verdi, konflikt, onChange, onVelgKonflikt, laast = false }: { label: string; verdi: string; konflikt?: BoligimportKonflikt; onChange: (verdi: string) => void; onVelgKonflikt: (verdi: string) => void; laast?:boolean }) {
+function Kontrollfelt({ label, verdi, konflikt, onChange, onVelgKonflikt, laast = false, penger = false }: { label: string; verdi: string; konflikt?: BoligimportKonflikt; onChange: (verdi: string) => void; onVelgKonflikt: (verdi: string) => void; laast?:boolean; penger?:boolean }) {
   useLanguage();
-  return <label className="min-w-0 text-sm"><span className="font-semibold"><UiText text={String(label ?? "")}/></span><input value={verdi} readOnly={laast} onChange={(e) => onChange(e.target.value)} className="felt mt-1" />{konflikt && !laast && <div className="mt-2 min-w-0 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-950"><p className="font-bold"><UiIconText text="⚠️ Dobbelsjekk dette feltet"/></p>{konflikt.verdier.map((funn) => <button key={`${funn.kilde}-${funn.verdi}`} type="button" onClick={() => onVelgKonflikt(funn.verdi)} className="mt-1 block max-w-full break-words text-left underline"><strong>{funn.kilde}:</strong> {funn.verdi}</button>)}</div>}</label>;
+  return <label className="min-w-0 text-sm"><span className="font-semibold"><UiText text={String(label ?? "")}/></span>{penger ? <TallInput value={verdi} min="0" readOnly={laast} onValueChange={onChange} className="felt mt-1"/> : <input value={verdi} readOnly={laast} onChange={(e) => onChange(e.target.value)} className="felt mt-1" />}{konflikt && !laast && <div className="mt-2 min-w-0 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-950"><p className="font-bold"><UiIconText text="⚠️ Dobbelsjekk dette feltet"/></p>{konflikt.verdier.map((funn) => <button key={`${funn.kilde}-${funn.verdi}`} type="button" onClick={() => onVelgKonflikt(funn.verdi)} className="mt-1 block max-w-full break-words text-left underline"><strong>{funn.kilde}:</strong> {funn.verdi}</button>)}</div>}</label>;
 }
 
 function RedigerListe({ tittel, tomTekst, verdier, onChange }: { tittel: string; tomTekst: string; verdier: string[]; onChange: (verdier: string[]) => void }) {

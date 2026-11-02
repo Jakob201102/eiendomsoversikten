@@ -1,5 +1,18 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Ikke inkludert i felleskostnadene": "Not included in common charges",
+  "Kontroller økonomibeløpene før du godkjenner forslagene.": "Check the financial amounts before approving the suggestions.",
+  "Økonomi fra kildene": "Costs from your sources",
+  "Kontroller årsbeløpene i NOK. Månedlige og kvartalsvise beløp er regnet om til år. Tomme felt betyr at vi ikke fant et tydelig beløp og en periode.": "Check the annual amounts in NOK. Monthly and quarterly amounts have been converted to yearly amounts. Empty fields mean no clear amount and period were found.",
+  "Felleskostnader per år": "Annual common charges",
+  "Eiendomsskatt per år": "Annual property tax",
+  "Kommunale avgifter er inkludert i felleskostnadene": "Municipal fees are included in common charges",
+  "Eiendomsskatt er inkludert i felleskostnadene": "Property tax is included in common charges",
+  "Kostnadene legges i Økonomi under boligen. Kjøpspris og eget lån fyller du inn selv.": "The costs are added to your property’s finances. Enter your purchase price and mortgage yourself.",
+  "Kjøpspris og lånebeløp er egne opplysninger. Legg inn månedlig lånebetaling nedenfor; beløpene over legges ikke til boligkostnadene.": "Purchase price and mortgage balance are separate details. Enter your mortgage payments below; the amounts above are not added to your home expenses.",
+  "Lånebeløp": "Mortgage balance",
+  "Tilbake til prosjektoversikten": "Back to project overview",
+
   "Felles bilder": "Shared project photos",
   "Detaljer, rom og oppgaver": "Details, rooms and tasks",
   "Gi delprosjektet et navn eller velg et rom.": "Name the subproject or choose a room.",

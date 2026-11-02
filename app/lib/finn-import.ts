@@ -48,6 +48,22 @@ function bildeUrl(v:unknown,kode:string) {
   return tilhorerFinnBilde(u,kode)?u:undefined;
 }
 function strip(v:unknown){return text(v).replace(/<br\s*\/?>|<\/(?:p|div|li|h\d)>/gi,"\n").replace(/<[^>]*>/g," ").replace(/&nbsp;|&#160;/g," ").replace(/&amp;/g,"&");}
+// Financial text stays within the requested ad. A numeric value requires an explicit period.
+function kostnadstekst(v:unknown,key="",depth=0):string[] {
+ if(depth>5)return [];
+ if(Array.isArray(v))return v.slice(0,50).flatMap(x=>kostnadstekst(x,key,depth+1));
+ const leafLabel=/common.?cost|shared.?cost|felleskost/i.test(key)?"Felleskostnader":/municipal|kommunal/i.test(key)?"Kommunale avgifter":/property.?tax|eiendomsskatt/i.test(key)?"Eiendomsskatt":"";
+ const leafUnit=/month|monthly|mnd|måned/i.test(key)?"per måned":/quarter|kvartal/i.test(key)?"per kvartal":/year|annual|yearly/i.test(key)?"per år":"";
+ if(number(v)&&leafLabel&&leafUnit)return [`${leafLabel}: ${number(v)} ${leafUnit}`];
+ const o=obj(v);if(!Object.keys(o).length)return [];
+ const label=text(o.label)||text(o.heading)||text(o.title)||text(o.name);
+ const inferred=/common.?cost|shared.?cost|felleskost/i.test(key)?"Felleskostnader":/municipal|kommunal/i.test(key)?"Kommunale avgifter":/property.?tax|eiendomsskatt/i.test(key)?"Eiendomsskatt":"";
+ const period=text(o.period)||text(o.unit)||text(o.frequency);
+ const unit=/month|monthly|mnd|måned/i.test(period+key)?"per måned":/quarter|kvartal/i.test(period+key)?"per kvartal":/year|annual|yearly|årlig|aarlig/i.test(period+key)?"per år":"";
+ const amount=number(o.amount)||number(o.value);
+ const body=text(o.content)||text(o.text)||text(o.value);
+ return [amount&&(label||inferred)?`${label||inferred}: ${amount} ${unit}`:"",body&&label?`${label}: ${body}`:"",...Object.entries(o).filter(([k,x])=>x&&(typeof x==="object"||/common.?cost|municipal|property.?tax/i.test(k))&&!/related|recommend|similar/i.test(k)).flatMap(([k,x])=>kostnadstekst(x,key+" "+k,depth+1))].filter(Boolean);
+}
 export function finnImportgrunnlag(finn:FinnAnnonse) {
   const a=finn.ad,location=obj(a.location),size=obj(a.size),plot=obj(a.plot),energy=obj(a.energyLabel);
   const felt:Record<string,string>={};const set=(k:string,v:unknown)=>{const t=typeof v==="string"?v.trim():number(v);if(t)felt[k]=t;};
@@ -65,6 +81,6 @@ export function finnImportgrunnlag(finn:FinnAnnonse) {
     if(!bildeUrl(obj(floor.floorplan).uri,finn.kode))continue;
     for(const raw of arr(floor.rooms)){const r=obj(raw),name=text(r.roomLabel);if(!name || name.length>80 || r.type!=="room")continue;if(!rom.some(n=>n.toLowerCase()===name.toLowerCase()))rom.push(name);}
   }
-  const tekst=[strip(a.summaryUnsafe),strip(size.descriptionUnsafe),...arr(a.propertyInfo).map(v=>strip(obj(v).content)),...arr(a.generalText).filter(v=>/^(?:kort om|om boligen|innhold|tomt|byggemåte|standard|oppvarming|energimerking|radon|parkering|oppussing|modernisering|utførte|areal)/i.test(text(obj(v).heading))).map(v=>strip(obj(v).textUnsafe))].filter(Boolean).join("\n");
+  const tekst=[strip(a.summaryUnsafe),strip(size.descriptionUnsafe),...arr(a.propertyInfo).map(v=>[text(obj(v).heading)||text(obj(v).label),strip(obj(v).content)].filter(Boolean).join("\n")),...kostnadstekst(a.propertyInfo),...Object.entries(a).filter(([k])=>/^(?:price|pricing|costs|expenses)$/i.test(k)||/common.?cost|municipal|property.?tax/i.test(k)).flatMap(([k,v])=>kostnadstekst(v,k)),...arr(a.generalText).filter(v=>/^(?:kort om|om boligen|innhold|tomt|byggemåte|standard|oppvarming|energimerking|radon|parkering|oppussing|modernisering|utførte|areal|felleskost|fellesutgifter|kommunal|eiendomsskatt|økonomi|kostnader)/i.test(text(obj(v).heading))).map(v=>text(obj(v).heading)+"\n"+strip(obj(v).textUnsafe))].filter(Boolean).join("\n");
   return {felt,bilder,bildeTekster,plantegninger,rom,tekst};
 }

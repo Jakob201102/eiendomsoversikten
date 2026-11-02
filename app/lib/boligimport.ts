@@ -1,8 +1,9 @@
+import { finnBoligokonomi, type Importokonomi } from "./import-boligokonomi";
 import { filtrerBoligkildetekst } from "./boligkilde-tekst";
 import { finnKodeFraUrl, lesFinnAnnonse, finnImportgrunnlag, tilhorerFinnBilde } from "./finn-import";
 export type ImportertHistorikk = { tittel: string; dato: string; omrade: string; beskrivelse: string };
 export type ImportertRom = { navn: string; areal: string; sistPusset: string; bildeKilde?: string; bildeValgtManuelt?: boolean };
-export type ImportertBolig = {
+export type ImportertBolig = Importokonomi & {
   adresse?: string; boligtype?: string; byggeaar?: string; areal?: string; braI?: string; braE?: string;
   tomteareal?: string; bruttoareal?: string; energimerking?: string;
   etasjer?: string; antallRom?: string; soverom?: string; leilighetsnummer?: string; gnrBnr?: string; bod?: string;
@@ -23,7 +24,7 @@ export type BoligimportKonflikt = {
 
 const ENKELTFELT: (keyof ImportertBolig)[] = [
   "adresse", "boligtype", "byggeaar", "areal", "braI", "braE", "tomteareal", "bruttoareal", "energimerking", "etasjer",
-  "antallRom", "soverom", "leilighetsnummer", "gnrBnr", "bod",
+  "antallRom", "soverom", "leilighetsnummer", "gnrBnr", "bod", "felleskostAar", "kommunaleAar", "eiendomsskattAar", "kommunaleInkludert", "eiendomsskattInkludert",
 ];
 
 /** Slår sammen alle importkilder uten å opprette boligdata. Ulikheter beholdes som konflikter. */
@@ -242,6 +243,7 @@ const ETIKETTSTOPP = /\b(?:prisantydning|totalpris|omkostninger|felleskostnader|
 export function analyserBoligtekst(innhold: string): ImportertBolig {
   const tekst = normaliserTekst(filtrerBoligkildetekst(innhold)); const samlet = tekst.replace(/\n+/g, " ");
   const data: ImportertBolig = { romForslag: [], romDetaljer: [], viktigeDeler: {}, tilleggsarealer: {}, historikkForslag: [], bildeForslag: [] };
+  Object.assign(data, finnBoligokonomi(tekst));
   data.adresse = finnAdresse(tekst); data.boligtype = finnBoligtype(tekst);
   data.byggeaar = finnForsteTall(tekst, ["byggeår", "byggeaar", "oppført", "byggeår iht. eiendomsregisteret", "year built", "construction year", "built"], /(?:18|19|20)\d{2}/);
   data.braI = finnAreal(tekst, ["BRA-i", "BRA i", "internt bruksareal", "internal usage", "internal area"]);

@@ -168,10 +168,11 @@ function Prosjekt({ id }: { id: string }) {
               <button disabled={jobber} aria-current={!aktivDel ? "page" : undefined} className={knapp + " w-full justify-start " + (!aktivDel ? "bg-emerald-900 text-white" : "bg-white")} onClick={() => velgDel("")}>{uiText("Prosjektoversikt")}</button>
               {deler.map(d => <button key={d.id} disabled={jobber} aria-current={aktivDel === d.id ? "page" : undefined} className={knapp + " w-full justify-start break-words text-left " + (aktivDel === d.id ? "bg-emerald-900 text-white" : "bg-white")} onClick={() => velgDel(d.id)}>{d.navn}</button>)}
             </nav>
-            {aktivDel && <button disabled={jobber} onClick={() => velgDel("")} className="mt-3 min-h-11 text-sm font-semibold text-emerald-900 lg:hidden">← {uiText("Prosjektoversikt")}</button>}
+            
           </aside>
           <div className="min-w-0 space-y-5">
-            <h2 ref={omradeStart} tabIndex={-1} className="break-words text-xl font-bold outline-none">{del ? del.navn : uiText("Prosjektoversikt")}</h2>
+            {aktivDel && <button disabled={jobber} onClick={() => velgDel("")} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border-2 border-emerald-800 bg-white px-4 py-3 font-bold text-emerald-950 sm:w-auto"><span aria-hidden="true">←</span>{uiText("Tilbake til prosjektoversikten")}</button>}
+            <h2 ref={omradeStart} tabIndex={-1} className="break-words scroll-mt-24 text-xl font-bold outline-none">{del ? del.navn : uiText("Prosjektoversikt")}</h2>
             {!aktivDel ? <>
               <fieldset disabled={!kan || jobber} className={kort + " min-w-0"}>
                 <label className="block text-sm font-semibold">{uiText("Prosjektnavn")}<input className={felt} value={String(o.tittel || "")} onChange={e => endre({ tittel: e.target.value })} /></label>

@@ -1,4 +1,5 @@
 "use client";
+import { budsjettFraImport, type Importokonomi } from "../lib/import-boligokonomi";
 import { kobleRomBilder } from "../lib/rom-bildekobling";
 import { brukKontrollerteRombilder, importfilNokkel } from "../lib/romimport-oversikt";
 import Feiltekst from "./Feiltekst";
@@ -55,7 +56,7 @@ type Grunninfo = {
   bod: string;
 };
 
-type ImportForslag = Partial<Grunninfo> & {
+type ImportForslag = Partial<Grunninfo> & Importokonomi & {
   romForslag?: string[];
   romDetaljer?: ImportertRom[];
   viktigeDeler?: Record<string, string>;
@@ -568,6 +569,7 @@ export default function MittHjemOppsett({
         bolignummer: grunninfo.leilighetsnummer,
         finnAnnonseUrl: finnKilde,
         importertFraFinnDato: finnKilde ? new Date().toISOString() : "",
+        privatOkonomi: budsjettFraImport(importEkstra || undefined),
         restlaan: 0,
         manedsleie: 0,
         altOmBoligen: grunnlag,
