@@ -1,3 +1,4 @@
+import { prosjektOppgaver, prosjektDeler } from "./vedlikeholdsprosjekt";
 import { createClient } from "./supabase/client";
 import { DEMO_VEDLIKEHOLD, sendTilInnlogging } from "./demo-data";
 
@@ -28,7 +29,7 @@ export async function fullforVedlikeholdsoppgave(oppgave: Vedlikeholdsdata, endr
     const alle = await hentVedlikeholdsoppgaver();
     const finnesNeste = alle.some((verdi) => String(verdi.gjentakelseFraId || "") === String(oppgave.id));
     const frist = nesteDato(String(oppgave.frist || ferdigdato), gjentakelse, Number(oppgave.egendefinertDager || 0));
-    if (!finnesNeste && frist) await opprettVedlikeholdsoppgave({ ...oppgave, id: undefined, status: "planlagt", startdato: "", frist, ferdigdato: "", faktiskKostnad: 0, opprettet: new Date().toISOString(), gjentakelseFraId: String(oppgave.id), arbeidslogg: [], prosjektVersjon: undefined, ...(Array.isArray(oppgave.prosjektDeler) ? { prosjektDeler: (oppgave.prosjektDeler as {oppgaver:{ferdig:boolean}[]}[]).map(d => ({...d, oppgaver:d.oppgaver.map(t=>({...t,ferdig:false}))})) } : {}) });
+    if (!finnesNeste && frist) await opprettVedlikeholdsoppgave({ ...oppgave, id: undefined, status: "planlagt", startdato: "", frist, ferdigdato: "", faktiskKostnad: 0, opprettet: new Date().toISOString(), gjentakelseFraId: String(oppgave.id), arbeidslogg: [], prosjektVersjon: undefined, prosjektOppgaver: prosjektOppgaver(oppgave).map(t=>({...t,ferdig:false})), ...(Array.isArray(oppgave.prosjektDeler) ? { prosjektDeler: prosjektDeler(oppgave).map(d => ({...d,status:"planlagt",ferdigdato:"",oppgaver:d.oppgaver.map(t=>({...t,ferdig:false}))})) } : {}) });
   }
   await oppdaterVedlikeholdsoppgave(String(oppgave.id), { ...endringer, status: "ferdig", ferdigdato });
 }

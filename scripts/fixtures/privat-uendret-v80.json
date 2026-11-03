@@ -78,7 +78,7 @@
   "app/lib/okonomi.ts": "3b981deb1970c3e95d3dcaa5bd49b8baf1fabfc8c8f4d84169087f70b0413f5d",
   "app/lib/pdf-arsrapport.ts": "1c752fec64381361581c18204738fcee98f4ac98e025509bfbef1ee210eb8839",
   "app/lib/skatteposter.ts": "348f184240639de319e4ae914d5c2b23fe6c1437b53f5cc9268ca16ae9671fe3",
-  "app/lib/vedlikehold.ts": "7a9973f5b44f8ac76f13b58ed68e2623ef5384cc788a518d95b73e7d37b86771",
+  "app/lib/vedlikehold.ts": "24261c29f2724d964b6eccb707adf5556c23ff33cbbf34ba9cfcb316143431e8",
   "app/lib/supabase/client.ts": "37f07909c149f3ed7163113eaacb2ff79079e8b9e378646b09fce6445f3a40db",
   "app/logg-inn/layout.tsx": "fb2ad1dbcbd657865f345e4b4ad1f54393a01e3813ff2d8f6f6edf9844463182",
   "app/logg-inn/page.tsx": "80a00544e8a2bf80d25e842c0bd883b92a9c534d2928ec1762d379070fa767f6",

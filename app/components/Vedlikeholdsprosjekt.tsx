@@ -2,23 +2,24 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { useSearchParams } from "next/navigation";
+import Prosjektsjekkliste from "./Prosjektsjekkliste";
 import Navigasjon from "./Navigasjon";
 import HistorikkVedlegg from "./HistorikkVedlegg";
 import DokumentMiniatyr, { erBildefil } from "./DokumentMiniatyr";
-import { uiText, useLanguage } from "../lib/language";
+import { uiText, uiFormat, useLanguage } from "../lib/language";
 import { hentBoliger, type BoligData } from "../lib/boliger";
 import { lesAltOmBoligen } from "../lib/alt-om-boligen";
 import { hentVedlikeholdsoppgaver, fullforVedlikeholdsoppgave, type Vedlikeholdsdata } from "../lib/vedlikehold";
 import { lagreVedlikeholdsprosjekt } from "../lib/lagre-vedlikeholdsprosjekt";
-import { prosjektDeler, prosjektLogg, type Prosjektdel } from "../lib/vedlikeholdsprosjekt";
+import { prosjektDeler, prosjektLogg, prosjektOppgaver, delStatus, sjekklisteFremdrift, sisteProsjektaktivitet, type Sjekkpunkt, type Prosjektdel } from "../lib/vedlikeholdsprosjekt";
 import { hentDokumenter, lastOppDokument, dokumentLenke, type Dokument } from "../lib/dokumenter";
 import { dokumentNettlenke } from "../lib/dokument-nettlenke";
 
 const felt = "mt-1 w-full min-w-0 rounded-xl border border-stone-300 bg-white p-3 text-slate-900";
 const knapp = "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-stone-300 px-4 py-2 text-sm font-semibold disabled:opacity-50";
 const kort = "rounded-2xl border border-stone-200 bg-white/95 p-5 sm:p-6";
-type Utkast = { id: string; tekst: string; dato: string; filer: File[]; valg: string[] };
-const nyttUtkast = (): Utkast => ({ id: crypto.randomUUID(), tekst: "", dato: new Date().toLocaleDateString("sv-SE"), filer: [], valg: [] });
+type Utkast = { delId: string; oppgaveId?: string; id: string; tekst: string; dato: string; filer: File[]; valg: string[] };
+const nyttUtkast = (delId:string,oppgaveId?:string): Utkast => ({ delId,oppgaveId, id: crypto.randomUUID(), tekst: "", dato: new Date().toLocaleDateString("sv-SE"), filer: [], valg: [] });
 const harInnhold = (u: Utkast) => Boolean(u.tekst.trim() || u.filer.length || u.valg.length);
 
 export default function Vedlikeholdsprosjekt() {
@@ -32,6 +33,8 @@ function Prosjekt({ id }: { id: string }) {
   const [docs, setDocs] = useState<Dokument[]>([]);
   const [aktivDel, setAktivDel] = useState("");
   const [utkast, setUtkast] = useState<Record<string, Utkast>>({});
+  const [aktivOppgaveId,setAktivOppgaveId]=useState("");
+  const kamera=useRef<HTMLInputElement>(null),notatfelt=useRef<HTMLTextAreaElement>(null);
   const [arkiv, setArkiv] = useState(false);
   const [nyDel, setNyDel] = useState("");
   const [nyttRom, setNyttRom] = useState("");
@@ -50,7 +53,11 @@ function Prosjekt({ id }: { id: string }) {
   const logg = o ? prosjektLogg(o) : [];
   const rom = bolig ? lesAltOmBoligen(bolig).rom : [];
   const del = deler.find(d => d.id === aktivDel);
-  const kladd = utkast[aktivDel];
+  const utkastNokkel=JSON.stringify([aktivDel,aktivOppgaveId]);
+  const kladd = utkast[utkastNokkel];
+  const sjekkpunkter=del?del.oppgaver:o?prosjektOppgaver(o):[];
+  const fremdrift=sjekklisteFremdrift(o?[...prosjektOppgaver(o),...deler.flatMap(d=>d.oppgaver)]:[]);
+  const siste=o?sisteProsjektaktivitet(o):undefined;
   const ulagret = endret || Object.values(utkast).some(harInnhold);
   const poster = logg.filter(l => l.delId === aktivDel).sort((a, b) => b.dato.localeCompare(a.dato));
   const vedleggIder = new Set(poster.flatMap(l => l.dokumentIder));
@@ -86,38 +93,56 @@ function Prosjekt({ id }: { id: string }) {
   function endre(v: Partial<Vedlikeholdsdata>) { setO(g => g ? { ...g, ...v } : g); setEndret(true); setLagret(false); }
   function endreDel(v: Partial<Prosjektdel>) { if (del) endre({ prosjektDeler: deler.map(d => d.id === del.id ? { ...d, ...v } : d) }); }
   function kladdEndre(v: Partial<Utkast>) {
-    setUtkast(g => ({ ...g, [aktivDel]: { ...(g[aktivDel] || nyttUtkast()), ...v } })); setLagret(false);
+    setUtkast(g => ({ ...g, [utkastNokkel]: { ...(g[utkastNokkel] || nyttUtkast(aktivDel,aktivOppgaveId)), ...v } })); setLagret(false);
   }
   function velgDel(verdi: string) {
-    setAktivDel(verdi); setArkiv(false);
+    setAktivDel(verdi); setAktivOppgaveId(""); setArkiv(false);
     requestAnimationFrame(() => { omradeStart.current?.focus({ preventScroll: true }); if (window.innerWidth < 1024) omradeStart.current?.scrollIntoView({ block: "start" }); });
   }
   function leggTilDel() {
     const navn = nyDel.trim() || rom.find(r => r.id === nyttRom)?.navn || "";
     if (!navn) { setFeil("Gi delprosjektet et navn eller velg et rom."); return; }
     const id = crypto.randomUUID();
-    endre({ prosjektDeler: [...deler, { id, navn, beskrivelse: "", romIder: nyttRom ? [nyttRom] : [], oppgaver: [] }] });
+    endre({ prosjektDeler: [...deler, { id, navn, status:"planlagt", beskrivelse: "", romIder: nyttRom ? [nyttRom] : [], oppgaver: [] }] });
     setNyDel(""); setNyttRom(""); setVisNyDel(false); setFeil(""); velgDel(id);
   }
   function fjernDel() {
-    if (!del || logg.some(l => l.delId === del.id) || (utkast[del.id] && harInnhold(utkast[del.id]))) {
+    if (!del || logg.some(l => l.delId === del.id) || Object.values(utkast).some(u=>u.delId===del.id&&harInnhold(u))) {
       setFeil("Delprosjektet har dokumentasjon. Behold det for å ta vare på historikken."); return;
     }
     if (!window.confirm(uiText("Fjerne dette delprosjektet?"))) return;
     endre({ prosjektDeler: deler.filter(d => d.id !== del.id) }); velgDel("");
   }
+  function endreSjekkliste(v:Sjekkpunkt[]) {
+    const hovedAapnes=o?.status==="ferdig"&&v.some(t=>!t.ferdig);
+    if(del){
+      const aapne=delStatus(del)==="ferdig"&&v.some(t=>!t.ferdig);
+      const startet=delStatus(del)==="planlagt"&&v.some(t=>t.ferdig);
+      endre({...(hovedAapnes?{status:"pagar",ferdigdato:""}:{}),prosjektDeler:deler.map(d=>d.id===del.id?{...d,oppgaver:v,...(aapne?{status:"pagar" as const,ferdigdato:""}:startet?{status:"pagar" as const}:{})}:d)});
+    } else endre({prosjektOppgaver:v,...(hovedAapnes?{status:"pagar",ferdigdato:""}:o?.status==="planlagt"&&v.some(t=>t.ferdig)?{status:"pagar"}:{})});
+  }
+  function dokumenterPunkt(id:string){setAktivOppgaveId(id);requestAnimationFrame(()=>{notatfelt.current?.scrollIntoView({block:"center"});notatfelt.current?.focus({preventScroll:true});});}
+  function fjernPunkt(id:string){
+    if(logg.some(l=>l.delId===aktivDel&&l.oppgaveId===id)||Object.values(utkast).some(u=>u.delId===aktivDel&&u.oppgaveId===id&&harInnhold(u))){setFeil("Sjekkpunktet har dokumentasjon og kan ikke fjernes.");return;}
+    endreSjekkliste(sjekkpunkter.filter(t=>t.id!==id));if(aktivOppgaveId===id)setAktivOppgaveId("");
+  }
+  function endreDelstatus(status:"planlagt"|"pagar"|"ferdig"){
+    if(!del)return;
+    if(status==="ferdig"&&del.oppgaver.some(t=>!t.ferdig)&&!window.confirm(uiText("Noen sjekkpunkter gjenstår. Markere delprosjektet som ferdig likevel?")))return;
+    endreDel({status,ferdigdato:status==="ferdig"?new Date().toLocaleDateString("sv-SE"):""});
+  }
   async function lagre(status?: string) {
     if (!o || opptatt.current || !kan) return;
-    if (!String(o.tittel || "").trim() || deler.some(d => !d.navn.trim() || d.oppgaver.some(t => !t.tekst.trim()))) {
+    if (!String(o.tittel || "").trim() || prosjektOppgaver(o).some(t=>!t.tekst.trim()) || deler.some(d => !d.navn.trim() || d.oppgaver.some(t => !t.tekst.trim()))) {
       setFeil("Fyll inn prosjektnavn, navn på delprosjekter og eventuelle oppgaver."); return;
     }
     if (Object.values(utkast).some(u => harInnhold(u) && !u.dato)) { setFeil("Fyll inn dato på notatene før du lagrer."); return; }
-    if (status === "ferdig" && deler.some(d => d.oppgaver.some(t => !t.ferdig)) && !window.confirm(uiText("Noen oppgaver er ikke huket av. Vil du likevel fullføre prosjektet?"))) return;
+    if (status === "ferdig" && ([...prosjektOppgaver(o),...deler.flatMap(d=>d.oppgaver)].some(t=>!t.ferdig)||deler.some(d=>delStatus(d)!=="ferdig")) && !window.confirm(uiText("Noen oppgaver er ikke huket av. Vil du likevel fullføre prosjektet?"))) return;
     opptatt.current = true; setJobber(true); setFeil(""); setLagret(false);
     try {
       const nyePoster = [...logg];
       // Each draft belongs to its section, even when the user switches sections before saving.
-      for (const [delId, u] of Object.entries(utkast)) {
+      for (const u of Object.values(utkast)) {
         if (!harInnhold(u)) continue;
         const vedlegg = [...u.valg];
         for (const f of u.filer) {
@@ -128,9 +153,9 @@ function Prosjekt({ id }: { id: string }) {
           }
           vedlegg.push(filId);
         }
-        nyePoster.push({ id: u.id, delId, dato: u.dato, tekst: u.tekst.trim(), dokumentIder: [...new Set(vedlegg)] });
+        nyePoster.push({ id: u.id, delId:u.delId,oppgaveId:u.oppgaveId, dato: u.dato, tekst: u.tekst.trim(), dokumentIder: [...new Set(vedlegg)] });
       }
-      let ny: Vedlikeholdsdata = { ...o, prosjektDeler: deler, arbeidslogg: nyePoster, status: status || o.status, ferdigdato: status === "ferdig" ? new Date().toLocaleDateString("sv-SE") : o.ferdigdato };
+      let ny: Vedlikeholdsdata = { ...o, prosjektDeler: status==="ferdig"?deler.map(d=>({...d,status:"ferdig" as const,ferdigdato:d.ferdigdato||new Date().toLocaleDateString("sv-SE")})):deler, arbeidslogg: nyePoster, status: status || o.status, ferdigdato: status === "ferdig" ? new Date().toLocaleDateString("sv-SE") : o.ferdigdato };
       ny = await lagreVedlikeholdsprosjekt(ny);
       setO(ny); setEndret(false); setUtkast({}); opplastet.current.clear();
       if (ny.status === "ferdig" && ny.gjentakelse && ny.gjentakelse !== "aldri") await fullforVedlikeholdsoppgave(ny, { ferdigdato: ny.ferdigdato });
@@ -155,7 +180,7 @@ function Prosjekt({ id }: { id: string }) {
       <Link onClick={vedNavigering} href={`/vedlikehold${o ? "?bolig=" + encodeURIComponent(o.boligId) : ""}`} className="text-sm font-semibold text-emerald-900">← {uiText("Til vedlikeholdsplanen")}</Link>
       {laster ? <p className="py-10">{uiText("Laster prosjektet…")}</p> : o && <>
         <header className="mt-5 flex flex-wrap items-start justify-between gap-4 border-b border-stone-300 pb-5">
-          <div className="min-w-0"><p className="text-xs font-semibold text-emerald-900">{String(bolig?.adresse || "")} · {uiText(o.status === "ferdig" ? "Utført" : "Pågående prosjekt")}</p><h1 className="mt-2 break-words text-2xl font-bold sm:text-3xl">{String(o.tittel)}</h1></div>
+          <div className="min-w-0"><p className="text-xs font-semibold text-emerald-900">{String(bolig?.adresse || "")} · {uiText(o.status === "ferdig" ? "Utført" : "Pågående prosjekt")}</p><h1 className="mt-2 break-words text-2xl font-bold sm:text-3xl">{String(o.tittel)}</h1>{fremdrift.totalt>0&&<p className="mt-2 text-sm text-emerald-900">{uiFormat("{0} av {1} punkter ferdige",[fremdrift.ferdig,fremdrift.totalt])}</p>}</div>
           <Link onClick={vedNavigering} href={`/bolighistorikk?bolig=${encodeURIComponent(o.boligId)}`} className={knapp + " bg-white"}>{uiText("Historikk")} →</Link>
         </header>
         {!kan && <p className="mt-4 text-sm">{uiText("Du har lesetilgang til prosjektet.")}</p>}
@@ -178,16 +203,18 @@ function Prosjekt({ id }: { id: string }) {
                 <label className="block text-sm font-semibold">{uiText("Prosjektnavn")}<input className={felt} value={String(o.tittel || "")} onChange={e => endre({ tittel: e.target.value })} /></label>
                 <label className="mt-4 block text-sm font-semibold">{uiText("Om prosjektet")}<textarea className={felt} rows={4} value={String(o.notat || "")} placeholder={uiText("Hva skal gjøres, og hva ønsker du å oppnå?")} onChange={e => endre({ notat: e.target.value })} /></label>
               </fieldset>
+              {siste&&<section className={kort}><h3 className="font-bold">{uiText("Siste aktivitet")}</h3><p className="mt-2 text-xs text-slate-500">{siste.dato} · {deler.find(d=>d.id===siste.delId)?.navn||uiText("Hele prosjektet")}</p><p className="mt-2 line-clamp-2 break-words text-sm">{siste.tekst}</p><div className="mt-2 flex flex-wrap gap-2">{docs.filter(d=>siste.dokumentIder.includes(d.id)).slice(0,2).map(d=><HistorikkVedlegg key={d.id} dokument={d} onAapne={()=>void aapne(d)}/>)}</div>{siste.delId&&<button type="button" className="mt-2 min-h-11 text-sm font-semibold text-emerald-900" onClick={()=>velgDel(siste.delId)}>{uiText("Fortsett her")} →</button>}</section>}
               <section><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-bold">{uiText("Delprosjekter")}</h3>{kan && <button disabled={jobber} className={knapp + " bg-white"} onClick={() => setVisNyDel(v => !v)}>{uiText("+ Nytt delprosjekt")}</button>}</div>
                 {!deler.length && <p className="mt-3 text-sm text-slate-600">{uiText("En liten jobb? Bruk bilder og notater nedenfor. Ved større arbeid kan du legge til delprosjekter, for eksempel stue og kjøkken.")}</p>}
                 {visNyDel && <fieldset disabled={jobber} className={kort + " mt-4 min-w-0"}><label className="block text-sm">{uiText("Knytt til et rom (valgfritt)")}<select className={felt} value={nyttRom} onChange={e => setNyttRom(e.target.value)}><option value="">{uiText("Uten romtilknytning")}</option>{rom.map(r => <option key={r.id} value={r.id}>{r.navn}</option>)}</select></label><label className="mt-3 block text-sm">{uiText("Navn på delprosjekt")}<input className={felt} value={nyDel} placeholder={rom.find(r => r.id === nyttRom)?.navn || uiText("For eksempel stue")} onChange={e => setNyDel(e.target.value)} /></label><div className="mt-3 flex flex-wrap gap-2"><button className={knapp + " bg-emerald-900 text-white"} onClick={leggTilDel}>{uiText("Opprett delprosjekt")}</button><button className={knapp} onClick={() => setVisNyDel(false)}>{uiText("Avbryt")}</button></div></fieldset>}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">{deler.map(d => {
                   const tilknyttet = rom.filter(r => d.romIder.includes(r.id));
                   const bilder = new Set(logg.filter(l => l.delId === d.id).flatMap(l => l.dokumentIder));
-                  const bilde = docs.find(f => bilder.has(f.id) && erBildefil(f));
+                  const aktivitet=sisteProsjektaktivitet(o,d.id),fremdrift=sjekklisteFremdrift(d.oppgaver);
+                  const bilde = docs.find(f=>aktivitet?.dokumentIder.includes(f.id)&&erBildefil(f))||docs.find(f => bilder.has(f.id) && erBildefil(f));
                   return <button key={d.id} disabled={jobber} onClick={() => velgDel(d.id)} className="flex min-w-0 items-center gap-4 rounded-2xl border border-stone-200 bg-white p-4 text-left hover:border-emerald-700">
                     {bilde && <span className="shrink-0"><DokumentMiniatyr dokument={bilde} passiv onAapne={() => {}} /></span>}
-                    <span className="min-w-0 flex-1"><strong className="block break-words">{d.navn}</strong><span className="mt-1 block text-xs text-slate-600">{tilknyttet.map(r => r.navn).join(", ") || uiText("Hele boligen")}</span><span className="mt-2 block text-sm font-semibold text-emerald-900">{uiText("Bilder og notater")} →</span></span>
+                    <span className="min-w-0 flex-1"><strong className="block break-words">{d.navn}</strong><span className="mt-1 block text-xs font-semibold text-emerald-900">{uiText(o.status==="ferdig"||delStatus(d)==="ferdig"?"Ferdig":delStatus(d)==="pagar"?"Pågår":"Planlagt")}</span>{fremdrift.totalt>0&&<span className="mt-2 block text-xs">{uiFormat("{0} av {1} punkter ferdige",[fremdrift.ferdig,fremdrift.totalt])}</span>}{aktivitet&&<span className="mt-2 block line-clamp-2 break-words text-xs text-slate-600">{aktivitet.dato} · {aktivitet.tekst}</span>}<span className="mt-1 block text-xs text-slate-600">{tilknyttet.map(r => r.navn).join(", ") || uiText("Hele boligen")}</span><span className="mt-2 block text-sm font-semibold text-emerald-900">{uiText("Bilder og notater")} →</span></span>
                   </button>;
                 })}</div>
               </section>
@@ -195,11 +222,13 @@ function Prosjekt({ id }: { id: string }) {
               <label className="block text-sm font-semibold">{uiText("Navn på delprosjekt")}<input className={felt} value={del.navn} onChange={e => endreDel({ navn: e.target.value })} /></label>
               <label className="mt-4 block text-sm font-semibold">{uiText("Om delprosjektet")}<textarea className={felt} rows={3} value={del.beskrivelse || ""} placeholder={uiText("Hva skal gjøres her? Materialer, fremgangsmåte og viktige detaljer.")} onChange={e => endreDel({ beskrivelse: e.target.value })} /></label>
               <fieldset className="mt-4"><legend className="text-sm font-semibold">{uiText("Vis arbeidet på disse rommene")}</legend><div className="mt-2 flex flex-wrap gap-2">{rom.map(r => <label key={r.id} className="flex min-h-11 items-center gap-2 rounded-xl border border-stone-200 px-3 text-sm"><input type="checkbox" checked={del.romIder.includes(r.id)} onChange={e => endreDel({ romIder: e.target.checked ? [...del.romIder, r.id] : del.romIder.filter(id => id !== r.id) })} />{r.navn}</label>)}{del.romIder.filter(id => !rom.some(r => r.id === id)).map(id => <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked onChange={() => endreDel({ romIder: del.romIder.filter(v => v !== id) })} />{uiText("Fjernet rom – fjern tilknytningen før lagring")}</label>)}</div></fieldset>
-              <h3 className="mt-5 text-sm font-semibold">{uiText("Oppgaver (valgfritt)")}</h3>
-              <div className="mt-2 space-y-2">{del.oppgaver.map(t => <div key={t.id} className="flex items-center gap-2"><input aria-label={uiText("Utført")} type="checkbox" checked={t.ferdig} onChange={e => endreDel({ oppgaver: del.oppgaver.map(v => v.id === t.id ? { ...v, ferdig: e.target.checked } : v) })} /><input aria-label={uiText("Oppgave")} className={felt} value={t.tekst} onChange={e => endreDel({ oppgaver: del.oppgaver.map(v => v.id === t.id ? { ...v, tekst: e.target.value } : v) })} /><button className={knapp} onClick={() => endreDel({ oppgaver: del.oppgaver.filter(v => v.id !== t.id) })}>{uiText("Fjern")}</button></div>)}</div>
-              <div className="mt-3 flex flex-wrap gap-3"><button className={knapp} onClick={() => endreDel({ oppgaver: [...del.oppgaver, { id: crypto.randomUUID(), tekst: "", ferdig: false }] })}>{uiText("+ Legg til oppgave")}</button><button className="min-h-11 text-sm text-red-700" onClick={fjernDel}>{uiText("Fjern delprosjekt")}</button></div>
+              <h3 className="mt-5 text-sm font-semibold">{uiText("Delprosjekt")}</h3>
+              <button className="mt-3 min-h-11 text-sm text-red-700" onClick={fjernDel}>{uiText("Fjern delprosjekt")}</button>
             </fieldset></details></div>}
 
+            {kan&&<div className="flex flex-wrap gap-2"><button disabled={jobber} className={knapp+" bg-emerald-900 text-white"} onClick={()=>kamera.current?.click()}>{uiText("Ta bilde")}</button><button disabled={jobber} className={knapp+" bg-white"} onClick={()=>{notatfelt.current?.scrollIntoView({block:"center"});notatfelt.current?.focus({preventScroll:true});}}>{uiText("Legg til notat")}</button></div>}
+            {del&&<label className="block text-sm font-semibold">{uiText("Status for delprosjektet")}<select className={felt} disabled={!kan||jobber||o.status==="ferdig"} value={o.status==="ferdig"?"ferdig":delStatus(del)} onChange={e=>endreDelstatus(e.target.value as "planlagt"|"pagar"|"ferdig")}><option value="planlagt">{uiText("Planlagt")}</option><option value="pagar">{uiText("Pågår")}</option><option value="ferdig">{uiText("Ferdig")}</option></select></label>}
+            <Prosjektsjekkliste utkastIder={Object.values(utkast).filter(u=>u.delId===aktivDel&&harInnhold(u)).map(u=>u.oppgaveId||"")} oppgaver={sjekkpunkter} onChange={endreSjekkliste} onDokumenter={dokumenterPunkt} onFjern={fjernPunkt} logg={logg.filter(l=>l.delId===aktivDel)} dokumenter={docs} onAapne={d=>void aapne(d)} disabled={jobber} kanRedigere={kan}/>
             <section className={kort}>
               <h3 className="text-lg font-bold">{uiText(del ? "Bilder fra delprosjektet" : "Felles bilder")}</h3>
               <div className="mt-3 flex flex-wrap gap-3">{omradeDocs.filter(erBildefil).map(d => <HistorikkVedlegg key={d.id} dokument={d} onAapne={() => void aapne(d)} />)}</div>
@@ -207,10 +236,10 @@ function Prosjekt({ id }: { id: string }) {
               {omradeDocs.some(d => !erBildefil(d)) && <div className="mt-4 flex flex-wrap gap-2">{omradeDocs.filter(d => !erBildefil(d)).map(d => <HistorikkVedlegg key={d.id} dokument={d} onAapne={() => void aapne(d)} />)}</div>}
             </section>
             {kan && <fieldset disabled={jobber} className={kort + " min-w-0"}>
-              <h3 className="text-lg font-bold">{uiText("Legg til bilder og notat")}</h3><p className="mt-1 text-sm text-slate-600">{del ? del.navn : uiText("Hele prosjektet")}</p>
-              <textarea aria-label={uiText("Nytt loggnotat")} className={felt + " mt-3"} rows={3} placeholder={uiText("Hva har du gjort? Skriv gjerne hvordan det ble gjort.")} value={kladd?.tekst || ""} onChange={e => kladdEndre({ tekst: e.target.value })} />
+              <h3 className="text-lg font-bold">{uiText("Legg til bilder og notat")}</h3>{aktivOppgaveId&&<p className="mt-2 text-sm font-semibold text-emerald-900">{uiText("Sjekkpunkt")}: {sjekkpunkter.find(t=>t.id===aktivOppgaveId)?.tekst}<button type="button" className="ml-3 min-h-11 underline" onClick={()=>setAktivOppgaveId("")}>{uiText("Generelt notat")}</button></p>}<p className="mt-1 text-sm text-slate-600">{del ? del.navn : uiText("Hele prosjektet")}</p>
+              <textarea ref={notatfelt} aria-label={uiText("Nytt loggnotat")} className={felt + " mt-3"} rows={3} placeholder={uiText("Hva har du gjort? Skriv gjerne hvordan det ble gjort.")} value={kladd?.tekst || ""} onChange={e => kladdEndre({ tekst: e.target.value })} />
               <div className="mt-3 flex flex-wrap gap-2">
-                <label className={knapp + " cursor-pointer bg-emerald-50"}>{uiText("Ta bilde")}<input className="sr-only" type="file" accept="image/*" capture="environment" onChange={e => { kladdEndre({ filer: [...(kladd?.filer || []), ...Array.from(e.target.files || [])] }); e.target.value = ""; }} /></label>
+                <label className={knapp + " cursor-pointer bg-emerald-50"}>{uiText("Ta bilde")}<input ref={kamera} className="sr-only" type="file" accept="image/*" capture="environment" onChange={e => { kladdEndre({ filer: [...(kladd?.filer || []), ...Array.from(e.target.files || [])] }); e.target.value = ""; }} /></label>
                 <label className={knapp + " cursor-pointer"}>{uiText("Last opp bilder eller PDF")}<input className="sr-only" type="file" multiple accept="image/*,application/pdf" onChange={e => { kladdEndre({ filer: [...(kladd?.filer || []), ...Array.from(e.target.files || [])] }); e.target.value = ""; }} /></label>
                 <button className={knapp} onClick={() => setArkiv(v => !v)}>{uiText("Velg fra dokumentarkivet")}</button>
               </div>
@@ -220,7 +249,7 @@ function Prosjekt({ id }: { id: string }) {
             </fieldset>}
             <section className="space-y-3"><h3 className="text-lg font-bold">{uiText("Notater og dokumentasjon")}</h3>
               {!poster.length && <p className="text-sm text-slate-500">{uiText("Ingen notater her ennå.")}</p>}
-              {poster.map(l => <article key={l.id} className={kort}><p className="text-xs text-slate-500">{l.dato}</p>{kan ? <label className="mt-2 block text-sm">{uiText("Loggnotat")}<textarea disabled={jobber} className={felt} value={l.tekst} onChange={e => endre({ arbeidslogg: logg.map(v => v.id === l.id ? { ...v, tekst: e.target.value } : v) })} /></label> : <p className="mt-2 whitespace-pre-wrap break-words text-sm">{l.tekst}</p>}<div className="mt-3 flex flex-wrap gap-2">{docs.filter(d => l.dokumentIder.includes(d.id)).map(d => <HistorikkVedlegg key={d.id} dokument={d} onAapne={() => void aapne(d)} />)}</div></article>)}
+              {poster.map(l => <article key={l.id} className={kort}><p className="text-xs text-slate-500">{l.dato}{l.oppgaveId?" · "+sjekkpunkter.find(t=>t.id===l.oppgaveId)?.tekst:""}</p>{kan ? <label className="mt-2 block text-sm">{uiText("Loggnotat")}<textarea disabled={jobber} className={felt} value={l.tekst} onChange={e => endre({ arbeidslogg: logg.map(v => v.id === l.id ? { ...v, tekst: e.target.value } : v) })} /></label> : <p className="mt-2 whitespace-pre-wrap break-words text-sm">{l.tekst}</p>}<div className="mt-3 flex flex-wrap gap-2">{docs.filter(d => l.dokumentIder.includes(d.id)).map(d => <HistorikkVedlegg key={d.id} dokument={d} onAapne={() => void aapne(d)} />)}</div></article>)}
             </section>
           </div>
         </div>

@@ -1,5 +1,23 @@
 /** Manually maintained interface and built-in demo translations. */
 export const english: Record<string, string> = {
+  "Ulagret dokumentasjon": "Unsaved documentation",
+  "Delprosjekt": "Subproject",
+  "Sjekkliste": "Checklist",
+  "Fremdrift": "Progress",
+  "{0} av {1} punkter ferdige": "{0} of {1} items completed",
+  "Bilder og notat": "Photos and note",
+  "Sjekkpunkt": "Checklist item",
+  "Nytt sjekkpunkt": "New checklist item",
+  "For eksempel dekke til gulvet": "For example protect the floor",
+  "Ingen sjekkpunkter ennå.": "No checklist items yet.",
+  "Sjekkpunktet har dokumentasjon og kan ikke fjernes.": "This checklist item has documentation and cannot be removed.",
+  "Noen sjekkpunkter gjenstår. Markere delprosjektet som ferdig likevel?": "Some checklist items remain. Mark the subproject complete anyway?",
+  "Status for delprosjektet": "Subproject status",
+  "Siste aktivitet": "Latest activity",
+  "Fortsett her": "Continue here",
+  "Generelt notat": "General note",
+  "Legg til notat": "Add a note",
+
   "Ikke inkludert i felleskostnadene": "Not included in common charges",
   "Kontroller økonomibeløpene før du godkjenner forslagene.": "Check the financial amounts before approving the suggestions.",
   "Økonomi fra kildene": "Costs from your sources",
